@@ -1,7 +1,7 @@
-package battlecode2017.ver1;
+//package battlecode2017;
 import battlecode.common.*;
 
-public strictfp class RobotPlayer {
+public class RobotPlayer {
     public static void run(RobotController rc) throws GameActionException{
         switch(rc.getType()) {
             case ARCHON:

@@ -1,4 +1,4 @@
-package battlecode2017.ver1;
+//package battlecode2017;
 import battlecode.common.*;
 
 public class Scout {

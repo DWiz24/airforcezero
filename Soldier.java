@@ -8,7 +8,7 @@ public class Soldier {
         int testDest=1;
         MapLocation dest=initialEnemyLocs[0];
         float bugMinDist=99999;
-        Direction prevmove=null;
+        int bugTree=-1;
         boolean bugging=false;
         while(true){
             if (rc.getLocation().distanceTo(dest)<3) {
@@ -21,7 +21,11 @@ public class Soldier {
                 }
             }
             Direction toDest=rc.getLocation().directionTo(dest);
+            if (!bugging && rc.canMove(toDest)) {
+                rc.move(toDest);
+            } else {
 
+            }
             Clock.yield();
         }
     }

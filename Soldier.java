@@ -70,8 +70,8 @@ public class Soldier {
                         bugging=false;
                     } else {
                         float distBtw=rc.getLocation().distanceTo(following.getLocation());
-                        float cosp=((following.getRadius()+1)*(following.getRadius()+1)-4-distBtw*distBtw)/(-2*distBtw);
-                        System.out.println(cosp);
+                        float cosp=((following.getRadius()+1)*(following.getRadius()+1)-4-distBtw*distBtw)/(-4*distBtw);
+                        //System.out.println(cosp);
                         float f=(float)Math.acos(cosp);
                         Direction ndir=new Direction(rc.getLocation().directionTo(following.getLocation()).radians-0.005f-f);
                         //System.out.println(f);

@@ -1,4 +1,4 @@
-//package battlecode2017;
+package airforcezero;
 import battlecode.common.*;
 
 public class Tank {

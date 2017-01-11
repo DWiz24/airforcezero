@@ -8,8 +8,6 @@ public class Archon {
         rc.hireGardener(Direction.getEast());
         else rc.hireGardener(Direction.getWest());
         while(true){
-<<<<<<< HEAD
-=======
         	int round = rc.getRoundNum();
         	System.out.println("This is round" + round);
         	int addLoc = 0;
@@ -35,7 +33,6 @@ public class Archon {
         		rc.move(ran);
         	}
         	//else if( build < )
->>>>>>> origin/master
             Clock.yield();
         }
     }

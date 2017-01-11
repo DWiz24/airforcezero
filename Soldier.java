@@ -13,6 +13,7 @@ public class Soldier {
         boolean treeOrNot = false;
         boolean bugging = false;
         while (true) {
+            //System.out.println(bugging);
             TreeInfo[] trees = rc.senseNearbyTrees();
             RobotInfo[] robots=rc.senseNearbyRobots();
             float distToDest = rc.getLocation().distanceTo(dest);
@@ -30,10 +31,11 @@ public class Soldier {
                 if (rc.canMove(toDest)) {
                     rc.move(toDest);
                 } else {
+                    //System.out.println("lol");
                     bugging = true;
                     bugMinDist = distToDest;
                     MapLocation move = rc.getLocation().add(toDest, 2);
-                    float closest = 999;
+                    float closest = 999f;
                     for (int i = trees.length - 1; i >= 0; i--) {
                         TreeInfo thisTree = trees[i];
                         float dist = thisTree.location.distanceTo(rc.getLocation());
@@ -68,9 +70,14 @@ public class Soldier {
                         bugging=false;
                     } else {
                         float distBtw=rc.getLocation().distanceTo(following.getLocation());
-                        Direction ndir=new Direction(rc.getLocation().directionTo(following.getLocation()).radians-0.0001f-(float)Math.acos((distBtw*distBtw+4-(following.getRadius()+1)*(following.getRadius()+1))));
+                        float cosp=((following.getRadius()+1)*(following.getRadius()+1)-4-distBtw*distBtw)/(-2*distBtw);
+                        System.out.println(cosp);
+                        float f=(float)Math.acos(cosp);
+                        Direction ndir=new Direction(rc.getLocation().directionTo(following.getLocation()).radians-0.005f-f);
+                        //System.out.println(f);
                         if (rc.canMove(ndir)) {
                             rc.move(ndir);
+
                         } else {
                             bugging = true;
                             bugMinDist = distToDest;

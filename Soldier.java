@@ -30,12 +30,14 @@ public class Soldier {
             }
         }
         static MapLocation nav(RobotController rc, TreeInfo[] trees, RobotInfo[] robots) throws GameActionException {
-            if (rc.getLocation().distanceTo(dest)<=3) {
+            if (rc.getLocation().distanceTo(dest)<=4) {
                 pickDest();
             }
+            Direction toDest = rc.getLocation().directionTo(dest);
+            float distToDest = rc.getLocation().distanceTo(dest);
+            bugMinDist=Math.min(bugMinDist,distToDest);
             while (true) {
-                Direction toDest = rc.getLocation().directionTo(dest);
-                float distToDest = rc.getLocation().distanceTo(dest);
+
                 if (!bugging) {
                     if (rc.canMove(toDest)) {
                         return rc.getLocation().add(toDest, 2);
@@ -66,9 +68,7 @@ public class Soldier {
                             }
                         }
                         if (closest == 999f) {
-                            bugging = false;
                             pickDest();
-                            return nav(rc, trees, robots);
                         }
                     }
                 }
@@ -80,23 +80,32 @@ public class Soldier {
                         return rc.getLocation().add(toDest, 2);
                     } else {
                         BodyInfo following = treeOrNot ? (rc.canSenseTree(bugTree) ? rc.senseTree(bugTree) : null) : (rc.canSenseRobot(bugTree) ? rc.senseRobot(bugTree) : null);
+
                         if (following == null || following.getLocation() != prevLoc) {
                             bugging = false;
                         } else {
+                            if (left) {
+                                rc.setIndicatorDot(following.getLocation(),0,0,0);
+                            } else {
+                                rc.setIndicatorDot(following.getLocation(),255,255,255);
+                            }
                             float distBtw = rc.getLocation().distanceTo(following.getLocation());
                             float cosp = ((following.getRadius() + 1) * (following.getRadius() + 1) - 4 - distBtw * distBtw) / (-4 * distBtw);
                             float f = (float) Math.acos(cosp);
-                            Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians - 0.005f - f);
-                            if (!rc.onTheMap(rc.getLocation().add(ndir, 2))) {
-                                pickDest();
-                                continue;
-                            }
-                            if (rc.canMove(ndir)) {
-                                return rc.getLocation().add(ndir, 2);
+                            Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.005f:f + 0.005f));
+                            MapLocation theMove=rc.getLocation().add(ndir, 2);
+                            if (!rc.onTheMap(theMove)) {
+                                if (hitWall) {
+                                    System.out.println("YAYY!");
+                                    pickDest();
+                                } else {
+                                    hitWall=true;
+                                    left=!left;
+                                }
+                            } else if (rc.canMove(ndir)) {
+                                return theMove;
                             } else {
                                 bugging = true;
-                                int prevBugTree = bugTree;
-                                bugMinDist = distToDest;
                                 MapLocation move = rc.getLocation().add(ndir, 2);
                                 float closest = 999;
                                 for (int i = trees.length - 1; i >= 0; i--) {
@@ -119,10 +128,7 @@ public class Soldier {
                                         prevLoc = thisTree.location;
                                     }
                                 }
-                                if (closest == 999f) {
-                                    bugging = false;
-                                }
-                                if (bugging && prevBugTree == bugTree) System.out.println("HOLD UP");
+                                //if (bugging && prevBugTree == bugTree) System.out.println("HOLD UP");
                             }
                         }
                     }
@@ -131,6 +137,7 @@ public class Soldier {
         }
         static void pickDest() {
         bugging=false;
+        bugMinDist=9999;
             if (testDest-initialEnemyLocs.length==initialFriendLocs.length) testDest=0;
             if (testDest >= initialEnemyLocs.length) {
 

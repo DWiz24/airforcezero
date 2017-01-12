@@ -9,7 +9,7 @@ public class Archon {
         else rc.hireGardener(Direction.getWest());
         while(true){
         	int round = rc.getRoundNum();
-        	System.out.println("This is round" + round);
+        	//System.out.println("This is round" + round);
         	int addLoc = 0;
         	Direction build = null;
         	RobotInfo[] nearRobot = rc.senseNearbyRobots();

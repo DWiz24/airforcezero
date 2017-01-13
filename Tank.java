@@ -7,4 +7,7 @@ public class Tank {
             Clock.yield();
         }
     }
+    public static void pickDest() {
+    	
+    }
 }

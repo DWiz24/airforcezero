@@ -1,6 +1,6 @@
 package airforcezero;
 import battlecode.common.*;
-
+import java.util.*;
 public class Lumberjack {
     //global stuff
     private static final int MIN_GARDENER_RANGE = 2, MAX_GARDENER_RANGE = 6;    //if protecting gardeners, will try to stay between these distances away from them

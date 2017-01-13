@@ -9,6 +9,7 @@ public class Gardener {
         	int whichRobot = 0;
         	boolean buildTree = true;
     		Direction[] dirs={Direction.getNorth(),Direction.getSouth(),Direction.getEast(),Direction.getWest()};
+    		//I potato
     		for(Direction place:dirs){
     			if(rc.canPlantTree(place) && rc.isBuildReady() && buildTree) {
     				rc.plantTree(place);

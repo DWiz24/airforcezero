@@ -1,25 +1,30 @@
 package airforcezero;
 import battlecode.common.*;
-
+import java.util.Random;
 public class Gardener {
     public static void run(RobotController rc) throws GameActionException {
         while(true){
-        	System.out.println("works");
+        	
         	RobotType[] canBuild = {RobotType.SOLDIER, RobotType.LUMBERJACK, RobotType.TANK, RobotType.SCOUT};
         	int whichRobot = 0;
-        	boolean buildTree = true;
-    		Direction[] dirs={Direction.getNorth(),Direction.getSouth(),Direction.getEast(),Direction.getWest()};
-    		//I potato
+        	Random random = new Random();
+        	boolean buildTree = random.nextBoolean();
+        	MapLocation here = rc.getLocation();
+        	float x = here.x;
+        	float y = here.y;;
+    		Direction[] dirs={Direction.getNorth(),Direction.getSouth(),Direction.getEast(),Direction.getWest(), new Direction(here, new MapLocation(x+1, y+1))};
+    		
+    		
     		for(Direction place:dirs){
     			if(rc.canPlantTree(place) && rc.isBuildReady() && buildTree) {
+    				System.out.println("about to build tree");
     				rc.plantTree(place);
-    				buildTree = false;
     			}
-    			if(rc.canBuildRobot(canBuild[whichRobot], place) && rc.isBuildReady()) {
-    				System.out.println("about to build");
+    			if(rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {
+    				System.out.println("about to build solider");
     				rc.buildRobot(canBuild[whichRobot], place);
-    				buildTree = true;
     			}
+    			//buildTree = !buildTree;
     		}
   
             Clock.yield();

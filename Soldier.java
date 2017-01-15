@@ -30,12 +30,20 @@ public class Soldier {
                     enemy[++enemies]=r;
                 }
             }
-            Nav.soldierNav(rc,trees,robots);
+            if (enemies!=0 || bullets.length!=0) {
+                toMove=micro(rc,trees,friend,friends,enemy,enemies,bullets);
+            } else {
+                Nav.soldierNav(rc, trees, robots);
+            }
             rc.move(toMove);
             Clock.yield();
             }
         }
     static void pickDest() {
         Nav.setDest(rc.getLocation().add(new Direction((float)(Math.random()*Math.PI*2)),12));
+    }
+    static MapLocation micro(RobotController rc, TreeInfo[] trees, RobotInfo[] friend, int friends, RobotInfo[] enemy, int enemies, BulletInfo[] bullets) {
+
+        return null;
     }
 }

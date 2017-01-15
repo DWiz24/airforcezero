@@ -4,6 +4,8 @@ import battlecode.common.*;
 import java.util.Random;
 import java.lang.Math;
 
+import java.util.*;
+
 public class Lumberjack {
     //global stuff
     private static final int MIN_GARDENER_RANGE = 2, MAX_GARDENER_RANGE = 6;    //if protecting gardeners, will try to stay between these distances away from them
@@ -437,4 +439,11 @@ public class Lumberjack {
             }
         }
     }
+<<<<<<< HEAD
 }
+=======
+    public static void pickDest() {
+    	
+    }
+}
+>>>>>>> af036db9ade9fc7fad91f3dbe279f71147a55012

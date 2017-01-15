@@ -210,120 +210,6 @@ public class Lumberjack {
             }
         }
     }
-    private static boolean approachDestStupid(RobotController rc) throws GameActionException{   //returns true if further movement not required (reached location or can not move further)
-        // sort of like zombie code from last year
-        MapLocation dest = dest1;
-        if(dest2 != null)
-            dest = dest2;
-
-        //debug
-        if(rc.getTeam() == Team.A)
-            rc.setIndicatorDot(dest, 255, 0, 0);
-        else
-            rc.setIndicatorDot(dest, 0, 0, 255);
-
-        MapLocation myLocation = rc.getLocation();
-        Direction d = myLocation.directionTo(dest);
-        if(d == null){
-            if(dest2 != null){
-                dest2 = null;
-                System.out.print("\nReached my off-route destination!");
-                return false;
-            }
-            System.out.print("\nReached my destination!");
-            return true;
-        }
-        if(rc.getLocation().distanceTo(dest) < RobotType.LUMBERJACK.strideRadius && rc.canMove(dest)){
-            rc.move(dest);
-            if(dest2 != null){
-                dest2 = null;
-                System.out.print("\nReached my off-route destination!");
-                return false;
-            }
-            System.out.print("\nReached my destination!");
-            return true;
-        }
-        if(rc.canMove(d)){
-            rc.move(d);
-            return false;
-        }
-        if(myLocation.distanceTo(dest) <= GameConstants.NEUTRAL_TREE_MAX_RADIUS + RobotType.LUMBERJACK.bodyRadius){
-            if(dest2 != null){
-                dest2 = null;
-                System.out.print("\nReached my off-route destination, but it is occupied!");
-                return false;
-            }
-            System.out.print("\nReached my destination, but it is occupied!");
-            return true;
-        }
-        else{
-            Direction dLeft = d.rotateLeftDegrees(45);
-            Direction dRight = d.rotateRightDegrees(45);
-            if(rc.canMove(dLeft)){rc.move(dLeft); return false;}
-            else if(rc.canMove(dRight)){rc.move(dRight); return false;}
-        }
-        //can't go further - stuck
-        System.out.print("I am stuck! Picking an off-route destination to my ");
-        Direction newd;
-        if(rng.nextInt(2) == 0){
-            newd = d.rotateLeftDegrees(90);
-            System.out.print("left.");
-        }
-        else{
-            newd = d.rotateRightDegrees(90);
-            System.out.print("right.");
-        }
-        dest2 = myLocation.add(newd, 10);
-        return approachDestStupid(rc);
-    }
-    private static void updateTreeTarget(RobotController rc) throws GameActionException{
-        if (isIdle) {
-            if(prevTreeNext != treeNext) {
-                isIdle = false;
-                int target;
-                target = rc.readBroadcast(prevTreeNext);
-                System.out.print("\nTree update in the array sensed. Becoming active and going after tree at " + target);
-                if(target != 0) {
-                    treeChannel = prevTreeNext;
-                    dest1 = new MapLocation(target / 1000, target % 1000);
-                    dest2 = null;
-                }
-            }
-        }
-        else{
-            int diff = treeNext - treeChannel;
-            if(rc.readBroadcast(treeChannel) == 0){
-                treeID = -1;
-                if(rc.readBroadcast(treeNext) == 0 && (diff == 1 || diff == -13)){
-                    System.out.print("\nTree target was removed and no other targets detected. Becoming idle.");
-                    isIdle = true;
-                    if(stayNear){
-                        dest1 = prevGardenerPos;
-                    }
-                    else{
-                        dest1 = rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float)Math.PI), 10);
-                    }
-                }
-                else{
-                    int position = treeChannel + 1;
-                    int newTree = -1;
-                    for(int i = 0; i < 15; i++){    //prevents infinite loops
-                        if(position == 30)
-                            position = 16;
-                            
-                        newTree = rc.readBroadcast(position);
-                        if(newTree != 0)
-                            break;
-                        
-                        position++;
-                    }
-                    System.out.print("\nTree target was removed. Going after tree at " + newTree);
-                    treeChannel = position;
-                    dest1 = new MapLocation(newTree/1000, newTree%1000);
-                }
-            }
-        }
-    }
     private static void reportTreesInRange(RobotController rc) throws GameActionException{
         if (enemyTreeCount + neutralTreeCount > 0) {
             TreeInfo target = null;
@@ -353,7 +239,7 @@ public class Lumberjack {
             if (firstRound || !isIdle) {  //the beginning of the game, or trees already in array
                 for (int i = 16; i < 30; i++) {
                     int existingTreeVal = rc.readBroadcast(i);
-                    for (int i2 = 0; i2 < toReportIndex.length; i++) {
+                    for (int i2 = 0; i2 < toReportIndex.length; i2++) {
                         Integer newTreeVal = toReportIndex[i2];
                         if (newTreeVal != null) {
                             if (newTreeVal == existingTreeVal)
@@ -413,6 +299,54 @@ public class Lumberjack {
         if(a - base > 0.5)
             return base+1;
         return base;
+    }
+    private static void updateTreeTarget(RobotController rc) throws GameActionException{
+        if (isIdle) {
+            if(prevTreeNext != treeNext) {
+                isIdle = false;
+                int target;
+                target = rc.readBroadcast(prevTreeNext);
+                System.out.print("\nTree update in the array sensed. Becoming active and going after tree at " + target);
+                if(target != 0) {
+                    treeChannel = prevTreeNext;
+                    dest1 = new MapLocation(target / 1000, target % 1000);
+                    dest2 = null;
+                }
+            }
+        }
+        else{
+            int diff = treeNext - treeChannel;
+            if(rc.readBroadcast(treeChannel) == 0){
+                treeID = -1;
+                if(rc.readBroadcast(treeNext) == 0 && (diff == 1 || diff == -13)){
+                    System.out.print("\nTree target was removed and no other targets detected. Becoming idle.");
+                    isIdle = true;
+                    if(stayNear){
+                        dest1 = prevGardenerPos;
+                    }
+                    else{
+                        dest1 = rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float)Math.PI), 10);
+                    }
+                }
+                else{
+                    int position = treeChannel + 1;
+                    int newTree = -1;
+                    for(int i = 0; i < 15; i++){    //prevents infinite loops
+                        if(position == 30)
+                            position = 16;
+
+                        newTree = rc.readBroadcast(position);
+                        if(newTree != 0)
+                            break;
+
+                        position++;
+                    }
+                    System.out.print("\nTree target was removed. Going after tree at " + newTree);
+                    treeChannel = position;
+                    dest1 = new MapLocation(newTree/1000, newTree%1000);
+                }
+            }
+        }
     }
     private static void moveAndChop(RobotController rc) throws GameActionException{
         if(isIdle){
@@ -483,6 +417,72 @@ public class Lumberjack {
                 }
             }
         }
+    }
+    private static boolean approachDestStupid(RobotController rc) throws GameActionException{   //returns true if further movement not required (reached location or can not move further)
+        // sort of like zombie code from last year
+        MapLocation dest = dest1;
+        if(dest2 != null)
+            dest = dest2;
+
+        //debug
+        if(rc.getTeam() == Team.A)
+            rc.setIndicatorDot(dest, 255, 0, 0);
+        else
+            rc.setIndicatorDot(dest, 0, 0, 255);
+
+        MapLocation myLocation = rc.getLocation();
+        Direction d = myLocation.directionTo(dest);
+        if(d == null){
+            if(dest2 != null){
+                dest2 = null;
+                System.out.print("\nReached my off-route destination!");
+                return false;
+            }
+            System.out.print("\nReached my destination!");
+            return true;
+        }
+        if(rc.getLocation().distanceTo(dest) < RobotType.LUMBERJACK.strideRadius && rc.canMove(dest)){
+            rc.move(dest);
+            if(dest2 != null){
+                dest2 = null;
+                System.out.print("\nReached my off-route destination!");
+                return false;
+            }
+            System.out.print("\nReached my destination!");
+            return true;
+        }
+        if(rc.canMove(d)){
+            rc.move(d);
+            return false;
+        }
+        if(myLocation.distanceTo(dest) <= GameConstants.NEUTRAL_TREE_MAX_RADIUS + RobotType.LUMBERJACK.bodyRadius){
+            if(dest2 != null){
+                dest2 = null;
+                System.out.print("\nReached my off-route destination, but it is occupied!");
+                return false;
+            }
+            System.out.print("\nReached my destination, but it is occupied!");
+            return true;
+        }
+        else{
+            Direction dLeft = d.rotateLeftDegrees(45);
+            Direction dRight = d.rotateRightDegrees(45);
+            if(rc.canMove(dLeft)){rc.move(dLeft); return false;}
+            else if(rc.canMove(dRight)){rc.move(dRight); return false;}
+        }
+        //can't go further - stuck
+        System.out.print("I am stuck! Picking an off-route destination to my ");
+        Direction newd;
+        if(rng.nextInt(2) == 0){
+            newd = d.rotateLeftDegrees(90);
+            System.out.print("left.");
+        }
+        else{
+            newd = d.rotateRightDegrees(90);
+            System.out.print("right.");
+        }
+        dest2 = myLocation.add(newd, 10);
+        return approachDestStupid(rc);
     }
     public static void pickDest() {
     	

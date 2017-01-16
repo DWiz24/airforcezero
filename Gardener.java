@@ -6,12 +6,12 @@ public class Gardener {
         while(true){
         	
         	RobotType[] canBuild = {RobotType.SOLDIER, RobotType.LUMBERJACK, RobotType.TANK, RobotType.SCOUT};
-        	int whichRobot = 0;
+        	int whichRobot = 1;
         	Random random = new Random();
         	boolean buildTree = random.nextBoolean();
         	MapLocation here = rc.getLocation();
         	float x = here.x;
-        	float y = here.y;;
+        	float y = here.y;
     		Direction[] dirs={Direction.getNorth(),Direction.getSouth(),Direction.getEast(),Direction.getWest(), new Direction(here, new MapLocation(x+1, y+1))};
     		
     		

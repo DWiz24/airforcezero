@@ -22,7 +22,8 @@ public class Soldier {
             int friends = -1;
             RobotInfo[] enemy = new RobotInfo[robots.length];
             int enemies = -1;
-            for (int i = robots.length - 1; i >= 0; i--) {
+            int len=robots.length;
+            for (int i = 0; i <len; i++) {
                 RobotInfo r = robots[i];
                 //if (r.team==Team.NEUTRAL) System.out.println("NEUTRAL DETECTED");
                 if (r.team == rc.getTeam()) {
@@ -54,8 +55,15 @@ public class Soldier {
 
     static void shootOrMove(RobotController rc, MapLocation toMove, TreeInfo[] trees, RobotInfo[] enemy, int enemies, RobotInfo[] friend, int friends, BulletInfo[] bullets) throws GameActionException {
         rc.move(toMove);
+
+
         if (rc.canFireSingleShot()) {
             MapLocation cur = toMove;
+            trees=rc.senseNearbyTrees();
+            enemy=rc.senseNearbyRobots(-1,rc.getTeam().opponent());
+            enemies=enemy.length-1;
+            friend=rc.senseNearbyRobots(-1,rc.getTeam());
+            friends=friend.length-1;
             BodyInfo[] avoid = new BodyInfo[trees.length + friends + 1];
             int avoids = -1;
             int friendpos = 0;
@@ -87,7 +95,7 @@ public class Soldier {
             Direction[] dirs = new Direction[avoids + 1];
             for (int i = avoids; i >= 0; i--) {
                 dists[i] = cur.distanceTo(avoid[i].getLocation());
-                thetas[i] = (float) Math.asin(avoid[i].getRadius() / dists[avoids]);
+                thetas[i] = (float) Math.asin(avoid[i].getRadius() / dists[i]);
                 dirs[i] = cur.directionTo(avoid[i].getLocation());
             }
             for (int t = 0; t <= enemies; t++) {
@@ -97,22 +105,31 @@ public class Soldier {
                 Direction dir = toMove.directionTo(target.location);
                 Direction a1 = dir.rotateLeftRads(theta);
                 Direction a2 = dir.rotateRightRads(theta);
+                //rc.setIndicatorLine(toMove,toMove.add(a1,2),0,0,255);
+                //rc.setIndicatorLine(toMove,toMove.add(a2,2),0,0,255);
                 boolean valid = true;
                 for (int i = 0; i < avoids; i++) {
-                    if (d < dists[i]) break;
-                    boolean a1contained = Math.abs(a1.radiansBetween(dirs[i])) < thetas[i];
-                    boolean a2contained = Math.abs(a2.radiansBetween(dirs[i])) < thetas[i];
-                    if (a1contained && a2contained) {
+                    if (d + 3< dists[i]) break;
+                    rc.setIndicatorDot(avoid[i].getLocation(),255,0,0);
+                    boolean a1contained = Math.abs(a1.radiansBetween(dirs[i])) <= thetas[i];
+                    boolean a2contained = Math.abs(a2.radiansBetween(dirs[i])) <= thetas[i];
+                    if (a1contained && a2contained || a1.radiansBetween(a2)>=0) {
                         valid = false;
                         break;
                     } else if (a1contained) {
-                        a1 = dirs[i].rotateRightRads(thetas[i]);
+                        a1 = dirs[i].rotateRightRads(thetas[i]+0.0001f);
                     } else if (a2contained) {
-                        a2 = dirs[i].rotateLeftRads(thetas[i]);
+                        a2 = dirs[i].rotateLeftRads(thetas[i]+0.0001f);
                     }
                 }
                 if (valid) {
-                    rc.fireSingleShot(a1.rotateRightDegrees(a2.degreesBetween(a1)/2.0f));
+                    //rc.setIndicatorDot(target.location,0,255,0);
+                    rc.setIndicatorLine(toMove,toMove.add(a1.rotateRightDegrees(a2.degreesBetween(a1)/2.0f),8),0,0,255);
+                    if (d<3 && rc.canFirePentadShot()) {
+                        rc.firePentadShot(a1.rotateRightDegrees(a2.degreesBetween(a1)/2.0f));
+                    }else {
+                        rc.fireSingleShot(a1.rotateRightDegrees(a2.degreesBetween(a1) / 2.0f));
+                    }
                     break;
                 }
             }

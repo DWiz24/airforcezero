@@ -30,11 +30,12 @@ public class Soldier {
                     enemy[++enemies]=r;
                 }
             }
-            if (enemies!=0 || bullets.length!=0) {
+            if (enemies!=-1 || bullets.length!=0) {
                 toMove=micro(rc,trees,friend,friends,enemy,enemies,bullets);
             } else {
                 Nav.soldierNav(rc, trees, robots);
             }
+            shootOrMove(rc,toMove,trees,enemy, enemies,friend, friends, bullets);
             rc.move(toMove);
             Clock.yield();
             }
@@ -44,6 +45,6 @@ public class Soldier {
     }
     static MapLocation micro(RobotController rc, TreeInfo[] trees, RobotInfo[] friend, int friends, RobotInfo[] enemy, int enemies, BulletInfo[] bullets) {
 
-        return null;
+        return rc.getLocation();
     }
 }

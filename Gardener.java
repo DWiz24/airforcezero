@@ -14,19 +14,19 @@ public class Gardener {
         	float y = here.y;
     		Direction[] dirs={Direction.getNorth(),Direction.getSouth(),Direction.getEast(),Direction.getWest(), new Direction(here, new MapLocation(x+1, y+1))};
     		
-    		
-    		for(Direction place:dirs){
-    			if(rc.canPlantTree(place) && rc.isBuildReady() && buildTree) {
-    				System.out.println("about to build tree");
-    				rc.plantTree(place);
-    			}
-    			if(rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {
-    				System.out.println("about to build solider");
-    				rc.buildRobot(canBuild[whichRobot], place);
-    			}
-    			//buildTree = !buildTree;
-    		}
-  
+    		if (rc.isBuildReady()) {
+				for (Direction place : dirs) {
+					if (rc.canPlantTree(place) && rc.isBuildReady() && buildTree) {
+						System.out.println("about to build tree");
+						rc.plantTree(place);
+					}
+					if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {
+						System.out.println("about to build solider");
+						rc.buildRobot(canBuild[whichRobot], place);
+					}
+					buildTree = !buildTree;
+				}
+			}
             Clock.yield();
         }
     }

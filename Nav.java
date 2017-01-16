@@ -134,6 +134,13 @@ class Nav {
         if (dest==null||rc.getLocation().distanceTo(dest)<=4) {
             Lumberjack.pickDest();
         }
+
+        //debug
+        if(rc.getTeam() == Team.A)
+            rc.setIndicatorDot(dest, 255, 0, 0);
+        else
+            rc.setIndicatorDot(dest, 0, 0, 255);
+
         Direction toDest = rc.getLocation().directionTo(dest);
         float distToDest = rc.getLocation().distanceTo(dest);
         if (distToDest<bugMinDist) {

@@ -8,8 +8,9 @@ public class Lumberjack {
     //global stuff
     private static final int MIN_GARDENER_RANGE = 2, MAX_GARDENER_RANGE = 6;    //if protecting gardeners, will try to stay between these distances away from them
 
+    private static RobotController rc;
     private static Random rng;
-    private static MapLocation dest1, dest2, prevGardenerPos;   //main and off-route destinations
+    private static MapLocation prevGardenerPos, treeLoc;   //main and off-route destinations
 
     private static int prevTreeNext, treeNext, treeChannel, treeID;
     private static boolean stayNear, isIdle, foundGardener, firstRound;
@@ -48,24 +49,16 @@ public class Lumberjack {
                     -Continue exploring
             -Else:
                 -Update dest to next tree in array
-     //Moving block
-     -If idle:
-        -If staying near gardeners:
-            -If looking for a gardener:
-                -If moving reaches location:
-                    -Pick new faraway location
-            -Else (near gardener):
-                -Move accordingly
-        -Else (exploring):
-            -If moving reaches location:
-                -Pick new faraway location
-     -Else (active):
-        -If tree id is known:
-            -Chop the tree
-        -Else:
-            -If moving reaches destination (tree):
-                -Find the tree
-                -Chop it
+    //Moving block
+    -If idle, staying near gardeners, and near gardener:
+        -Stay in range
+    -Else if active and tree id is known:
+        -Chop the tree
+    -Else:
+        -Move
+        -If active and moving reaches tree:
+            -Find the tree
+            -Chop it
 
     -TODO:
     -(Important) running away
@@ -75,62 +68,66 @@ public class Lumberjack {
     -strategic determination of which trees to chop
     -combat (if necessary)
     */
-    public static void run(RobotController rc) throws GameActionException {
-        System.out.print("\nI am a lumberjack!");
-        rng = new Random(rc.getID());
-        dest1 = null;
-        dest2 = null;
-        prevGardenerPos = rc.getInitialArchonLocations(rc.getTeam())[0];
-        treeChannel = -1;
-        treeNext = rc.readBroadcast(15);
-        if(treeNext == 0) { //in case this is the first lumberjack, set the index to default
-            rc.broadcast(15, 16);
-            treeNext = 16;
-        }
-        prevTreeNext = treeNext-1;
-        if(prevTreeNext == 15)
-            prevTreeNext = 16;
-        treeID = -1;
-        firstRound = true;
-        stayNear = false; //near gardeners or exploring
-        isIdle = true;   //whether the lumberjacks have trees to chop
-        if(rc.getID() % 3 == 0) {
-            stayNear = true;
-            System.out.print("\nI protect gardeners.");
-        }
-        else{
-            System.out.print("\nI explore.");
-        }
-
-        //code below repeats every turn
-        while(true) {
-            //updating info about robots and trees around me
-            updateInfo(rc);
-            prevTreeNext = treeNext;
+    public static void run(RobotController rcArg){
+        try {
+            System.out.print("\nI am a lumberjack!");
+            rc = rcArg;
+            rng = new Random(rc.getID());
+            prevGardenerPos = rc.getInitialArchonLocations(rc.getTeam())[0];
+            treeLoc = null;
+            treeChannel = -1;
             treeNext = rc.readBroadcast(15);
-
-            //check trees
-            reportTreesInRange(rc);
-
-            //gardener update
-            foundGardener = false;
-            if (stayNear && friendlyGardenerCount > 0) {
-                foundGardener = true;
-                prevGardenerPos = friendlyGardeners[0].location;
+            if (treeNext == 0) { //in case this is the first lumberjack, set the index to default
+                rc.broadcast(15, 16);
+                treeNext = 16;
+            }
+            prevTreeNext = treeNext - 1;
+            if (prevTreeNext == 15)
+                prevTreeNext = 16;
+            treeID = -1;
+            firstRound = true;
+            stayNear = false; //near gardeners or exploring
+            isIdle = true;   //whether the lumberjacks have trees to chop
+            if (rc.getID() % 3 == 0) {
+                stayNear = true;
+                System.out.print("\nI protect gardeners.");
+            } else {
+                System.out.print("\nI explore.");
             }
 
-            //read tree broadcasts
-            updateTreeTarget(rc);
+            //code below repeats every turn
+            while (true) {
+                //updating info about robots and trees around me
+                updateInfo();
+                prevTreeNext = treeNext;
+                treeNext = rc.readBroadcast(15);
 
-            //move
-            moveAndChop(rc);
+                //check trees
+                reportTreesInRange();
 
-            //end of while loop - yield to end
-            firstRound = false;
-            Clock.yield();
+                //gardener update
+                foundGardener = false;
+                if (stayNear && friendlyGardenerCount > 0) {
+                    foundGardener = true;
+                    prevGardenerPos = friendlyGardeners[0].location;
+                }
+
+                //read tree broadcasts
+                updateTreeTarget();
+
+                //move
+                moveAndChop();
+
+                //end of while loop - yield to end
+                firstRound = false;
+                Clock.yield();
+            }
+        }
+        catch(GameActionException e){
+            e.printStackTrace();
         }
     }
-    private static void updateInfo(RobotController rc){
+    private static void updateInfo(){
         allRobots = rc.senseNearbyRobots();
         friendlyRobots = new RobotInfo[allRobots.length];
         enemyRobots = new RobotInfo[allRobots.length];
@@ -210,10 +207,9 @@ public class Lumberjack {
             }
         }
     }
-    private static void reportTreesInRange(RobotController rc) throws GameActionException{
+    private static void reportTreesInRange() throws GameActionException{
         if (enemyTreeCount + neutralTreeCount > 0) {
             TreeInfo target = null;
-            int targetIndex = -1;
             //check for dupes
             Integer[] toReportIndex = new Integer[enemyTreeCount + neutralTreeCount];
             Integer[] IDArray = new Integer[enemyTreeCount + neutralTreeCount];
@@ -265,12 +261,12 @@ public class Lumberjack {
                 System.out.print("\nBecoming active and going after tree " + target.getID() + ".");
                 isIdle = false;
                 treeChannel = prevTreeNext;
-                dest1 = target.location;
-                dest2 = null;
+                treeLoc = target.location;
+                Nav.setDest(treeLoc);
             }
         }
     }
-    private static void reportTree(RobotController rc, TreeInfo t) throws GameActionException{
+    private static void reportTree(TreeInfo t) throws GameActionException{
         //IMPORTANT NOTE:
         //If using this method in your code, make a global private static int treeNext
         //Also, copy over the method directly after this one
@@ -300,7 +296,7 @@ public class Lumberjack {
             return base+1;
         return base;
     }
-    private static void updateTreeTarget(RobotController rc) throws GameActionException{
+    private static void updateTreeTarget() throws GameActionException{
         if (isIdle) {
             if(prevTreeNext != treeNext) {
                 isIdle = false;
@@ -309,8 +305,8 @@ public class Lumberjack {
                 System.out.print("\nTree update in the array sensed. Becoming active and going after tree at " + target);
                 if(target != 0) {
                     treeChannel = prevTreeNext;
-                    dest1 = new MapLocation(target / 1000, target % 1000);
-                    dest2 = null;
+                    treeLoc = new MapLocation(target / 1000, target % 1000);
+                    Nav.setDest(treeLoc);
                 }
             }
         }
@@ -321,11 +317,10 @@ public class Lumberjack {
                 if(rc.readBroadcast(treeNext) == 0 && (diff == 1 || diff == -13)){
                     System.out.print("\nTree target was removed and no other targets detected. Becoming idle.");
                     isIdle = true;
-                    if(stayNear){
-                        dest1 = prevGardenerPos;
-                    }
+                    if(stayNear)
+                        Nav.setDest(prevGardenerPos);
                     else{
-                        dest1 = rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float)Math.PI), 10);
+                        pickDest();
                     }
                 }
                 else{
@@ -343,148 +338,68 @@ public class Lumberjack {
                     }
                     System.out.print("\nTree target was removed. Going after tree at " + newTree);
                     treeChannel = position;
-                    dest1 = new MapLocation(newTree/1000, newTree%1000);
+                    treeLoc = new MapLocation(newTree/1000, newTree%1000);
+                    Nav.setDest(treeLoc);
                 }
             }
         }
     }
-    private static void moveAndChop(RobotController rc) throws GameActionException{
-        if(isIdle){
-            if(stayNear){
-                if(foundGardener) {
-                    double distance = rc.getLocation().distanceTo(prevGardenerPos);
-                    if(distance > MAX_GARDENER_RANGE) {
-                        Direction d = rc.getLocation().directionTo(prevGardenerPos);
-                        if(rc.canMove(d)){
-                            rc.move(d);
-                            return;
-                        }
-                    }
-                    else if(distance < MIN_GARDENER_RANGE){
-                        Direction d = prevGardenerPos.directionTo(rc.getLocation());
-                        if(rc.canMove(d)){
-                            rc.move(d);
-                            return;
-                        }
-                    }
-                    for(int i = 0; i < 10; i++){    //prevents infinite while loops if stuck
-                        Direction d = new Direction(rng.nextFloat() * 2 * (float)Math.PI);
-                        if(rc.canMove(d)){
-                            rc.move(d);
-                            break;
-                        }
-                    }
-                }
-                else {
-                    if(approachDestStupid(rc))
-                        dest1 = rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float)Math.PI));
+    private static void moveAndChop() throws GameActionException{
+        if(isIdle && stayNear && foundGardener){
+            double distance = rc.getLocation().distanceTo(prevGardenerPos);
+            if(distance > MAX_GARDENER_RANGE) {
+                Direction d = rc.getLocation().directionTo(prevGardenerPos);
+                if(rc.canMove(d)){
+                    rc.move(d);
+                    return;
                 }
             }
-            else{
-                if(dest1 == null)
-                    dest1 = rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float)Math.PI), 10);
-                if(approachDestStupid(rc))
-                    dest1 = rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float)Math.PI), 10);
-            }
-        }
-        else {
-            if(treeID != -1) {
-                if(rc.canChop(treeID)){
-                    if(rc.senseTree(treeID).getHealth() <= GameConstants.LUMBERJACK_CHOP_DAMAGE) {
-                        System.out.print("\nChopped down my target!");
-                        rc.broadcast(treeChannel, 0);
-                    }
-                    rc.chop(treeID);
+            else if(distance < MIN_GARDENER_RANGE){
+                Direction d = prevGardenerPos.directionTo(rc.getLocation());
+                if(rc.canMove(d)){
+                    rc.move(d);
+                    return;
                 }
-             }
-            else{
-                if(approachDestStupid(rc)) {
-                    TreeInfo[] trees1 = rc.senseNearbyTrees(dest1, 1, rc.getTeam().opponent());
-                    TreeInfo[] trees2 = rc.senseNearbyTrees(dest1, 1, Team.NEUTRAL);
-                    if(trees1.length + trees2.length > 0) {
-                        if(trees1.length == 0)
-                            treeID = trees2[0].getID();
-                        else
-                            treeID = trees1[0].getID();
-                        if (rc.canChop(treeID)) {
-                            if(rc.senseTree(treeID).getHealth() <= GameConstants.LUMBERJACK_CHOP_DAMAGE) {
-                                System.out.print("\nChopped down my target!");
-                                rc.broadcast(treeChannel, 0);
-                            }
-                            rc.chop(treeID);
-                        }
-                    }
+            }
+            for(int i = 0; i < 10; i++){    //prevents infinite while loops if stuck
+                Direction d = new Direction(rng.nextFloat() * 2 * (float)Math.PI);
+                if(rc.canMove(d)){
+                    rc.move(d);
+                    break;
                 }
             }
         }
-    }
-    private static boolean approachDestStupid(RobotController rc) throws GameActionException{   //returns true if further movement not required (reached location or can not move further)
-        // sort of like zombie code from last year
-        MapLocation dest = dest1;
-        if(dest2 != null)
-            dest = dest2;
-
-        //debug
-        if(rc.getTeam() == Team.A)
-            rc.setIndicatorDot(dest, 255, 0, 0);
-        else
-            rc.setIndicatorDot(dest, 0, 0, 255);
-
-        MapLocation myLocation = rc.getLocation();
-        Direction d = myLocation.directionTo(dest);
-        if(d == null){
-            if(dest2 != null){
-                dest2 = null;
-                System.out.print("\nReached my off-route destination!");
-                return false;
+        else if(!isIdle && treeID != -1) {
+            if (rc.canChop(treeID)) {
+                if (rc.senseTree(treeID).getHealth() <= GameConstants.LUMBERJACK_CHOP_DAMAGE) {
+                    System.out.print("\nChopped down my target!");
+                    rc.broadcast(treeChannel, 0);
+                }
+                rc.chop(treeID);
             }
-            System.out.print("\nReached my destination!");
-            return true;
-        }
-        if(rc.getLocation().distanceTo(dest) < RobotType.LUMBERJACK.strideRadius && rc.canMove(dest)){
-            rc.move(dest);
-            if(dest2 != null){
-                dest2 = null;
-                System.out.print("\nReached my off-route destination!");
-                return false;
-            }
-            System.out.print("\nReached my destination!");
-            return true;
-        }
-        if(rc.canMove(d)){
-            rc.move(d);
-            return false;
-        }
-        if(myLocation.distanceTo(dest) <= GameConstants.NEUTRAL_TREE_MAX_RADIUS + RobotType.LUMBERJACK.bodyRadius){
-            if(dest2 != null){
-                dest2 = null;
-                System.out.print("\nReached my off-route destination, but it is occupied!");
-                return false;
-            }
-            System.out.print("\nReached my destination, but it is occupied!");
-            return true;
         }
         else{
-            Direction dLeft = d.rotateLeftDegrees(45);
-            Direction dRight = d.rotateRightDegrees(45);
-            if(rc.canMove(dLeft)){rc.move(dLeft); return false;}
-            else if(rc.canMove(dRight)){rc.move(dRight); return false;}
+            rc.move(Nav.lumberjackNav(rc, allTrees, allRobots));     //bugging
+            if(!isIdle && rc.getLocation().distanceTo(treeLoc)<=4) {
+                TreeInfo[] trees1 = rc.senseNearbyTrees(treeLoc, 1, rc.getTeam().opponent());
+                TreeInfo[] trees2 = rc.senseNearbyTrees(treeLoc, 1, Team.NEUTRAL);
+                if(trees1.length + trees2.length > 0) {
+                    if(trees1.length == 0)
+                        treeID = trees2[0].getID();
+                    else
+                        treeID = trees1[0].getID();
+                    if (rc.canChop(treeID)) {
+                        if(rc.senseTree(treeID).getHealth() <= GameConstants.LUMBERJACK_CHOP_DAMAGE) {
+                            System.out.print("\nChopped down my target!");
+                            rc.broadcast(treeChannel, 0);
+                        }
+                        rc.chop(treeID);
+                    }
+                }
+            }
         }
-        //can't go further - stuck
-        System.out.print("I am stuck! Picking an off-route destination to my ");
-        Direction newd;
-        if(rng.nextInt(2) == 0){
-            newd = d.rotateLeftDegrees(90);
-            System.out.print("left.");
-        }
-        else{
-            newd = d.rotateRightDegrees(90);
-            System.out.print("right.");
-        }
-        dest2 = myLocation.add(newd, 10);
-        return approachDestStupid(rc);
     }
     public static void pickDest() {
-    	
+        Nav.setDest(rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float)Math.PI), 10));
     }
 }

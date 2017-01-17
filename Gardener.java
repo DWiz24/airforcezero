@@ -34,8 +34,10 @@ public class Gardener {
     			if(rc.canMove(rand))
     				rc.move(rand);
     		}
-    		if(numTrees < numRobots/2)
+    		if(numTrees < numRobots/2 && numRobots != 0)
     			buildtree = true;
+    		else if(numRobots == 0)
+    			buildtree = false;
     		if (rc.isBuildReady()) {
 				for (Direction place : dirs) {
 					if(sad!=null && rc.isLocationOccupied(sad.add(place)))

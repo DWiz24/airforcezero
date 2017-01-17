@@ -2,18 +2,17 @@ package airforcezero;
 
 import battlecode.common.*;
 
-import java.util.Map;
 
 public class Soldier {
     static RobotController rc;
     static MapLocation[] initialEnemyLocs;
     static MapLocation[] initialFriendLocs;
-    static int testDest = 0;
 
     public static void run(RobotController rc) throws GameActionException {
         initialEnemyLocs = rc.getInitialArchonLocations(rc.getTeam().opponent());
         initialFriendLocs = rc.getInitialArchonLocations(rc.getTeam());
         Soldier.rc = rc;
+        Nav.setDest(initialEnemyLocs[(int)(initialEnemyLocs.length*Math.random())]);
         while (true) {
             //System.out.println(bugging);
             TreeInfo[] trees = rc.senseNearbyTrees();
@@ -51,7 +50,7 @@ public class Soldier {
     }
 
     static MapLocation micro(RobotController rc, TreeInfo[] trees, RobotInfo[] friend, int friends, RobotInfo[] enemy, int enemies, BulletInfo[] bullets) {
-        int prebyte=Clock.getBytecodeNum();
+        //int prebyte=Clock.getBytecodeNum();
         float[] dists=new float[bullets.length]; //the distance to the first impact
         for (int i=bullets.length-1; i>=0; i--) {
             float minDist=999;
@@ -91,8 +90,8 @@ public class Soldier {
                 jack[++jacks]=enemy[i].location;
             }
         }
-        int newByte=Clock.getBytecodeNum();
-        System.out.println("Precomputation: "+(newByte-prebyte));
+        //int newByte=Clock.getBytecodeNum();
+        //System.out.println("Precomputation: "+(newByte-prebyte));
         int minDamage = 0;
         float minDist=99;
         for (int k = bullets.length - 1; k >= 0; k--) {
@@ -142,10 +141,14 @@ public class Soldier {
             }
             dir=dir.rotateLeftDegrees(60);
         }
-        System.out.println("Other: "+(Clock.getBytecodeNum()-newByte));
+        //System.out.println("Other: "+(Clock.getBytecodeNum()-newByte));
         return best;
     }
+    //we're using 30-38 for combat
+    //30 holds the next location to update
+    static void reportCombatLocation(MapLocation loc) {
 
+    }
     static void shootOrMove(RobotController rc, MapLocation toMove, TreeInfo[] trees, RobotInfo[] enemy, int enemies, RobotInfo[] friend, int friends, BulletInfo[] bullets) throws GameActionException {
         rc.move(toMove);
 

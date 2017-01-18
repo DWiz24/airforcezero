@@ -68,7 +68,7 @@ public class Archon {
         		{
         			float dest = myLoc.distanceTo(rc.senseRobot(targetCreation).location);
         			//target not in correct range
-        			if( dest > 4F )
+        			if( dest > 5F )
             		{
         				destination = rc.senseRobot(targetCreation).location;
         				rc.move(Nav.archonNav(rc, trees, nearRobot));
@@ -233,7 +233,7 @@ public class Archon {
     }
     //Daniel's shakeTree 
     static void shakeATree(RobotController rc) throws GameActionException {
-        TreeInfo[] trees = rc.senseNearbyTrees(1);	//move radius is changed that's all
+        TreeInfo[] trees = rc.senseNearbyTrees(3);	//move radius is changed that's all
         if (trees.length == 0) return;
         int maxBullets = trees[0].containedBullets;
         int bestTree = 0;

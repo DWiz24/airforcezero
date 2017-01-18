@@ -120,6 +120,10 @@ public class Lumberjack {
 
                 //end of while loop - yield to end
                 firstRound = false;
+                float b=rc.getTeamBullets();
+                if (rc.getRoundLimit()-rc.getRoundNum()<400) {
+                    rc.donate(b-(b%10));
+                }
                 Clock.yield();
             }
         }

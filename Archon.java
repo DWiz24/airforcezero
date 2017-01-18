@@ -137,10 +137,10 @@ public class Archon {
     	int count = 0;
     	for( int x = 0; x < dLen/2; x++ )
     	{
-    		MapLocation newLoc = center.add(dirs[x], 1F);
+    		MapLocation newLoc = center.add(dirs[x], 3F);
     		if( myR.onTheMap(newLoc) )
     		{
-    			if( !myR.isLocationOccupied(center.add(dirs[x], 1F)) )
+    			if( !myR.isLocationOccupied(center.add(dirs[x], 3F)) )
     				count++;
     		}
     	}

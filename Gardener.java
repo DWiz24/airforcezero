@@ -12,7 +12,8 @@ public class Gardener {
     		Direction[] dirs={new Direction((float)(Math.PI/3.0)), new Direction((float)(2.0*Math.PI/3.0)), new Direction((float)(3.0*Math.PI/3.0)), new Direction((float)(4.0*Math.PI/3.0)), new Direction((float)(5.0*Math.PI/3.0)), new Direction((float)(6.0*Math.PI/3.0))}; 
     		MapLocation sad = null; //Find lowest health tree, water it
     		float minhealth = 50f; 
-    		TreeInfo[] trees = rc.senseNearbyTrees(3.0f);
+    		Team myTeam = rc.getTeam();
+    		TreeInfo[] trees = rc.senseNearbyTrees(3.0f, myTeam);
     		//System.out.println(trees.length);
     		for(TreeInfo tree:trees) {
     			if(tree.health < minhealth){
@@ -22,45 +23,48 @@ public class Gardener {
     		}
     		if(sad!=null && rc.canWater(sad))
     			rc.water(sad);
-    		//End watering
-    		
+    		if(rc.canShake())
+    			shakeATree(rc);
     		
     		//Finds number of nearby robots. If too many, find a good place to plant trees and soldiers. If it's been too long, stop moving start planting
-    		MapLocation me = rc.getLocation();
+    		int baddirs=0;
+    		for(int i = dirs.length-1; i >= 0; i--) {
+    			if(rc.canMove(dirs[i]))
+    				baddirs++;
+    		}
+    		
     		boolean buildtree = false;
     		boolean looking = true;
     		
     		int whichDir = 0;
-    		int numTrees = rc.getTreeCount();
-    		int numRobots = rc.getRobotCount();
     		int numNearbys = 0;
     		
-    		if(rc.getRoundNum() - roundSpawned > 50)
+    		if(rc.getRoundNum() - roundSpawned > 20)
     			looking = false;
+    		
     		if(looking) {
 	    		RobotInfo nearbys[] = rc.senseNearbyRobots(3f);
-	    		Direction badDirections[] = new Direction[nearbys.length];
 	    		for(int i = nearbys.length - 1; i >= 0; i--) {
 	    			RobotType thisType = nearbys[i].getType();
-	    			//System.out.println("before");
-	    			if(thisType == RobotType.ARCHON || thisType == RobotType.GARDENER)
+	    			
+	    			if(thisType == RobotType.ARCHON || thisType == RobotType.GARDENER || thisType == RobotType.LUMBERJACK)
 	    				numNearbys++;
-	    			badDirections[i] = new Direction(me, nearbys[i].getLocation()); 
 	    		}
 
-	    		//System.out.println(nearbys + " around this location: " + rc.getLocation().toString());
 	    		if(numNearbys>0) {
 	    			while(whichDir < dirs.length-1 && !rc.canMove(dirs[whichDir]))
 	    				whichDir++;
-	    			if(whichDir < dirs.length && rc.canMove(dirs[whichDir]))
+	    			if(rc.canMove(dirs[whichDir]))
 	    				rc.move(dirs[whichDir]);
 	    		}
     		}
     		//End trying to move code
     		
     		//What do I build code
+    		int numTrees = rc.getTreeCount();
+    		int numRobots = rc.getRobotCount();
     		
-	   		if(numTrees < numRobots && (int)rc.senseNearbyTrees(3.0f).length <= 4 && !looking && numRobots > 2)
+	   		if(numTrees < numRobots && (int)rc.senseNearbyTrees(3.0f, myTeam).length <= 4 && !looking && numRobots > 1)
 	   			buildtree = true;
 	   		else
 	   			buildtree = false;
@@ -68,16 +72,24 @@ public class Gardener {
 			for (Direction place : dirs) {
 				//if(sad!=null && rc.isLocationOccupied(sad.add(place)))
 				//	continue; 
-				if (rc.canPlantTree(place) && rc.isBuildReady() && buildtree) { 
+				if (rc.canPlantTree(place) && buildtree) { 
 					rc.plantTree(place);
 				}
-					
+					if(rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 3 || lumbers < soldiers/3 || baddirs > 2) {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
+							lumbers++;
+						}
+					}
+				
+					else {
+						if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {
+							rc.buildRobot(RobotType.SOLDIER, place);
 							soldiers++;
 						}
+					}
 					
-				
+					
 			}
     		
     		
@@ -94,7 +106,19 @@ public class Gardener {
     public static void pickDest() {
     	
     }
-    
+    static void shakeATree(RobotController rc) throws GameActionException {
+        TreeInfo[] trees = rc.senseNearbyTrees(2);
+        if (trees.length == 0) return;
+        int maxBullets = trees[0].containedBullets;
+        int bestTree = 0;
+        for (int i = trees.length - 1; i != 0; i--) {
+            if (trees[i].containedBullets > maxBullets) {
+                maxBullets = trees[i].containedBullets;
+                bestTree = i;
+            }
+        }
+        rc.shake(trees[bestTree].ID);
+    }
     public static boolean isBad(RobotController rc, Direction place, Direction[] in) {
     	for(int i = in.length - 1; i >= 0; i--) {
     		if(place.equals(in[i], (float)(Math.PI/8.0)))

@@ -110,7 +110,7 @@ class Nav {
                             for (int i = trees.length - 1; i >= 0; i--) {
                                 TreeInfo thisTree = trees[i];
                                 float dist = thisTree.location.distanceTo(rc.getLocation());
-                                if (dist < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.radius) {
+                                if (sdist < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.radius) {
                                     bugTree = thisTree.ID;
                                     closest = dist;
                                     treeOrNot = true;
@@ -323,7 +323,7 @@ class Nav {
                         float f = (float) Math.acos(cosp);
                         Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.005f:f + 0.005f));
                         MapLocation theMove=rc.getLocation().add(ndir, 2);
-                        if (!rc.onTheMap(theMove,1)) {
+                        if (rc.canSenseAllOfCircle(theMove, 1) && !rc.onTheMap(theMove,1)) {
                             if (hitWall) {
                                 //System.out.println("YAYY!");
                                 Gardener.pickDest();
@@ -435,7 +435,7 @@ class Nav {
                         float f = (float) Math.acos(cosp);
                         Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.005f:f + 0.005f));
                         MapLocation theMove=rc.getLocation().add(ndir, 1);
-                        if (!rc.onTheMap(theMove,2)) {
+                        if (rc.canSenseAllOfCircle(theMove, 1) && !rc.onTheMap(theMove,2)) {
                             if (hitWall) {
                                 //System.out.println("YAYY!");
                                 Tank.pickDest();
@@ -547,7 +547,7 @@ class Nav {
                         float f = (float) Math.acos(cosp);
                         Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.005f:f + 0.005f));
                         MapLocation theMove=rc.getLocation().add(ndir, 1);
-                        if (!rc.onTheMap(theMove,2)) {
+                        if (rc.canSenseAllOfCircle(theMove, 1) && !rc.onTheMap(theMove,2)) {
                             if (hitWall) {
                                 //System.out.println("YAYY!");
                                 Archon.pickDest();

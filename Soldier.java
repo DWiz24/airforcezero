@@ -7,13 +7,32 @@ public class Soldier {
     static RobotController rc;
     static MapLocation[] initialEnemyLocs;
     static MapLocation[] initialFriendLocs;
-
+    static boolean importantDest=false;
+    static int whichDest=-1;
     public static void run(RobotController rc) throws GameActionException {
         initialEnemyLocs = rc.getInitialArchonLocations(rc.getTeam().opponent());
         initialFriendLocs = rc.getInitialArchonLocations(rc.getTeam());
         Soldier.rc = rc;
         Nav.setDest(initialEnemyLocs[(int)(initialEnemyLocs.length*Math.random())]);
+
+        int oldLoc=31;
         while (true) {
+            int newLoc=rc.readBroadcast(30);
+            if (newLoc!=oldLoc) {
+                float distToDest=rc.getLocation().distanceTo(Nav.dest)*0.8f;
+                for (int i=oldLoc; i!=newLoc; i++) {
+                    int mess=rc.readBroadcast(i);
+                    MapLocation report=getLocation(mess);
+                    if (!importantDest||rc.getLocation().distanceTo(report)<distToDest) {
+                        Nav.setDest(report);
+                        //System.out.println("Changed course");
+                        importantDest=true;
+                        whichDest=i;
+                    }
+                    if (i==38) i=30;
+                }
+            }
+            oldLoc=newLoc;
             //System.out.println(bugging);
             TreeInfo[] trees = rc.senseNearbyTrees();
             RobotInfo[] robots = rc.senseNearbyRobots();
@@ -40,15 +59,21 @@ public class Soldier {
             }
             shootOrMove(rc, toMove, trees, enemy, enemies, friend, friends, bullets);
             shakeATree(rc);
-            if (enemies>1) {
+            if (enemies>=0) {
+
                 MapLocation loc=enemy[0].location;
                 gotoHacks: {
                     for (int i=31; i<=38; i++) {
-                        MapLocation map=getLocation(rc.readBroadcast(i));
-                        if (map.distanceTo(loc)<8) {
-                            break gotoHacks;
+                        int m=rc.readBroadcast(i);
+                        if (m!=0) {
+                            MapLocation map = getLocation(m);
+                            if (map.distanceTo(loc) < 8) {
+                                break gotoHacks;
+                            }
                         }
                     }
+                    //System.out.println("I signaled");
+                    rc.setIndicatorDot(loc,0,0,255);
                     reportCombatLocation(loc,0);
                 }
             }
@@ -57,8 +82,31 @@ public class Soldier {
         }
     }
 
-    static void pickDest() {
-        Nav.setDest(rc.getLocation().add(new Direction((float) (Math.random() * Math.PI * 2)), 8));
+    static void pickDest() throws GameActionException{
+        float minDist=99;
+        MapLocation bestDest=null;
+        int chan=-1;
+        for (int i=31; i<=38; i++) {
+            int m=rc.readBroadcast(i);
+            if (m!=0) {
+                MapLocation map=getLocation(m);
+                float dist=map.distanceTo(rc.getLocation());
+                if (dist<minDist && dist>8) {
+                    minDist=dist;
+                    bestDest=map;
+                    chan=i;
+                }
+            }
+        }
+        if (bestDest!=null) {
+            importantDest=true;
+            Nav.setDest(bestDest);
+            whichDest=chan;
+            rc.setIndicatorDot(bestDest,255,0,0);
+        } else {
+            importantDest = false;
+            Nav.setDest(rc.getLocation().add(new Direction((float) (Math.random() * Math.PI * 2)), 30));
+        }
     }
     static MapLocation micro(RobotController rc, TreeInfo[] trees, RobotInfo[] friend, int friends, RobotInfo[] enemy, int enemies, BulletInfo[] bullets) {
         //int prebyte=Clock.getBytecodeNum();
@@ -158,11 +206,15 @@ public class Soldier {
     //we're using 30-38 for combat
     //30 holds the next location to update
     static void reportCombatLocation(MapLocation loc, int info) throws GameActionException{
-        if (info>255||info<0) System.out.println("BAD INFO "+info);
+        //if (info>255||info<0) System.out.println("BAD INFO "+info);
         int xpart=((int)(loc.x*4))<<20;
         int ypart=((int)(loc.y*4))<<8;
         int message=xpart|ypart|info;
         int chan=rc.readBroadcast(30);
+        MapLocation transmitted=getLocation(message);
+        //if (transmitted.distanceTo(loc)>1) {
+        //    System.out.println("ERROR");
+        //}
         rc.broadcast(chan,message);
         if (chan==38) chan=30;
         chan++;

@@ -14,6 +14,7 @@ public class Archon {
 	static MapLocation destination = null;
 	static boolean isBlockingGardener = false;
     public static void run(RobotController rc) throws GameActionException {
+    	rc.broadcast(30,31); //for soldier comm channels
         while(true)
         {
         	MapLocation myLoc = rc.getLocation();

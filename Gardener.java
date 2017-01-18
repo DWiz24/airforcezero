@@ -13,7 +13,7 @@ public class Gardener {
     		MapLocation sad = null; //Find lowest health tree, water it
     		float minhealth = 50f; 
     		TreeInfo[] trees = rc.senseNearbyTrees(3.0f);
-    		System.out.println(trees.length);
+    		//System.out.println(trees.length);
     		for(TreeInfo tree:trees) {
     			if(tree.health < minhealth){
     				minhealth = tree.health;
@@ -43,7 +43,7 @@ public class Gardener {
 	    				numNearbys++;
 	    		}
 	    		
-	    		System.out.println(nearbys + " " + rc.getLocation().toString());
+	    		//System.out.println(nearbys + " " + rc.getLocation().toString());
 	    		if(numNearbys>0) {
 	    			while(!rc.canMove(dirs[whichDir]) && whichDir < dirs.length)
 	    				whichDir++;

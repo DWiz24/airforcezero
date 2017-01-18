@@ -20,6 +20,10 @@ class Nav {
     }
     static MapLocation soldierNav(RobotController rc, TreeInfo[] trees, RobotInfo[] robots) throws GameActionException {
         if (dest==null||rc.getLocation().distanceTo(dest)<=4) {
+
+            if (Soldier.importantDest) {
+                rc.broadcast(Soldier.whichDest, 0);
+            }
             Soldier.pickDest();
         }
         Direction toDest = rc.getLocation().directionTo(dest);
@@ -29,7 +33,7 @@ class Nav {
             lastMinUpdate=rc.getRoundNum();
         }
         bugMinDist=Math.min(bugMinDist,distToDest);
-        if (rc.getRoundNum()-lastMinUpdate>150) {
+        if (rc.getRoundNum()-lastMinUpdate>60) {
             Soldier.pickDest();
         }
         for (int tries=5; tries>=0; tries--){

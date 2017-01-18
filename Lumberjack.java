@@ -13,7 +13,7 @@ public class Lumberjack {
     private static MapLocation prevGardenerPos, treeLoc;   //main and off-route destinations
 
     private static int prevTreeNext, treeNext, treeChannel, treeID;
-    private static boolean stayNear, isIdle, foundGardener, firstRound;
+    private static boolean stayNear, isIdle, foundGardener, firstRound, printedThisTurn;
 
     private static RobotInfo[] allRobots, friendlyRobots, enemyRobots, friendlyGardeners;
     private static TreeInfo[] allTrees, friendlyTrees, neutralTrees, enemyTrees;
@@ -68,6 +68,7 @@ public class Lumberjack {
     -combat (if necessary)
     */
     public static void run(RobotController rcArg) throws GameActionException{
+        printedThisTurn = true;
         System.out.print("\nI am a lumberjack!");
         rc = rcArg;
         rng = new Random(rc.getID());
@@ -115,9 +116,13 @@ public class Lumberjack {
 
             //move
             moveAndChop();
-            
             shakeATree();
-             
+            
+            if(printedThisTurn){
+               System.out.println();
+               printedThisTurn = false;
+            }
+            
             //end of while loop - yield to end
             firstRound = false;
             Clock.yield();
@@ -247,6 +252,7 @@ public class Lumberjack {
                     continue;
                 rc.broadcast(treeNext, value);
                 System.out.print("\nReported tree " + IDArray[i] + " to array location " + treeNext + ".");
+                printedThisTurn = true;
                 treeNext++;
                 if(treeNext == 30)
                     treeNext = 16;
@@ -255,6 +261,7 @@ public class Lumberjack {
 
             if (isIdle) {
                 System.out.print("\nBecoming active and going after tree " + target.getID() + ".");
+                printedThisTurn = true;
                 isIdle = false;
                 treeChannel = prevTreeNext;
                 treeLoc = target.location;
@@ -279,6 +286,7 @@ public class Lumberjack {
 
         rc.broadcast(treeNext, value);
         System.out.print("\nReported tree " + t.getID() + " to array location " + treeNext + ".");
+        printedThisTurn = true;
         treeNext++;
         if(treeNext == 30)
             treeNext = 16;
@@ -296,6 +304,7 @@ public class Lumberjack {
                 int target;
                 target = rc.readBroadcast(prevTreeNext);
                 System.out.print("\nTree update in the array sensed. Becoming active and going after tree at " + target);
+                printedThisTurn = true;
                 if(target != 0) {
                     treeChannel = prevTreeNext;
                     treeLoc = new MapLocation(target / 1000, target % 1000);
@@ -309,6 +318,7 @@ public class Lumberjack {
                 treeID = -1;
                 if(rc.readBroadcast(treeNext) == 0 && (diff == 1 || diff == -13)){
                     System.out.print("\nTree target was removed and no other targets detected. Becoming idle.");
+                    printedThisTurn = true;
                     isIdle = true;
                     if(stayNear)
                         Nav.setDest(prevGardenerPos);
@@ -330,6 +340,7 @@ public class Lumberjack {
                         position++;
                     }
                     System.out.print("\nTree target was removed. Going after tree at " + newTree);
+                    printedThisTurn = true;
                     treeChannel = position;
                     treeLoc = new MapLocation(newTree/1000, newTree%1000);
                     Nav.setDest(treeLoc);
@@ -366,6 +377,7 @@ public class Lumberjack {
             if (rc.canChop(treeID)) {
                 if (rc.senseTree(treeID).getHealth() <= GameConstants.LUMBERJACK_CHOP_DAMAGE) {
                     System.out.print("\nChopped down my target!");
+                    printedThisTurn = true;
                     rc.broadcast(treeChannel, 0);
                 }
                 rc.chop(treeID);
@@ -384,6 +396,7 @@ public class Lumberjack {
                     if (rc.canChop(treeID)) {
                         if(rc.senseTree(treeID).getHealth() <= GameConstants.LUMBERJACK_CHOP_DAMAGE) {
                             System.out.print("\nChopped down my target!");
+                            printedThisTurn = true;
                             rc.broadcast(treeChannel, 0);
                         }
                         rc.chop(treeID);

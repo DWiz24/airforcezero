@@ -16,7 +16,7 @@ public class Gardener {
     		TreeInfo[] trees = rc.senseNearbyTrees(3.0f, myTeam);
     		//System.out.println(trees.length);
     		for(TreeInfo tree:trees) {
-    			if(tree.health < minhealth){
+    			if(tree.health < minhealth && rc.canWater(tree.ID)){
     				minhealth = tree.health;
     				sad = tree.location;
     			}
@@ -75,7 +75,7 @@ public class Gardener {
 				if (rc.canPlantTree(place) && buildtree) { 
 					rc.plantTree(place);
 				}
-					if(rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 3 || lumbers < soldiers/3 || baddirs > 2) {
+					if(rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 3 || lumbers < soldiers/4 || baddirs > 2) {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
 							lumbers++;

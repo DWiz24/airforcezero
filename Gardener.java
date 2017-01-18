@@ -75,7 +75,7 @@ public class Gardener {
 				if (rc.canPlantTree(place) && buildtree) { 
 					rc.plantTree(place);
 				}
-					if(rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 3 || lumbers < soldiers/3 || baddirs > 2) {
+					if((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 4 || lumbers < soldiers/6 || baddirs > 3) && soldiers < 10) {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
 							lumbers++;

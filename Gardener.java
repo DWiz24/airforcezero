@@ -42,13 +42,13 @@ public class Gardener {
 	    		Direction badDirections[] = new Direction[nearbys.length];
 	    		for(int i = nearbys.length - 1; i >= 0; i--) {
 	    			RobotType thisType = nearbys[i].getType();
-	    			System.out.println("before");
+	    			//System.out.println("before");
 	    			if(thisType == RobotType.ARCHON || thisType == RobotType.GARDENER)
 	    				numNearbys++;
 	    			badDirections[i] = new Direction(me, nearbys[i].getLocation()); 
 	    		}
 
-	    		System.out.println(nearbys + " around this location: " + rc.getLocation().toString());
+	    		//System.out.println(nearbys + " around this location: " + rc.getLocation().toString());
 	    		if(numNearbys>0) {
 	    			while(whichDir < dirs.length-1 && !rc.canMove(dirs[whichDir]))
 	    				whichDir++;

@@ -211,7 +211,7 @@ public class Lumberjack {
     private static void reportTreesInRange() throws GameActionException{
         if (enemyTreeCount + neutralTreeCount > 0) {
             TreeInfo target = null;
-            //check for dupes
+            //for checking for dupes
             Integer[] toReportIndex = new Integer[enemyTreeCount + neutralTreeCount];
             Integer[] IDArray = new Integer[enemyTreeCount + neutralTreeCount];
             int index = 0;
@@ -233,7 +233,7 @@ public class Lumberjack {
                 IDArray[index] = info.getID();
                 index++;
             }
-            if (firstRound || !isIdle) {  //the beginning of the game, or trees already in array
+            if (firstRound || !isIdle || prevTreeNext != treeNext) {  //the beginning of the game, or trees already in array
                 for (int i = 16; i < 30; i++) {
                     int existingTreeVal = rc.readBroadcast(i);
                     for (int i2 = 0; i2 < toReportIndex.length; i2++) {
@@ -293,9 +293,8 @@ public class Lumberjack {
 
         rc.broadcast(15, treeNext);
     }
-    private static int round(double a){
-        return (int) (a+0.5); //much better
-        //-Thanks, Daniel
+    private static int round(double a){   //should take less bytecodes than Math.round
+        return (int) (a+0.5);
     }
     private static void updateTreeTarget() throws GameActionException{
         if (isIdle) {
@@ -375,17 +374,21 @@ public class Lumberjack {
         }
         else if(!isIdle && treeID != -1) {
             if (rc.canChop(treeID)) {
+                boolean reset = false;
                 if (rc.senseTree(treeID).getHealth() <= GameConstants.LUMBERJACK_CHOP_DAMAGE) {
                     System.out.print("\nChopped down my target!");
                     printedThisTurn = true;
                     rc.broadcast(treeChannel, 0);
+                    reset = true;
                 }
                 rc.chop(treeID);
+                if(reset)
+                    treeID = -1;
             }
         }
         else{
             rc.move(Nav.lumberjackNav(rc, allTrees, allRobots));     //bugging
-            if(!isIdle && rc.getLocation().distanceTo(treeLoc)<=4) {
+            if(!isIdle && rc.getLocation().distanceTo(treeLoc)<=4) {    //if i reach my tree this turn, update tree id and chop
                 TreeInfo[] trees1 = rc.senseNearbyTrees(treeLoc, 1, rc.getTeam().opponent());
                 TreeInfo[] trees2 = rc.senseNearbyTrees(treeLoc, 1, Team.NEUTRAL);
                 if(trees1.length + trees2.length > 0) {
@@ -393,22 +396,26 @@ public class Lumberjack {
                         treeID = trees2[0].getID();
                     else
                         treeID = trees1[0].getID();
+                    boolean reset = false;
                     if (rc.canChop(treeID)) {
                         if(rc.senseTree(treeID).getHealth() <= GameConstants.LUMBERJACK_CHOP_DAMAGE) {
                             System.out.print("\nChopped down my target!");
                             printedThisTurn = true;
                             rc.broadcast(treeChannel, 0);
+                            reset = true;
                         }
                         rc.chop(treeID);
+                        if(reset)
+                            treeID = -1;
                     }
                 }
             }
         }
     }
     public static void pickDest() {
-        Nav.setDest(rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float)Math.PI), 10));
+        Nav.setDest(rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float)Math.PI), 10));   //explorer code
     }
-    static void shakeATree() throws GameActionException {
+    static void shakeATree() throws GameActionException {   //shakes a tree within range
         TreeInfo[] trees = rc.senseNearbyTrees(2);
         if (trees.length == 0) return;
         int maxBullets = trees[0].containedBullets;

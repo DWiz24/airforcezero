@@ -289,12 +289,15 @@ public class Lumberjack {
 
         rc.broadcast(15, treeNext);
     }
-    private static int round(double a){
+    private static int round(double a){ //I'M CRYING RIGHT NOW,-DANIEL
         //Math.round(double a), but takes less than 10 bytecodes (hopefully).
+        /*
         int base = (int)a;
         if(a - base > 0.5)
             return base+1;
         return base;
+        */
+        return (int) (a+0.5); //much better
     }
     private static void updateTreeTarget() throws GameActionException{
         if (isIdle) {

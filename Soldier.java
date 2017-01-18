@@ -40,6 +40,18 @@ public class Soldier {
             }
             shootOrMove(rc, toMove, trees, enemy, enemies, friend, friends, bullets);
             shakeATree(rc);
+            if (enemies>1) {
+                MapLocation loc=enemy[0].location;
+                gotoHacks: {
+                    for (int i=31; i<=38; i++) {
+                        MapLocation map=getLocation(rc.readBroadcast(i));
+                        if (map.distanceTo(loc)<8) {
+                            break gotoHacks;
+                        }
+                    }
+                    reportCombatLocation(loc,0);
+                }
+            }
             //rc.move(toMove);
             Clock.yield();
         }
@@ -48,7 +60,6 @@ public class Soldier {
     static void pickDest() {
         Nav.setDest(rc.getLocation().add(new Direction((float) (Math.random() * Math.PI * 2)), 8));
     }
-
     static MapLocation micro(RobotController rc, TreeInfo[] trees, RobotInfo[] friend, int friends, RobotInfo[] enemy, int enemies, BulletInfo[] bullets) {
         //int prebyte=Clock.getBytecodeNum();
         float[] dists=new float[bullets.length]; //the distance to the first impact
@@ -146,8 +157,20 @@ public class Soldier {
     }
     //we're using 30-38 for combat
     //30 holds the next location to update
-    static void reportCombatLocation(MapLocation loc) {
+    static void reportCombatLocation(MapLocation loc, int info) throws GameActionException{
+        if (info>255||info<0) System.out.println("BAD INFO "+info);
+        int xpart=((int)(loc.x*4))<<20;
+        int ypart=((int)(loc.y*4))<<8;
+        int message=xpart|ypart|info;
+        int chan=rc.readBroadcast(30);
+        rc.broadcast(chan,message);
+        if (chan==38) chan=30;
+        chan++;
+        rc.broadcast(30,chan);
+    }
 
+    static MapLocation getLocation(int m) {
+        return new MapLocation((m>>>20)/4.0f,((m&0b11111111111100000000)>>8)/4.0f);
     }
     static void shootOrMove(RobotController rc, MapLocation toMove, TreeInfo[] trees, RobotInfo[] enemy, int enemies, RobotInfo[] friend, int friends, BulletInfo[] bullets) throws GameActionException {
         rc.move(toMove);

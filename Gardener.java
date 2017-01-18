@@ -33,47 +33,55 @@ public class Gardener {
     		int numTrees = rc.getTreeCount();
     		int numRobots = rc.getRobotCount();
     		int numNearbys = 0;
-    		if(rc.getRoundNum() - roundSpawned > 100)
+    		if(rc.getRoundNum() - roundSpawned > 50)
     			looking = false;
     		if(looking) {
-	    		RobotInfo nearbys[] = rc.senseNearbyRobots(5.49f);
+	    		RobotInfo nearbys[] = rc.senseNearbyRobots(3f);
 	    		for(int i = nearbys.length - 1; i >= 0; i--) {
 	    			RobotType thisType = nearbys[i].getType();
+	    			System.out.println("before");
 	    			if(thisType == RobotType.ARCHON || thisType == RobotType.GARDENER)
 	    				numNearbys++;
 	    		}
 	    		
-	    		System.out.println(nearbys + " " + rc.getLocation().toString());
+	    		System.out.println(nearbys + " around this location: " + rc.getLocation().toString());
 	    		if(numNearbys>0) {
-	    			while(!rc.canMove(dirs[whichDir]) && whichDir < dirs.length)
+	    			while(whichDir < dirs.length && !rc.canMove(dirs[whichDir]))
 	    				whichDir++;
-	    			if(rc.canMove(dirs[whichDir]))
+	    			if(whichDir < dirs.length && rc.canMove(dirs[whichDir]))
 	    				rc.move(dirs[whichDir]);
 	    		}
     		}
     		//End trying to move code
     		
     		//What do I build code
-    		else if (!looking || numNearbys == 0) {
-	    		if(numTrees < numRobots && (int)rc.senseNearbyTrees(3.0f).length <= 4)
-	    			buildtree = true;
-	    		else
-	    			buildtree = false;
+    		
+	   		if(numTrees < numRobots && (int)rc.senseNearbyTrees(3.0f).length <= 4 && !looking)
+	   			buildtree = true;
+	   		else
+	   			buildtree = false;
 	    		
-				for (Direction place : dirs) {
-					if(sad!=null && rc.isLocationOccupied(sad.add(place)))
-						continue; 
-					if (rc.canPlantTree(place) && rc.isBuildReady() && buildtree) { //Make sure this line actually works at some point
-						rc.plantTree(place);
-					}
-					
+			for (Direction place : dirs) {
+				if(sad!=null && rc.isLocationOccupied(sad.add(place)))
+					continue; 
+				if (rc.canPlantTree(place) && rc.isBuildReady() && buildtree) { //Make sure this line actually works at some point
+					rc.plantTree(place);
+				}
+					if(soldiers < lumbers * 4) {
 						if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.SOLDIER, place);
 							soldiers++;
 						}
-					
-				}
-    		}
+					}
+					else {
+						if(rc.canBuildRobot(RobotType.LUMBERJACK, place)) {
+							rc.buildRobot(RobotType.LUMBERJACK, place);
+							lumbers++;
+						}
+					}
+				
+			}
+    		
     		
     		if(rc.getTeamBullets() >= 10000){
     			rc.donate(10000f);

@@ -388,7 +388,7 @@ public class Lumberjack {
         }
         else{
             rc.move(Nav.lumberjackNav(rc, allTrees, allRobots));     //bugging
-            if(!isIdle && rc.getLocation().distanceTo(treeLoc)<=4) {    //if i reach my tree this turn, update tree id and chop
+            if(!isIdle && rc.getLocation().distanceTo(treeLoc)<=4.5) {    //if i reach my tree this turn, update tree id and chop
                 TreeInfo[] trees1 = rc.senseNearbyTrees(treeLoc, 1, rc.getTeam().opponent());
                 TreeInfo[] trees2 = rc.senseNearbyTrees(treeLoc, 1, Team.NEUTRAL);
                 if(trees1.length + trees2.length > 0) {

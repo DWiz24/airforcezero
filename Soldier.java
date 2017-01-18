@@ -84,6 +84,10 @@ public class Soldier {
                 }
             }
             //rc.move(toMove);
+            float b=rc.getTeamBullets();
+            if (rc.getRoundLimit()-rc.getRoundNum()<400) {
+                rc.donate(b-(b%10));
+            }
             Clock.yield();
         }
     }

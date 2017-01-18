@@ -84,6 +84,10 @@ public class Gardener {
     		if(rc.getTeamBullets() >= 10000){
     			rc.donate(10000f);
     		}
+			float b=rc.getTeamBullets();
+			if (rc.getRoundLimit()-rc.getRoundNum()<400) {
+				rc.donate(b-(b%10));
+			}
             Clock.yield();
         }
     }

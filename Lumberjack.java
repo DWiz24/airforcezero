@@ -68,60 +68,67 @@ public class Lumberjack {
     -strategic determination of which trees to chop
     -combat (if necessary)
     */
-    public static void run(RobotController rcArg) throws GameActionException{
-        System.out.print("\nI am a lumberjack!");
-        rc = rcArg;
-        rng = new Random(rc.getID());
-        prevGardenerPos = rc.getInitialArchonLocations(rc.getTeam())[0];
-        treeLoc = null;
-        treeChannel = -1;
-        treeNext = rc.readBroadcast(15);
-        if (treeNext == 0) { //in case this is the first lumberjack, set the index to default
-            rc.broadcast(15, 16);
-            treeNext = 16;
-        }
-        prevTreeNext = treeNext - 1;
-        if (prevTreeNext == 15)
-            prevTreeNext = 16;
-        treeID = -1;
-        firstRound = true;
-        stayNear = false; //near gardeners or exploring
-        isIdle = true;   //whether the lumberjacks have trees to chop
-        if (rc.getID() % 3 == 0) {
-            stayNear = true;
-            System.out.print("\nI protect gardeners.");
-        } else {
-            System.out.print("\nI explore.");
-        }
-
-        //code below repeats every turn
-        while (true) {
-            //updating info about robots and trees around me
-            updateInfo();
-            prevTreeNext = treeNext;
+    public static void run(RobotController rcArg){
+        try {
+            System.out.print("\nI am a lumberjack!");
+            rc = rcArg;
+            rng = new Random(rc.getID());
+            prevGardenerPos = rc.getInitialArchonLocations(rc.getTeam())[0];
+            treeLoc = null;
+            treeChannel = -1;
             treeNext = rc.readBroadcast(15);
-
-            //check trees
-            reportTreesInRange();
-
-            //gardener update
-            foundGardener = false;
-            if (stayNear && friendlyGardenerCount > 0) {
-                foundGardener = true;
-                prevGardenerPos = friendlyGardeners[0].location;
+            if (treeNext == 0) { //in case this is the first lumberjack, set the index to default
+                rc.broadcast(15, 16);
+                treeNext = 16;
+            }
+            prevTreeNext = treeNext - 1;
+            if (prevTreeNext == 15)
+                prevTreeNext = 16;
+            treeID = -1;
+            firstRound = true;
+            stayNear = false; //near gardeners or exploring
+            isIdle = true;   //whether the lumberjacks have trees to chop
+            if (rc.getID() % 3 == 0) {
+                stayNear = true;
+                System.out.print("\nI protect gardeners.");
+            } else {
+                System.out.print("\nI explore.");
             }
 
-            //read tree broadcasts
-            updateTreeTarget();
+            //code below repeats every turn
+            while (true) {
+                //updating info about robots and trees around me
+                updateInfo();
+                prevTreeNext = treeNext;
+                treeNext = rc.readBroadcast(15);
 
-            //move
-            moveAndChop();
-            
-            shakeATree();
-             
-            //end of while loop - yield to end
-            firstRound = false;
-            Clock.yield();
+                //check trees
+                reportTreesInRange();
+
+                //gardener update
+                foundGardener = false;
+                if (stayNear && friendlyGardenerCount > 0) {
+                    foundGardener = true;
+                    prevGardenerPos = friendlyGardeners[0].location;
+                }
+
+                //read tree broadcasts
+                updateTreeTarget();
+
+                //move
+                moveAndChop();
+
+                //end of while loop - yield to end
+                firstRound = false;
+                float b=rc.getTeamBullets();
+                if (rc.getRoundLimit()-rc.getRoundNum()<400) {
+                    rc.donate(b-(b%10));
+                }
+                Clock.yield();
+            }
+        }
+        catch(GameActionException e){
+            e.printStackTrace();
         }
     }
     private static void updateInfo(){
@@ -241,7 +248,7 @@ public class Lumberjack {
                     }
                 }
             }
-   
+
             for (int i = 0; i < toReportIndex.length; i++) {
                 Integer value = toReportIndex[i];
                 if (value == null)
@@ -286,9 +293,15 @@ public class Lumberjack {
 
         rc.broadcast(15, treeNext);
     }
-    private static int round(double a){
+    private static int round(double a){ //I'M CRYING RIGHT NOW,-DANIEL
+        //Math.round(double a), but takes less than 10 bytecodes (hopefully).
+        /*
+        int base = (int)a;
+        if(a - base > 0.5)
+            return base+1;
+        return base;
+        */
         return (int) (a+0.5); //much better
-        //-Thanks, Daniel
     }
     private static void updateTreeTarget() throws GameActionException{
         if (isIdle) {
@@ -395,18 +408,5 @@ public class Lumberjack {
     }
     public static void pickDest() {
         Nav.setDest(rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float)Math.PI), 10));
-    }
-    static void shakeATree() throws GameActionException {
-        TreeInfo[] trees = rc.senseNearbyTrees(2);
-        if (trees.length == 0) return;
-        int maxBullets = trees[0].containedBullets;
-        int bestTree = 0;
-        for (int i = trees.length - 1; i != 0; i--) {
-            if (trees[i].containedBullets > maxBullets) {
-                maxBullets = trees[i].containedBullets;
-                bestTree = i;
-            }
-        }
-        rc.shake(trees[bestTree].ID);
     }
 }

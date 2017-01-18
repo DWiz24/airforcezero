@@ -50,7 +50,7 @@ public class Gardener {
 
 	    		System.out.println(nearbys + " around this location: " + rc.getLocation().toString());
 	    		if(numNearbys>0) {
-	    			while(whichDir < dirs.length && !rc.canMove(dirs[whichDir]) || isBad(rc, dirs[whichDir], badDirections))
+	    			while(whichDir < dirs.length-1 && !rc.canMove(dirs[whichDir]))
 	    				whichDir++;
 	    			if(whichDir < dirs.length && rc.canMove(dirs[whichDir]))
 	    				rc.move(dirs[whichDir]);
@@ -60,7 +60,7 @@ public class Gardener {
     		
     		//What do I build code
     		
-	   		if(numTrees < numRobots && (int)rc.senseNearbyTrees(3.0f).length <= 4 && !looking)
+	   		if(numTrees < numRobots && (int)rc.senseNearbyTrees(3.0f).length <= 4 && !looking && numRobots > 2)
 	   			buildtree = true;
 	   		else
 	   			buildtree = false;

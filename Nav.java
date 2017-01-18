@@ -475,7 +475,7 @@ class Nav {
     }
     static MapLocation archonNav(RobotController rc, TreeInfo[] trees, RobotInfo[] robots) throws GameActionException {
         if (dest==null||rc.getLocation().distanceTo(dest)<=4) {
-            Tank.pickDest();
+            Archon.pickDest();
         }
         Direction toDest = rc.getLocation().directionTo(dest);
         float distToDest = rc.getLocation().distanceTo(dest);
@@ -485,7 +485,7 @@ class Nav {
         }
         bugMinDist=Math.min(bugMinDist,distToDest);
         if (rc.getRoundNum()-lastMinUpdate>150) {
-            Tank.pickDest();
+            Archon.pickDest();
         }
         for (int tries=5; tries>=0; tries--){
 
@@ -520,7 +520,7 @@ class Nav {
                     }
 
                     if (closest == 999f) {
-                        Tank.pickDest();
+                        Archon.pickDest();
                     }
                     if (bugging)
                         left=toDest.degreesBetween(rc.getLocation().directionTo(prevLoc))>0;
@@ -546,7 +546,7 @@ class Nav {
                         if (!rc.onTheMap(theMove,2)) {
                             if (hitWall) {
                                 //System.out.println("YAYY!");
-                                Tank.pickDest();
+                                Archon.pickDest();
                             } else {
                                 hitWall=true;
                                 left=!left;

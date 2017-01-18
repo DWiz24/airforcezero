@@ -248,7 +248,7 @@ public class Lumberjack {
                     }
                 }
             }
-   
+
             for (int i = 0; i < toReportIndex.length; i++) {
                 Integer value = toReportIndex[i];
                 if (value == null)

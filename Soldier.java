@@ -9,6 +9,7 @@ public class Soldier {
     static MapLocation[] initialFriendLocs;
     static boolean importantDest=false;
     static int whichDest=-1;
+    static int microCreepDir=1;
     public static void run(RobotController rc) throws GameActionException {
         initialEnemyLocs = rc.getInitialArchonLocations(rc.getTeam().opponent());
         initialFriendLocs = rc.getInitialArchonLocations(rc.getTeam());
@@ -187,7 +188,7 @@ public class Soldier {
                     if (damage <= minDamage) {
                         float theDist=99;
                         for (int x=enemies; x>=0; x--) {
-                            theDist=Math.min(move.distanceTo(enemy[x].location),theDist);
+                            theDist=Math.min(enemy[x].type==RobotType.ARCHON?move.distanceTo(enemy[x].location)*4:move.distanceTo(enemy[x].location),theDist);
                         }
                         if (damage<minDamage || damage==minDamage && theDist<minDist) {
                             minDamage = damage;
@@ -224,8 +225,10 @@ public class Soldier {
         return new MapLocation((m>>>20)/4.0f,((m&0b11111111111100000000)>>8)/4.0f);
     }
     static void shootOrMove(RobotController rc, MapLocation toMove, TreeInfo[] trees, RobotInfo[] enemy, int enemies, RobotInfo[] friend, int friends, BulletInfo[] bullets) throws GameActionException {
-        rc.move(toMove);
 
+        if (toMove!=rc.getLocation()) {
+            rc.move(toMove);
+        }
 
         if (rc.canFireSingleShot()) {
             MapLocation cur = toMove;
@@ -247,11 +250,10 @@ public class Soldier {
                     break;
                 } else if (friendpos > friends) {
                     for (int i = treepos; i < trees.length; i++) {
-                        if (trees[i].team != rc.getTeam().opponent()) avoid[++avoids] = trees[i];
+                        avoid[++avoids] = trees[i];
                     }
                     break;
-                } else if (trees[treepos].team == rc.getTeam().opponent()) treepos++;
-                else {
+                } else {
                     if (trees[treepos].getLocation().distanceTo(toMove) < friend[friendpos].getLocation().distanceTo(toMove)) {
                         avoid[++avoids] = trees[treepos++];
 
@@ -301,6 +303,25 @@ public class Soldier {
                         rc.fireSingleShot(a1.rotateRightDegrees(a2.degreesBetween(a1) / 2.0f));
                     }
                     break;
+                }
+            }
+        }
+        if (!rc.hasMoved()&&!rc.hasAttacked()) {
+            if (enemies!=-1) {
+                float minDist=99;
+                RobotInfo closest=null;
+                for (int i=enemies; i>=0; i--) {
+                    float dist=enemy[i].location.distanceTo(rc.getLocation());
+                    if (dist<minDist) {
+                        closest=enemy[i];
+                        minDist=dist;
+                    }
+                }
+                Direction theDir=closest.location.directionTo(rc.getLocation());
+                if (rc.canMove(theDir.rotateLeftDegrees(microCreepDir*80),0.2f)) {
+                    rc.move(theDir.rotateLeftDegrees(microCreepDir*80),0.2f);
+                } else {
+                    microCreepDir=-microCreepDir;
                 }
             }
         }

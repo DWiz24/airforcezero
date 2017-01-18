@@ -175,7 +175,7 @@ public class Soldier {
             if (rc.getLocation().distanceTo(jack[k])<=4.5) minDamage+=2;
         }
         for (int i=enemies; i>=0; i--) {
-            minDist=Math.min(rc.getLocation().distanceTo(enemy[i].location),minDist);
+            minDist=Math.min(enemy[i].type==RobotType.ARCHON?rc.getLocation().distanceTo(enemy[i].location)*4:rc.getLocation().distanceTo(enemy[i].location),minDist);
         }
         MapLocation best=rc.getLocation();
         Direction dir=Direction.getEast();

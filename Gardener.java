@@ -72,8 +72,8 @@ public class Gardener {
 					rc.plantTree(place);
 				}
 					
-						if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {
-							rc.buildRobot(RobotType.SOLDIER, place);
+						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
+							rc.buildRobot(RobotType.LUMBERJACK, place);
 							soldiers++;
 						}
 					

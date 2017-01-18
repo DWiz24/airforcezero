@@ -211,8 +211,7 @@ class Nav {
                         float f = (float) Math.acos(cosp);
                         Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.005f:f + 0.005f));
                         MapLocation theMove=rc.getLocation().add(ndir, 1.5f);
-                        System.out.println(f + ", " + cosp);
-                        if (!rc.onTheMap(theMove,1)) {
+                        if (!rc.canSenseAllOfCircle(theMove, 1) && rc.onTheMap(theMove,1)) {
                             if (hitWall) {
                                 //System.out.println("YAYY!");
                                 Lumberjack.pickDest();

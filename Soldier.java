@@ -13,8 +13,7 @@ public class Soldier {
         initialEnemyLocs = rc.getInitialArchonLocations(rc.getTeam().opponent());
         initialFriendLocs = rc.getInitialArchonLocations(rc.getTeam());
         Soldier.rc = rc;
-        Nav.setDest(initialEnemyLocs[(int)(initialEnemyLocs.length*Math.random())]);
-
+        pickDest();
         int oldLoc=31;
         while (true) {
             int newLoc=rc.readBroadcast(30);
@@ -112,8 +111,8 @@ public class Soldier {
         //int prebyte=Clock.getBytecodeNum();
         float[] dists=new float[bullets.length]; //the distance to the first impact
         for (int i=bullets.length-1; i>=0; i--) {
-            float minDist=999;
             BulletInfo b=bullets[i];
+            float minDist=b.speed;
             for (int k=trees.length-1; k>=0; k--) {
                 MapLocation tree=trees[k].location;
                 float theta=Math.abs(b.location.directionTo(tree).radiansBetween(b.dir));
@@ -176,7 +175,7 @@ public class Soldier {
                     int damage = 0;
                     for (int k = bullets.length - 1; k >= 0; k--) {
                         BulletInfo b = bullets[k];
-                        float dist = b.location.distanceTo(move);
+                        float dist = b.location.distanceTo(move)+1;
                         if (Math.asin(1 / dist) > Math.abs(b.location.directionTo(move).radiansBetween(b.dir))) {
                             if (dist < dists[k]) damage += b.damage;
                         }

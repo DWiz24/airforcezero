@@ -14,7 +14,15 @@ public class Archon {
 	static MapLocation destination = null;
 	static boolean isBlockingGardener = false;
     public static void run(RobotController rc) throws GameActionException {
-    	rc.broadcast(30,31); //for soldier comm channels
+
+		MapLocation[] archons =rc.getInitialArchonLocations(rc.getTeam());
+		MapLocation[] enemyArchons=rc.getInitialArchonLocations(rc.getTeam().opponent());
+		arCount = archons.length;
+		rc.broadcast(30,30+arCount); //for soldier comm channels
+		Soldier.rc=rc;
+		for (int i=enemyArchons.length-1; i>=0; i--) {
+			Soldier.reportCombatLocation(enemyArchons[i],0);
+		}
         while(true)
         {
         	MapLocation myLoc = rc.getLocation();
@@ -23,8 +31,7 @@ public class Archon {
         	RobotInfo[] nearRobot = rc.senseNearbyRobots();
         	TreeInfo[] trees = rc.senseNearbyTrees();
         	BulletInfo[] bullets = rc.senseNearbyBullets(8);
-        	MapLocation[] archons =rc.getInitialArchonLocations(rc.getTeam());
-        	arCount = archons.length;
+
         	//shake trees
         	shakeATree(rc);
         	//hire gardener

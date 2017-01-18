@@ -66,23 +66,17 @@ public class Gardener {
 	   			buildtree = false;
 	    		
 			for (Direction place : dirs) {
-				if(sad!=null && rc.isLocationOccupied(sad.add(place)))
-					continue; 
+				//if(sad!=null && rc.isLocationOccupied(sad.add(place)))
+				//	continue; 
 				if (rc.canPlantTree(place) && rc.isBuildReady() && buildtree) { 
 					rc.plantTree(place);
 				}
-					if(soldiers < lumbers * 3 || soldiers < 2) {
+					
 						if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.SOLDIER, place);
 							soldiers++;
 						}
-					}
-					else {
-						if(rc.canBuildRobot(RobotType.LUMBERJACK, place)) {
-							rc.buildRobot(RobotType.LUMBERJACK, place);
-							lumbers++;
-						}
-					}
+					
 				
 			}
     		

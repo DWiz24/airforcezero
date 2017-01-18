@@ -26,6 +26,7 @@ public class Gardener {
     		
     		
     		//Finds number of nearby robots. If too many, find a good place to plant trees and soldiers. If it's been too long, stop moving start planting
+    		MapLocation me = rc.getLocation();
     		boolean buildtree = false;
     		boolean looking = true;
     		
@@ -33,20 +34,23 @@ public class Gardener {
     		int numTrees = rc.getTreeCount();
     		int numRobots = rc.getRobotCount();
     		int numNearbys = 0;
+    		
     		if(rc.getRoundNum() - roundSpawned > 50)
     			looking = false;
     		if(looking) {
 	    		RobotInfo nearbys[] = rc.senseNearbyRobots(3f);
+	    		Direction badDirections[] = new Direction[nearbys.length];
 	    		for(int i = nearbys.length - 1; i >= 0; i--) {
 	    			RobotType thisType = nearbys[i].getType();
 	    			System.out.println("before");
 	    			if(thisType == RobotType.ARCHON || thisType == RobotType.GARDENER)
 	    				numNearbys++;
+	    			badDirections[i] = new Direction(me, nearbys[i].getLocation()); 
 	    		}
 
 	    		System.out.println(nearbys + " around this location: " + rc.getLocation().toString());
 	    		if(numNearbys>0) {
-	    			while(whichDir < dirs.length && !rc.canMove(dirs[whichDir]))
+	    			while(whichDir < dirs.length && !rc.canMove(dirs[whichDir]) || isBad(rc, dirs[whichDir], badDirections))
 	    				whichDir++;
 	    			if(whichDir < dirs.length && rc.canMove(dirs[whichDir]))
 	    				rc.move(dirs[whichDir]);
@@ -64,10 +68,10 @@ public class Gardener {
 			for (Direction place : dirs) {
 				if(sad!=null && rc.isLocationOccupied(sad.add(place)))
 					continue; 
-				if (rc.canPlantTree(place) && rc.isBuildReady() && buildtree) { //Make sure this line actually works at some point
+				if (rc.canPlantTree(place) && rc.isBuildReady() && buildtree) { 
 					rc.plantTree(place);
 				}
-					if(soldiers < lumbers * 4) {
+					if(soldiers < lumbers * 3 || soldiers < 2) {
 						if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.SOLDIER, place);
 							soldiers++;
@@ -91,5 +95,13 @@ public class Gardener {
     }
     public static void pickDest() {
     	
+    }
+    
+    public static boolean isBad(RobotController rc, Direction place, Direction[] in) {
+    	for(int i = in.length - 1; i >= 0; i--) {
+    		if(place.equals(in[i], (float)(Math.PI/8.0)))
+    			return true;
+    	}
+    	return false; 
     }
 }

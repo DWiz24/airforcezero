@@ -16,7 +16,7 @@ public class Gardener {
     		TreeInfo[] trees = rc.senseNearbyTrees(3.0f, myTeam);
     		//System.out.println(trees.length);
     		for(TreeInfo tree:trees) {
-    			if(tree.health < minhealth){
+    			if(tree.health < minhealth && rc.canWater(tree.ID)){
     				minhealth = tree.health;
     				sad = tree.location;
     			}

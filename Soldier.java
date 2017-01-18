@@ -10,6 +10,9 @@ public class Soldier {
     static boolean importantDest=false;
     static int whichDest=-1;
     static int microCreepDir=1;
+    static boolean microCreeping=false;
+    static int creepStart=0;
+    static int stoppedCreeping=0;
     public static void run(RobotController rc) throws GameActionException {
         initialEnemyLocs = rc.getInitialArchonLocations(rc.getTeam().opponent());
         initialFriendLocs = rc.getInitialArchonLocations(rc.getTeam());
@@ -52,12 +55,15 @@ public class Soldier {
                     enemy[++enemies] = r;
                 }
             }
+            if (enemies==-1&&rc.getRoundNum()-stoppedCreeping>50) {
+                microCreeping=false;
+            }
             if (enemies != -1 || bullets.length != 0) {
                 toMove = micro(rc, trees, friend, friends, enemy, enemies, bullets);
             } else {
                 toMove = Nav.soldierNav(rc, trees, robots);
             }
-            shootOrMove(rc, toMove, trees, enemy, enemies, friend, friends, bullets);
+            shootOrMove(rc, toMove, trees, enemy, enemies, friend, friends, bullets,robots);
             shakeATree(rc);
             if (enemies>=0) {
 
@@ -73,7 +79,7 @@ public class Soldier {
                         }
                     }
                     //System.out.println("I signaled");
-                    rc.setIndicatorDot(loc,0,0,255);
+                    //rc.setIndicatorDot(loc,0,0,255);
                     reportCombatLocation(loc,0);
                 }
             }
@@ -224,7 +230,7 @@ public class Soldier {
     static MapLocation getLocation(int m) {
         return new MapLocation((m>>>20)/4.0f,((m&0b11111111111100000000)>>8)/4.0f);
     }
-    static void shootOrMove(RobotController rc, MapLocation toMove, TreeInfo[] trees, RobotInfo[] enemy, int enemies, RobotInfo[] friend, int friends, BulletInfo[] bullets) throws GameActionException {
+    static void shootOrMove(RobotController rc, MapLocation toMove, TreeInfo[] trees, RobotInfo[] enemy, int enemies, RobotInfo[] friend, int friends, BulletInfo[] bullets, RobotInfo[] robots) throws GameActionException {
 
         if (toMove!=rc.getLocation()) {
             rc.move(toMove);
@@ -297,7 +303,7 @@ public class Soldier {
                 if (valid) {
                     //rc.setIndicatorDot(target.location,0,255,0);
                     //rc.setIndicatorLine(toMove,toMove.add(a1.rotateRightDegrees(a2.degreesBetween(a1)/2.0f),8),0,0,255);
-                    if (d<3 && rc.canFirePentadShot()) {
+                    if (d<5&& rc.canFirePentadShot()) {
                         rc.firePentadShot(a1.rotateRightDegrees(a2.degreesBetween(a1)/2.0f));
                     }else {
                         rc.fireSingleShot(a1.rotateRightDegrees(a2.degreesBetween(a1) / 2.0f));
@@ -307,7 +313,15 @@ public class Soldier {
             }
         }
         if (!rc.hasMoved()&&!rc.hasAttacked()) {
-            if (enemies!=-1) {
+            if (!microCreeping) {
+                creepStart=rc.getRoundNum();
+            }
+            microCreeping=true;
+            if (rc.getRoundNum()-creepStart>20) {
+                rc.move(Nav.soldierNav(rc,trees,robots));
+                //microCreeping=false;
+            } else if (enemies!=-1) {
+                stoppedCreeping=rc.getRoundNum();
                 float minDist=99;
                 RobotInfo closest=null;
                 for (int i=enemies; i>=0; i--) {

@@ -8,13 +8,6 @@ public class Gardener {
         	RobotType[] canBuild = {RobotType.SOLDIER, RobotType.LUMBERJACK, RobotType.TANK, RobotType.SCOUT};
         	int whichRobot = 1;
         	Random random = new Random();
-<<<<<<< HEAD
-        	boolean buildTree = random.nextBoolean();
-        	MapLocation here = rc.getLocation();
-        	float x = here.x;
-        	float y = here.y;
-    		Direction[] dirs={Direction.getNorth(),Direction.getSouth(),Direction.getEast(),Direction.getWest(), new Direction(here, new MapLocation(x+1, y+1))};
-=======
     		Direction[] dirs={new Direction((float)(Math.PI/4.0)), Direction.getEast(), new Direction((float)(5.0*Math.PI/4.0)), Direction.getNorth(), new Direction((float)(3.0*Math.PI/4.0)),Direction.getSouth(),Direction.getWest()};
     		MapLocation sad = null;
     		float minhealth = 50f;
@@ -28,7 +21,6 @@ public class Gardener {
     				System.out.println("watered a tree");
     			}
     		}
->>>>>>> 2d614cc904dcb0cafcc1022a14e1b16dcfecbbf8
     		
     		if(sad!=null && rc.canWater(sad))
     			rc.water(sad);

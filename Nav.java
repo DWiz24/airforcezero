@@ -36,6 +36,10 @@ class Nav {
         if (rc.getRoundNum()-lastMinUpdate>60) {
             Soldier.pickDest();
         }
+        float[] treeDists=new float[trees.length];
+        float[] robotDists=new float[robots.length];
+        for (int i=trees.length-1; i>=0; i--) treeDists[i]=rc.getLocation().distanceTo(trees[i].location);
+        for (int i=robots.length-1; i>=0; i--) robotDists[i]=rc.getLocation().distanceTo(robots[i].location);
         for (int tries=5; tries>=0; tries--){
 
             if (!bugging) {
@@ -49,20 +53,18 @@ class Nav {
                     float closest = 999f;
                     for (int i = trees.length - 1; i >= 0; i--) {
                         TreeInfo thisTree = trees[i];
-                        float dist = thisTree.location.distanceTo(rc.getLocation());
-                        if (dist < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.radius) {
+                        if (treeDists[i] < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.radius) {
                             bugTree = thisTree.ID;
-                            closest = dist;
+                            closest = treeDists[i];
                             treeOrNot = true;
                             prevLoc = thisTree.location;
                         }
                     }
                     for (int i = robots.length - 1; i >= 0; i--) {
                         RobotInfo thisTree = robots[i];
-                        float dist = thisTree.location.distanceTo(rc.getLocation());
-                        if (dist < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.type.bodyRadius) {
+                        if (robotDists[i] < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.type.bodyRadius) {
                             bugTree = thisTree.ID;
-                            closest = dist;
+                            closest = robotDists[i];
                             treeOrNot = false;
                             prevLoc = thisTree.location;
                         }
@@ -109,20 +111,18 @@ class Nav {
                             float closest = 999;
                             for (int i = trees.length - 1; i >= 0; i--) {
                                 TreeInfo thisTree = trees[i];
-                                float dist = thisTree.location.distanceTo(rc.getLocation());
-                                if (dist < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.radius) {
+                                if (treeDists[i] < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.radius) {
                                     bugTree = thisTree.ID;
-                                    closest = dist;
+                                    closest = treeDists[i];
                                     treeOrNot = true;
                                     prevLoc = thisTree.location;
                                 }
                             }
                             for (int i = robots.length - 1; i >= 0; i--) {
                                 RobotInfo thisTree = robots[i];
-                                float dist = thisTree.location.distanceTo(rc.getLocation());
-                                if (dist < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.type.bodyRadius) {
+                                if (robotDists[i] < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.type.bodyRadius) {
                                     bugTree = thisTree.ID;
-                                    closest = dist;
+                                    closest = robotDists[i];
                                     treeOrNot = false;
                                     prevLoc = thisTree.location;
                                 }

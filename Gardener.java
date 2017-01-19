@@ -75,19 +75,19 @@ public class Gardener {
 				if (rc.canPlantTree(place) && buildtree) { 
 					rc.plantTree(place);
 				}
-					if((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 4 || lumbers < soldiers/6 || baddirs > 3) && soldiers < 10) {
+				/*	if((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 4 || lumbers < soldiers/6 || baddirs > 3) && soldiers < 10) {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
 							lumbers++;
 						}
-					}
+					}*/
 				
-					else {
+					//else {
 						if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.SOLDIER, place);
 							soldiers++;
 						}
-					}
+					//}
 					
 					
 			}

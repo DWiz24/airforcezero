@@ -10,17 +10,18 @@ public class Lumberjack {
 
     private static RobotController rc;
     private static Random rng;
-    private static MapLocation prevGardenerPos, treeLoc;   //main and off-route destinations
+    private static MapLocation prevGardenerPos, treeLoc;   //previous gardener sighting | location of tree going after
 
-    private static int prevTreeNext, treeNext, treeChannel, treeID;
-    private static boolean stayNear, isIdle, foundGardener, firstRound, printedThisTurn;
+    private static int prevTreeNext, treeNext, treeChannel, treeID; //previous and current turn next tree channel to write to | channel of tree targeting | ID of tree targeting (used close range)
+    private static boolean stayNear, isIdle, foundGardener, firstRound, printedThisTurn, leewayUsed;    //whether I protect or explore | whether I currently have trees to chop | whether I am currently near a gardener | whether it is my first turn | whether I printed this turn | 'explained in pickDest'
 
+    //info about my surroundings, updates every turn
     private static RobotInfo[] allRobots, friendlyRobots, enemyRobots, friendlyGardeners;
     private static TreeInfo[] allTrees, friendlyTrees, neutralTrees, enemyTrees;
     private static int friendlyRobotCount, enemyRobotCount, friendlyTreeCount, neutralTreeCount, enemyTreeCount, friendlyGardenerCount;
     
     /*
-    -(Temporary)2/3 of lumberjacks wander off to search for trees
+    -2/3 of lumberjacks wander off to search for trees
     -When a neutral(Temporary) or enemy tree is found, report it
     -If nothing to chop, wander/stay near gardeners
     -If trees reported, go to first in list, chop
@@ -85,8 +86,9 @@ public class Lumberjack {
             prevTreeNext = 16;
         treeID = -1;
         firstRound = true;
-        stayNear = false; //near gardeners or exploring
-        isIdle = true;   //whether the lumberjacks have trees to chop
+        stayNear = false;
+        isIdle = true;
+        leewayUsed = false;
         if (rc.getID() % 3 == 0) {
             stayNear = true;
             System.out.print("\nI protect gardeners.");
@@ -315,10 +317,13 @@ public class Lumberjack {
             int diff = treeNext - treeChannel;
             if(rc.readBroadcast(treeChannel) == 0){
                 treeID = -1;
+                treeLoc = null;
+                leewayUsed = false;
                 if(rc.readBroadcast(treeNext) == 0 && (diff == 1 || diff == -13)){
                     System.out.print("\nTree target was removed and no other targets detected. Becoming idle.");
                     printedThisTurn = true;
                     isIdle = true;
+                    treeLoc = null;
                     if(stayNear)
                         Nav.setDest(prevGardenerPos);
                     else{
@@ -382,15 +387,17 @@ public class Lumberjack {
                     reset = true;
                 }
                 rc.chop(treeID);
-                if(reset)
+                if(reset) {
                     treeID = -1;
+                    treeLoc = null;
+                }
             }
         }
         else{
             rc.move(Nav.lumberjackNav(rc, allTrees, allRobots));     //bugging
             if(!isIdle && rc.getLocation().distanceTo(treeLoc)<=4.5) {    //if i reach my tree this turn, update tree id and chop
-                TreeInfo[] trees1 = rc.senseNearbyTrees(treeLoc, 1, rc.getTeam().opponent());
-                TreeInfo[] trees2 = rc.senseNearbyTrees(treeLoc, 1, Team.NEUTRAL);
+                TreeInfo[] trees1 = rc.senseNearbyTrees(treeLoc, 0.5f, rc.getTeam().opponent());   //TODO: make faster
+                TreeInfo[] trees2 = rc.senseNearbyTrees(treeLoc, 0.5f, Team.NEUTRAL);
                 if(trees1.length + trees2.length > 0) {
                     if(trees1.length == 0)
                         treeID = trees2[0].getID();
@@ -405,15 +412,35 @@ public class Lumberjack {
                             reset = true;
                         }
                         rc.chop(treeID);
-                        if(reset)
+                        if(reset) {
                             treeID = -1;
+                            treeLoc = null;
+                        }
                     }
                 }
             }
         }
     }
     public static void pickDest() {
-        Nav.setDest(rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float)Math.PI), 10));   //explorer code
+        //explanation of leewayUsed:
+        //Whenever bugging code gets stuck or reaches target, it calls this method.
+        //The problem with this is that if lumberjacks happen to get stuck while
+        //approaching a tree, they would fall into a continuous loop of exploring.
+        //That's why leewayUsed allows finding only one off-route location when stuck,
+        //as a second calling would return the original destination.
+        if(treeLoc != null) {
+            if(leewayUsed) {
+                Nav.setDest(treeLoc);
+                leewayUsed = false;
+            }
+            else{
+                Nav.setDest(rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float) Math.PI), 10));   //off-route destination if stuck
+                leewayUsed = true;
+            }
+        }
+        else {
+            Nav.setDest(rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float) Math.PI), 20));   //explorer code
+        }
     }
     static void shakeATree() throws GameActionException {   //shakes a tree within range
         TreeInfo[] trees = rc.senseNearbyTrees(2);

@@ -137,6 +137,7 @@ class Nav {
     static MapLocation lumberjackNav(RobotController rc, TreeInfo[] trees, RobotInfo[] robots) throws GameActionException {
         if (dest==null||rc.getLocation().distanceTo(dest)<=4) {
             Lumberjack.pickDest();
+            lastMinUpdate=rc.getRoundNum();
         }
 
         //debug
@@ -154,6 +155,7 @@ class Nav {
         bugMinDist=Math.min(bugMinDist,distToDest);
         if (rc.getRoundNum()-lastMinUpdate>150) {
             Lumberjack.pickDest();
+            lastMinUpdate=rc.getRoundNum();
         }
         for (int tries=5; tries>=0; tries--){
 
@@ -189,6 +191,7 @@ class Nav {
 
                     if (closest == 999f) {
                         Lumberjack.pickDest();
+                        lastMinUpdate=rc.getRoundNum();
                     }
                     if (bugging)
                         left=toDest.degreesBetween(rc.getLocation().directionTo(prevLoc))>0;
@@ -215,6 +218,7 @@ class Nav {
                             if (hitWall) {
                                 //System.out.println("YAYY!");
                                 Lumberjack.pickDest();
+                                lastMinUpdate=rc.getRoundNum();
                             } else {
                                 hitWall=true;
                                 left=!left;

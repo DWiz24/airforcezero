@@ -61,8 +61,8 @@ public class Lumberjack {
             -Find the tree
             -Chop it
     -TODO:
+    -Choosing a good location to stand while cutting trees
     -(Important) running away
-    -shaking trees
     -better travel code
     -bullet dodging
     -strategic determination of which trees to chop

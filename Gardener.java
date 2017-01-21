@@ -5,6 +5,7 @@ public class Gardener {
     	final int roundSpawned = rc.getRoundNum();
     	int soldiers = 0;
     	int lumbers = 0;
+    	float theta = -1.0f;
         while(true){
         	
         	//RobotType[] canBuild = {RobotType.SOLDIER, RobotType.LUMBERJACK, RobotType.TANK, RobotType.SCOUT};
@@ -26,45 +27,85 @@ public class Gardener {
     		if(rc.canShake())
     			shakeATree(rc);
     		
-    		//Finds number of nearby robots. If too many, find a good place to plant trees and soldiers. If it's been too long, stop moving start planting
-    		int baddirs=0;
-    		for(int i = dirs.length-1; i >= 0; i--) {
-    			if(rc.canMove(dirs[i]))
-    				baddirs++;
-    		}
-    		
-    		boolean buildtree = false;
-    		boolean looking = true;
-    		
-    		int whichDir = 0;
-    		int numNearbys = 0;
-    		
-    		if(rc.getRoundNum() - roundSpawned > 20)
-    			looking = false;
-    		
-    		if(looking) {
-	    		RobotInfo nearbys[] = rc.senseNearbyRobots(3f);
-	    		for(int i = nearbys.length - 1; i >= 0; i--) {
-	    			RobotType thisType = nearbys[i].getType();
-	    			
-	    			if(thisType == RobotType.ARCHON || thisType == RobotType.GARDENER || thisType == RobotType.LUMBERJACK)
-	    				numNearbys++;
-	    		}
+    		//Moves to a good space for planting, based on more successful teams, changes turn to turn, stops trying after a certain number of turns
+			MapLocation myLocation = rc.getLocation();
 
-	    		if(numNearbys>0) {
-	    			while(whichDir < dirs.length-1 && !rc.canMove(dirs[whichDir]))
-	    				whichDir++;
-	    			if(rc.canMove(dirs[whichDir]))
-	    				rc.move(dirs[whichDir]);
-	    		}
+    		// 
+    		
+   			if(theta < 0.0) {
+   				float deltaTheta = (float)(Math.PI/12.0);
+   				
+   				RobotInfo[] allRobots = rc.senseNearbyRobots();
+   				TreeInfo[] allTrees = rc.senseNearbyTrees(7f, Team.NEUTRAL);
+   				
+   				float bestTheta = -1.0f;
+   				int fewestThings = 1000;
+   				
+   				theta = 0.0f;
+   				
+   				while(theta < (float)(2.0*Math.PI)) { //so i only test the unit circle
+   					if(!rc.canMove(new Direction(theta))) {
+    					theta += deltaTheta;
+    					continue;
+    				}
+   					
+   					int thingsInMyWay = 0;
+    				Direction thisDir = new Direction(theta);
+    				
+    				for(int i = allRobots.length-1; i >= 0; i--) {
+    					if(thisDir.equals(myLocation.directionTo(allRobots[i].getLocation()), deltaTheta))
+    						thingsInMyWay++;
+    				}
+    				
+    				for(int i = allTrees.length-1; i >= 0; i--) {
+    					if(thisDir.equals(myLocation.directionTo(allTrees[i].getLocation()), deltaTheta))
+    						thingsInMyWay++;
+    				}
+    				
+    				if(thingsInMyWay == 0) {
+    					bestTheta = theta;
+    					break;
+    				}
+    				
+    				System.out.println(thingsInMyWay + " in this direction " + theta);
+    				if(thingsInMyWay < fewestThings) {
+    					bestTheta = theta;
+    					fewestThings = thingsInMyWay;
+    				}
+    				
+    				theta += deltaTheta;
+    				System.out.println(theta);
+    			}
+   				if(bestTheta > -1.0)
+   					theta = bestTheta;
     		}
+   			
+   			System.out.println(theta);
+   			
+   			//Now I've determined the best theta, I should figure out if it's even worth moving
+   			int directionsICantPlant = 0;
+   			
+   			for(int i = dirs.length-1; i >= 0; i--)
+   				if(rc.isLocationOccupied(myLocation.add(dirs[i], 2f)))
+   					directionsICantPlant++;
+   			
+   			System.out.println("Cannot plant in this many directions" + directionsICantPlant);
+   			
+   			if(theta>=0.0 && directionsICantPlant > 1) {
+   				Direction toMove = new Direction(theta);
+   				if(rc.canMove(toMove)) {
+   					//System.out.println("gunna move");
+   					rc.move(toMove);
+   				}
+   			}
     		//End trying to move code
     		
     		//What do I build code
     		int numTrees = rc.getTreeCount();
     		int numRobots = rc.getRobotCount();
+    		boolean buildtree = false;
     		
-	   		if(numTrees < numRobots && (int)rc.senseNearbyTrees(3.0f, myTeam).length <= 4 && !looking && numRobots > 1)
+	   		if(numTrees < numRobots && numRobots > 1)
 	   			buildtree = true;
 	   		else
 	   			buildtree = false;

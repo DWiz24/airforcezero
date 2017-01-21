@@ -20,7 +20,7 @@ public class Archon {
 		arCount = archons.length;
 		rc.broadcast(30,30+arCount); //for soldier comm channels
 		Soldier.rc=rc;
-		for (int i=enemyArchons.length-1; i>=0; i--) {
+		for (int i=arCount; i>=0; i--) {
 			Soldier.reportCombatLocation(enemyArchons[i],0);
 		}
         while(true)

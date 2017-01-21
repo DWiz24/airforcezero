@@ -564,7 +564,7 @@ class Nav {
                             return theMove;
                         } else {
                             bugging = true;
-                            MapLocation move = rc.getLocation().add(ndir, 0.5);
+                            MapLocation move = rc.getLocation().add(ndir, 0.5f);
                             float closest = 999;
                             for (int i = trees.length - 1; i >= 0; i--) {
                                 TreeInfo thisTree = trees[i];

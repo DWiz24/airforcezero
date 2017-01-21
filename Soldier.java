@@ -307,9 +307,9 @@ public class Soldier {
                 if (valid) {
                     //rc.setIndicatorDot(target.location,0,255,0);
                     //rc.setIndicatorLine(toMove,toMove.add(a1.rotateRightDegrees(a2.degreesBetween(a1)/2.0f),8),0,0,255);
-                    if (d<5&& rc.canFirePentadShot()&&(target.type==RobotType.SOLDIER||rc.getRoundNum()>70)) {
+                    if (d<5&& rc.canFirePentadShot()&&((target.type==RobotType.SOLDIER||rc.getRoundNum()>250)&&target.type!=RobotType.ARCHON)) {
                         rc.firePentadShot(a1.rotateRightDegrees(a2.degreesBetween(a1)/2.0f));
-                    }else {
+                    }else if (target.type!=RobotType.ARCHON || rc.getRoundNum()>400){
                         rc.fireSingleShot(a1.rotateRightDegrees(a2.degreesBetween(a1) / 2.0f));
                     }
                     break;

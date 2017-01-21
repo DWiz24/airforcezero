@@ -67,20 +67,20 @@ public class Gardener {
     					break;
     				}
     				
-    				System.out.println(thingsInMyWay + " in this direction " + theta);
+    				//System.out.println(thingsInMyWay + " in this direction " + theta);
     				if(thingsInMyWay < fewestThings) {
     					bestTheta = theta;
     					fewestThings = thingsInMyWay;
     				}
     				
     				theta += deltaTheta;
-    				System.out.println(theta);
+    				//System.out.println(theta);
     			}
    				if(bestTheta > -1.0)
    					theta = bestTheta;
     		}
    			
-   			System.out.println(theta);
+   			//System.out.println(theta);
    			
    			//Now I've determined the best theta, I should figure out if it's even worth moving
    			int directionsICantPlant = 0;
@@ -89,7 +89,7 @@ public class Gardener {
    				if(rc.isLocationOccupied(myLocation.add(dirs[i], 2f)))
    					directionsICantPlant++;
    			
-   			System.out.println("Cannot plant in this many directions" + directionsICantPlant);
+   			//System.out.println("Cannot plant in this many directions" + directionsICantPlant);
    			
    			if(theta>=0.0 && directionsICantPlant > 1) {
    				Direction toMove = new Direction(theta);

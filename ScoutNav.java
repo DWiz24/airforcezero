@@ -45,7 +45,7 @@ public class ScoutNav {
 	    return false;
 	}
 	
-	private static boolean compareLR(MapLocation curr, MapLocation dest) 
+	public static boolean compareLR(MapLocation curr, MapLocation dest) 
 	{
 		Direction toDest = curr.directionTo(dest);
 		MapLocation leftLoc = curr.add(toDest.rotateLeftDegrees(45F));

@@ -4,6 +4,7 @@ import battlecode.common.*;
 public class Scout {
 	static boolean harass = false;
 	static int deadArchons = 0;
+	static boolean overlapTree = false;
     public static void run(RobotController rc) throws GameActionException 
     {
         while(true)
@@ -29,6 +30,7 @@ public class Scout {
         			{
         				minTargetDist = tempDist;
         				target = temp;
+        				overlapTree = false;
         			}
         		}
         	}
@@ -43,6 +45,7 @@ public class Scout {
         			{
         				minTargetDist = tempDist;
         				target = archons[x];
+        				overlapTree = false;
         			}
         		}
         	}
@@ -54,6 +57,11 @@ public class Scout {
             	{
             		MapLocation temp = trees[i].getLocation();
             		float tempDist = temp.distanceTo(me);
+            		if( tempDist < 1F )
+            		{
+            			overlapTree = true;
+            			break;
+            		}
             		if( minTargetDist > tempDist )
             		{
             			minTargetDist = tempDist;
@@ -63,8 +71,17 @@ public class Scout {
         	}
         	if( !ScoutNav.goToTarget(rc, target) )
         	{
-        		//could not move or no target - how to deal with this?
+        		//could not move - how to deal with this?
         	    //move in a random direction between certain degrees depending on LR
+        		ScoutNav.compareLR(me, target);
+        		//no target
+        		if( target == null )
+        		{
+        			//if( )
+        			Direction rand = new Direction((float)Math.random() * 2 * (float)Math.PI);
+        			if( rc.canMove(rand) )
+        				rc.move(rand);
+        		}
         	}
             Clock.yield();
         }

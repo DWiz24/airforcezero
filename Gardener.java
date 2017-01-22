@@ -5,17 +5,18 @@ public class Gardener {
     	final int roundSpawned = rc.getRoundNum();
     	int soldiers = 0;
     	int lumbers = 0;
+    	int channel = -1;
     	float theta = -1.0f;
         while(true){
         	
         	//RobotType[] canBuild = {RobotType.SOLDIER, RobotType.LUMBERJACK, RobotType.TANK, RobotType.SCOUT};
-        	//whichRobot = 0;
-    		Direction[] dirs={new Direction((float)(Math.PI/3.0)), new Direction((float)(2.0*Math.PI/3.0)), new Direction((float)(3.0*Math.PI/3.0)), new Direction((float)(4.0*Math.PI/3.0)), new Direction((float)(5.0*Math.PI/3.0)), new Direction((float)(6.0*Math.PI/3.0))}; 
+        	
+    		Direction[] dirs={new Direction(0f), new Direction((float)(Math.PI/3.0)), new Direction((float)(2.0*Math.PI/3.0)), new Direction((float)(3.0*Math.PI/3.0)), new Direction((float)(4.0*Math.PI/3.0)), new Direction((float)(5.0*Math.PI/3.0))}; 
+    		
     		MapLocation sad = null; //Find lowest health tree, water it
     		float minhealth = 50f; 
     		Team myTeam = rc.getTeam();
     		TreeInfo[] trees = rc.senseNearbyTrees(3.0f, myTeam);
-    		//System.out.println(trees.length);
     		for(TreeInfo tree:trees) {
     			if(tree.health < minhealth && rc.canWater(tree.ID)){
     				minhealth = tree.health;
@@ -27,13 +28,45 @@ public class Gardener {
     		if(rc.canShake())
     			shakeATree(rc);
     		
-    		//Moves to a good space for planting, based on more successful teams, changes turn to turn, stops trying after a certain number of turns
-			MapLocation myLocation = rc.getLocation();
-
-    		// 
+    		//Communicate information to team array...currently takes first available spot
+    		if(channel == -1) {
+    			int tempchannel = 100;
+    			while(rc.readBroadcast(tempchannel) != 0)
+    				tempchannel++;
+    			channel = tempchannel;
+    		}
     		
-   			if(theta < 0.0) {
-   				float deltaTheta = (float)(Math.PI/12.0);
+    		MapLocation myLocation = rc.getLocation();
+    		int x = (int)myLocation.x;
+    		int y = (int)myLocation.y;
+    		int planting = 0b0000_0001;
+    		int message = x;
+    		message = (message << 12) + y;
+    		message = (message << 12) + planting;
+    		rc.broadcast(channel, message);
+    		
+    		if(rc.getHealth() < 5) //If I'm about to die, clear my spot
+    			rc.broadcast(channel, 0);
+    		//System.out.println("msg " + message);
+    		
+    		//Before I've determined the best theta, I should figure out if it's even worth moving
+   			int directionsICantPlant = 0;
+   			
+   			for(int i = dirs.length-1; i >= 0; i--)
+   				if(rc.isLocationOccupied(myLocation.add(dirs[i], 2f))) {
+   					directionsICantPlant++;
+   				}
+   			
+   			if(directionsICantPlant == 0)
+   				theta = 0f;
+   			else
+   				theta = -1.0f; //I should then find a better spot
+   			
+    		//Moves to a good space for planting, based on more successful teams, changes turn to turn, stops trying after a certain number of turns
+			
+   			if(theta < 0.0f) {
+   				
+   				float deltaTheta = (float)(Math.PI/6.0);
    				
    				RobotInfo[] allRobots = rc.senseNearbyRobots();
    				TreeInfo[] allTrees = rc.senseNearbyTrees(7f, Team.NEUTRAL);
@@ -41,17 +74,18 @@ public class Gardener {
    				float bestTheta = -1.0f;
    				int fewestThings = 1000;
    				
-   				theta = 0.0f;
+   				float currentTheta = 0.0f;
    				
-   				while(theta < (float)(2.0*Math.PI)) { //so i only test the unit circle
-   					if(!rc.canMove(new Direction(theta))) {
-    					theta += deltaTheta;
+   				while(currentTheta < (float)(2.0*Math.PI)) { //so i only test the unit circle
+   					Direction thisDir = new Direction(currentTheta);
+   					
+   					if(rc.isLocationOccupied(myLocation.add(thisDir, 2f))) {
+    					currentTheta += deltaTheta;
     					continue;
     				}
    					
    					int thingsInMyWay = 0;
-    				Direction thisDir = new Direction(theta);
-    				
+   					
     				for(int i = allRobots.length-1; i >= 0; i--) {
     					if(thisDir.equals(myLocation.directionTo(allRobots[i].getLocation()), deltaTheta))
     						thingsInMyWay++;
@@ -63,33 +97,24 @@ public class Gardener {
     				}
     				
     				if(thingsInMyWay == 0) {
-    					bestTheta = theta;
+    					bestTheta = currentTheta;
     					break;
     				}
     				
-    				//System.out.println(thingsInMyWay + " in this direction " + theta);
+    				//System.out.println(thingsInMyWay + " in this direction " + currentTheta);
     				if(thingsInMyWay < fewestThings) {
-    					bestTheta = theta;
+    					bestTheta = currentTheta;
     					fewestThings = thingsInMyWay;
     				}
     				
-    				theta += deltaTheta;
+    				currentTheta += deltaTheta;
     				//System.out.println(theta);
     			}
    				if(bestTheta > -1.0)
    					theta = bestTheta;
     		}
    			
-   			//System.out.println(theta);
-   			
-   			//Now I've determined the best theta, I should figure out if it's even worth moving
-   			int directionsICantPlant = 0;
-   			
-   			for(int i = dirs.length-1; i >= 0; i--)
-   				if(rc.isLocationOccupied(myLocation.add(dirs[i], 2f)))
-   					directionsICantPlant++;
-   			
-   			//System.out.println("Cannot plant in this many directions" + directionsICantPlant);
+   			//System.out.println("theta: " + theta);
    			
    			if(theta>=0.0 && directionsICantPlant > 1) {
    				Direction toMove = new Direction(theta);

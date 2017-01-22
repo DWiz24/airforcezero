@@ -170,7 +170,7 @@ class Nav {
                     float closest = 999f;
                     for (int i = trees.length - 1; i >= 0; i--) {
                         TreeInfo thisTree = trees[i];
-                        float dist = thisTree.location.distanceTo(rc.getLocation());
+                        float dist = thisTree.location.distanceTo(rc.getLocation());   //treeDists[i]
                         if (dist < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.radius) {
                             bugTree = thisTree.ID;
                             closest = dist;

@@ -3,18 +3,19 @@ import battlecode.common.*;
 public class Gardener {
     public static void run(RobotController rc) throws GameActionException {
     	final int roundSpawned = rc.getRoundNum();
-    	int soldiers = 0;
-    	int lumbers = 0;
+    	int soldiers = 0, lumbers = 0, planted = 0;    	
+    	int channel = -1;
+    	float theta = -1.0f;
         while(true){
         	
         	//RobotType[] canBuild = {RobotType.SOLDIER, RobotType.LUMBERJACK, RobotType.TANK, RobotType.SCOUT};
-        	//whichRobot = 0;
-    		Direction[] dirs={new Direction((float)(Math.PI/3.0)), new Direction((float)(2.0*Math.PI/3.0)), new Direction((float)(3.0*Math.PI/3.0)), new Direction((float)(4.0*Math.PI/3.0)), new Direction((float)(5.0*Math.PI/3.0)), new Direction((float)(6.0*Math.PI/3.0))}; 
+        	
+    		Direction[] dirs={new Direction(0f), new Direction((float)(Math.PI/3.0)), new Direction((float)(2.0*Math.PI/3.0)), new Direction((float)(3.0*Math.PI/3.0)), new Direction((float)(4.0*Math.PI/3.0)), new Direction((float)(5.0*Math.PI/3.0))}; 
+    		
     		MapLocation sad = null; //Find lowest health tree, water it
     		float minhealth = 50f; 
     		Team myTeam = rc.getTeam();
     		TreeInfo[] trees = rc.senseNearbyTrees(3.0f, myTeam);
-    		//System.out.println(trees.length);
     		for(TreeInfo tree:trees) {
     			if(tree.health < minhealth && rc.canWater(tree.ID)){
     				minhealth = tree.health;
@@ -26,56 +27,120 @@ public class Gardener {
     		if(rc.canShake())
     			shakeATree(rc);
     		
-    		//Finds number of nearby robots. If too many, find a good place to plant trees and soldiers. If it's been too long, stop moving start planting
-    		int baddirs=0;
-    		for(int i = dirs.length-1; i >= 0; i--) {
-    			if(rc.canMove(dirs[i]))
-    				baddirs++;
+    		//Communicate information to team array...currently takes first available spot
+    		if(channel == -1) {
+    			int tempchannel = 100;
+    			while(rc.readBroadcast(tempchannel) != 0)
+    				tempchannel++;
+    			channel = tempchannel;
     		}
     		
-    		boolean buildtree = false;
-    		boolean looking = true;
+    		MapLocation myLocation = rc.getLocation();
+    		int x = (int)myLocation.x;
+    		int y = (int)myLocation.y;
+    		int planting = 0b0000_0001;
+    		if(trees.length > 4)
+    			planting = 0b0000_0000;
+    		int message = x;
+    		message = (message << 12) + y;
+    		message = (message << 12) + planting;
+    		rc.broadcast(channel, message);
     		
-    		int whichDir = 0;
-    		int numNearbys = 0;
+    		if(rc.getHealth() < 5) //If I'm about to die, clear my spot
+    			rc.broadcast(channel, 0);
+    		//System.out.println("msg " + message);
     		
-    		if(rc.getRoundNum() - roundSpawned > 20)
-    			looking = false;
-    		
-    		if(looking) {
-	    		RobotInfo nearbys[] = rc.senseNearbyRobots(3f);
-	    		for(int i = nearbys.length - 1; i >= 0; i--) {
-	    			RobotType thisType = nearbys[i].getType();
-	    			
-	    			if(thisType == RobotType.ARCHON || thisType == RobotType.GARDENER || thisType == RobotType.LUMBERJACK)
-	    				numNearbys++;
-	    		}
-
-	    		if(numNearbys>0) {
-	    			while(whichDir < dirs.length-1 && !rc.canMove(dirs[whichDir]))
-	    				whichDir++;
-	    			if(rc.canMove(dirs[whichDir]))
-	    				rc.move(dirs[whichDir]);
-	    		}
+    		//Before I've determined the best theta, I should figure out if it's even worth moving
+   			int directionsICantPlant = 0;
+   			
+   			for(int i = dirs.length-1; i >= 0; i--)
+   				if(rc.isLocationOccupied(myLocation.add(dirs[i], 2f))) {
+   					directionsICantPlant++;
+   				}
+   			
+   			if(directionsICantPlant == 0)
+   				theta = 0f;
+   			else
+   				theta = -1.0f; //I should then find a better spot
+   			
+    		//Moves to a good space for planting, based on more successful teams, changes turn to turn, stops trying after a certain number of turns
+			
+   			if(theta < -2.0f) { //For now, unable to move at all
+   				
+   				float deltaTheta = (float)(Math.PI/6.0);
+   				
+   				RobotInfo[] allRobots = rc.senseNearbyRobots();
+   				TreeInfo[] allTrees = rc.senseNearbyTrees(7f, Team.NEUTRAL);
+   				
+   				float bestTheta = -1.0f;
+   				int fewestThings = 1000;
+   				
+   				float currentTheta = 0.0f;
+   				
+   				while(currentTheta < (float)(2.0*Math.PI)) { //so i only test the unit circle
+   					Direction thisDir = new Direction(currentTheta);
+   					
+   					if(rc.isLocationOccupied(myLocation.add(thisDir, 2f))) {
+    					currentTheta += deltaTheta;
+    					continue;
+    				}
+   					
+   					int thingsInMyWay = 0;
+   					
+    				for(int i = allRobots.length-1; i >= 0; i--) {
+    					if(thisDir.equals(myLocation.directionTo(allRobots[i].getLocation()), deltaTheta))
+    						thingsInMyWay++;
+    				}
+    				
+    				for(int i = allTrees.length-1; i >= 0; i--) {
+    					if(thisDir.equals(myLocation.directionTo(allTrees[i].getLocation()), deltaTheta))
+    						thingsInMyWay++;
+    				}
+    				
+    				if(thingsInMyWay == 0) {
+    					bestTheta = currentTheta;
+    					break;
+    				}
+    				
+    				//System.out.println(thingsInMyWay + " in this direction " + currentTheta);
+    				if(thingsInMyWay < fewestThings) {
+    					bestTheta = currentTheta;
+    					fewestThings = thingsInMyWay;
+    				}
+    				
+    				currentTheta += deltaTheta;
+    				//System.out.println(theta);
+    			}
+   				if(bestTheta > -1.0)
+   					theta = bestTheta;
     		}
+   			
+   			//System.out.println("theta: " + theta);
+   			
+   			if(theta>=0.0 && directionsICantPlant > 1) {
+   				Direction toMove = new Direction(theta);
+   				if(rc.canMove(toMove)) {
+   					//System.out.println("gunna move");
+   					rc.move(toMove);
+   				}
+   			}
     		//End trying to move code
     		
     		//What do I build code
-    		int numTrees = rc.getTreeCount();
-    		int numRobots = rc.getRobotCount();
+    		boolean buildtree = false;
     		
-	   		if(numTrees < numRobots && (int)rc.senseNearbyTrees(3.0f, myTeam).length <= 4 && !looking && numRobots > 1)
+	   		if(planted == 4 || (planted < 5 && planted < soldiers*2 && soldiers > 1))
 	   			buildtree = true;
 	   		else
 	   			buildtree = false;
 	    		
 			for (Direction place : dirs) {
 				//if(sad!=null && rc.isLocationOccupied(sad.add(place)))
-				//	continue; 
 				if (rc.canPlantTree(place) && buildtree) { 
 					rc.plantTree(place);
+					planted++;
 				}
-					if((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 4 || lumbers < soldiers/6 || baddirs > 3) && soldiers < 10) {
+					if((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 2) && soldiers < 2) {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
 							lumbers++;
@@ -93,7 +158,7 @@ public class Gardener {
 			}
     		
     		
-    		if(rc.getTeamBullets() >= 10000){
+    		if(rc.getTeamBullets()+10*rc.getTeamVictoryPoints() >= 10000){
     			rc.donate(10000f);
     		}
 			float b=rc.getTeamBullets();

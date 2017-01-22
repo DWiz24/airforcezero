@@ -136,9 +136,6 @@ public class Gardener {
 	    		
 			for (Direction place : dirs) {
 				//if(sad!=null && rc.isLocationOccupied(sad.add(place)))
-				System.out.println("direction" + place.radians);
-				System.out.println("buildtree" + buildtree);
-				System.out.println("canplant" + rc.canPlantTree(place));
 				if (rc.canPlantTree(place) && buildtree) { 
 					rc.plantTree(place);
 					planted++;

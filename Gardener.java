@@ -134,7 +134,7 @@ public class Gardener {
 			}
     		
     		
-    		if(rc.getTeamBullets() >= 10000){
+    		if(rc.getTeamBullets()+10*rc.getTeamVictoryPoints() >= 10000){
     			rc.donate(10000f);
     		}
 			float b=rc.getTeamBullets();

@@ -123,7 +123,7 @@ public class Soldier {
         float[] dists=new float[bullets.length]; //the distance to the first impact
         for (int i=bullets.length-1; i>=0; i--) {
             BulletInfo b=bullets[i];
-            float minDist=b.speed;
+            float minDist=b.speed*2;
             for (int k=trees.length-1; k>=0; k--) {
                 MapLocation tree=trees[k].location;
                 float theta=Math.abs(b.location.directionTo(tree).radiansBetween(b.dir));
@@ -150,7 +150,7 @@ public class Soldier {
                     }
                 }
             }
-            dists[i]=minDist;
+            dists[i]=minDist+0.5f;
         }
         MapLocation[] jack=new MapLocation[enemies+1];
         int jacks=-1;
@@ -162,7 +162,7 @@ public class Soldier {
         //int newByte=Clock.getBytecodeNum();
         //System.out.println("Precomputation: "+(newByte-prebyte));
         int minDamage = 0;
-        float minDist=99;
+        float minDist=99999;
         for (int k = bullets.length - 1; k >= 0; k--) {
             BulletInfo b = bullets[k];
             float dist = b.location.distanceTo(rc.getLocation());
@@ -172,28 +172,28 @@ public class Soldier {
         }
 
         for (int k=jacks; k>=0; k--) {
-            if (rc.getLocation().distanceTo(jack[k])<=4.5) minDamage+=2;
+            if (rc.getLocation().distanceTo(jack[k])<=3.8) minDamage+=2;
         }
         for (int i=enemies; i>=0; i--) {
-            minDist=Math.min(enemy[i].type==RobotType.ARCHON?rc.getLocation().distanceTo(enemy[i].location)*4:rc.getLocation().distanceTo(enemy[i].location),minDist);
+            minDist=Math.min(enemy[i].type==RobotType.ARCHON?rc.getLocation().distanceTo(enemy[i].location)*99:rc.getLocation().distanceTo(enemy[i].location),minDist);
         }
         MapLocation best=rc.getLocation();
         Direction dir=Direction.getEast();
         for (int i=6; i>0; i--) {
-            for (float moveDist=2; moveDist>0; moveDist-=1) {
+            for (float moveDist=1; moveDist>0; moveDist-=0.5) {
                 MapLocation move=rc.getLocation().add(dir,moveDist);
                 if (rc.canMove(move)) {
                     int damage = 0;
                     for (int k = bullets.length - 1; k >= 0; k--) {
                         BulletInfo b = bullets[k];
-                        float dist = b.location.distanceTo(move)+1;
+                        float dist = b.location.distanceTo(move);
                         if (Math.asin(1 / dist) > Math.abs(b.location.directionTo(move).radiansBetween(b.dir))) {
                             if (dist < dists[k]) damage += b.damage;
                         }
                     }
 
                     for (int k=jacks; k>=0; k--) {
-                        if (move.distanceTo(jack[k])<=4.5) damage+=2;
+                        if (move.distanceTo(jack[k])<=3.8) damage+=2;
                     }
                     if (damage <= minDamage) {
                         float theDist=99;
@@ -221,14 +221,28 @@ public class Soldier {
         int ypart=((int)(loc.y*4))<<8;
         int message=xpart|ypart|info;
         int chan=rc.readBroadcast(30);
-        MapLocation transmitted=getLocation(message);
+        int prevChan=chan;
+        //MapLocation transmitted=getLocation(message);
         //if (transmitted.distanceTo(loc)>1) {
         //    System.out.println("ERROR");
         //}
-        rc.broadcast(chan,message);
-        if (chan==38) chan=30;
-        chan++;
-        rc.broadcast(30,chan);
+        gotoHacks: {
+            for (int i = 31; i <= 38; i++) {
+                if (rc.readBroadcast(i) == 0) {
+                    rc.broadcast(i, message);
+                    if (i == chan) {
+                        chan++;
+                    }
+                    break gotoHacks;
+                }
+            }
+            rc.broadcast(chan, message);
+            chan++;
+        }
+        if (chan!=prevChan) {
+            if (chan == 39) chan = 31;
+            rc.broadcast(30, chan);
+        }
     }
 
     static MapLocation getLocation(int m) {

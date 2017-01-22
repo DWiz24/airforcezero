@@ -25,7 +25,9 @@ public class RobotPlayer {
                         Tank.run(rc);
                 }
             } catch (Throwable t) {
+
                 t.printStackTrace();
+                System.out.println(t);
             }
         }
     }

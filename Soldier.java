@@ -184,7 +184,7 @@ public class Soldier {
                     for (int k = bullets.length - 1; k >= 0; k--) {
                         BulletInfo b = bullets[k];
                         float dist = b.location.distanceTo(move);
-                        if (Math.asin(1 / dist) > Math.abs(b.location.directionTo(move).radiansBetween(b.dir))) {
+                        if (dist<=1 || Math.asin(1 / dist) > Math.abs(b.location.directionTo(move).radiansBetween(b.dir))) {
                             if (dist < dists[k]) damage += b.damage;
                         }
                     }
@@ -318,9 +318,9 @@ public class Soldier {
                 if (valid) {
                     //rc.setIndicatorDot(target.location,0,255,0);
                     //rc.setIndicatorLine(toMove,toMove.add(a1.rotateRightDegrees(a2.degreesBetween(a1)/2.0f),8),0,0,255);
-                    if (d<5&& rc.canFirePentadShot()&&((target.type==RobotType.SOLDIER||rc.getRoundNum()>250)&&target.type!=RobotType.ARCHON)) {
+                    if (rc.canFirePentadShot()&&(target.type==RobotType.SOLDIER||target.type==RobotType.TANK||d<3.81f&&target.type==RobotType.LUMBERJACK||rc.getRoundNum()>300)) {
                         rc.firePentadShot(a1.rotateRightDegrees(a2.degreesBetween(a1)/2.0f));
-                    }else if (target.type!=RobotType.ARCHON || rc.getRoundNum()>400){
+                    }else if (target.type!=RobotType.ARCHON || rc.getRoundNum()>500){
                         rc.fireSingleShot(a1.rotateRightDegrees(a2.degreesBetween(a1) / 2.0f));
                     }
                     break;

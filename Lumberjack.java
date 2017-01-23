@@ -12,10 +12,11 @@ public class Lumberjack {
     private static Random rng;
     private static MapLocation prevGardenerPos, treeLoc;   //previous gardener sighting | location of tree going after
 
-    private static int prevTreeNext, treeNext, treeChannel, treeID; //previous and current turn next tree channel to write to | channel of tree targeting | ID of tree targeting (used close range)
-    private static boolean stayNear, isIdle, foundGardener, firstRound, printedThisTurn, leewayUsed;    //whether I protect or explore | whether I currently have trees to chop | whether I am currently near a gardener | whether it is my first turn | whether I printed this turn | 'explained in pickDest'
+    private static int prevTreeNext, treeNext, treeChannel; //previous and current turn next tree channel to write to | channel of tree targeting
+    private static boolean stayNear, isIdle, foundGardener, firstRound, printedThisTurn, leewayUsed, nearTree;    //whether I protect or explore | whether I currently have trees to chop | whether I am currently near a gardener | whether it is my first turn | whether I printed this turn | 'explained in pickDest' | whether I am in range of chopping my target
 
     //info about my surroundings, updates every turn
+    private static TreeInfo treeInfo;  //ID of tree targeting (used close range)
     private static RobotInfo[] allRobots, friendlyRobots, enemyRobots, friendlyGardeners;
     private static TreeInfo[] allTrees, friendlyTrees, neutralTrees, enemyTrees;
     private static int friendlyRobotCount, enemyRobotCount, friendlyTreeCount, neutralTreeCount, enemyTreeCount, friendlyGardenerCount;
@@ -56,6 +57,10 @@ public class Lumberjack {
     -Else if active and tree id is known:
         -Chop the tree
     -Else:
+        -If tree not seen and in range of tree appearing in sight:
+            -Check for tree; update if found
+        -If tree seen and within one stride radius of closest position near tree:
+            
         -Move
         -If active and moving reaches tree:
             -Find the tree
@@ -84,11 +89,12 @@ public class Lumberjack {
         prevTreeNext = treeNext - 1;
         if (prevTreeNext == 15)
             prevTreeNext = 16;
-        treeID = -1;
+        treeInfo = null;
         firstRound = true;
         stayNear = false;
         isIdle = true;
         leewayUsed = false;
+        nearTree = false;
         if (rc.getID() % 3 == 0) {
             stayNear = true;
             System.out.print("\nI protect gardeners.");
@@ -124,6 +130,8 @@ public class Lumberjack {
                System.out.println();
                printedThisTurn = false;
             }
+
+            PublicMethods.donateBullets(rc);
             
             //end of while loop - yield to end
             firstRound = false;
@@ -316,7 +324,7 @@ public class Lumberjack {
         else{
             int diff = treeNext - treeChannel;
             if(rc.readBroadcast(treeChannel) == 0){
-                treeID = -1;
+                treeInfo = null;
                 treeLoc = null;
                 leewayUsed = false;
                 if(rc.readBroadcast(treeNext) == 0 && (diff == 1 || diff == -13)){
@@ -353,7 +361,7 @@ public class Lumberjack {
         }
     }
     private static void moveAndChop() throws GameActionException{
-        if(isIdle && stayNear && foundGardener){
+        if(isIdle && stayNear && foundGardener){   //staying near gardeners code
             double distance = rc.getLocation().distanceTo(prevGardenerPos);
             if(distance > MAX_GARDENER_RANGE) {
                 Direction d = rc.getLocation().directionTo(prevGardenerPos);
@@ -377,20 +385,9 @@ public class Lumberjack {
                 }
             }
         }
-        else if(!isIdle && treeID != -1) {
-            if (rc.canChop(treeID)) {
-                boolean reset = false;
-                if (rc.senseTree(treeID).getHealth() <= GameConstants.LUMBERJACK_CHOP_DAMAGE) {
-                    System.out.print("\nChopped down my target!");
-                    printedThisTurn = true;
-                    rc.broadcast(treeChannel, 0);
-                    reset = true;
-                }
-                rc.chop(treeID);
-                if(reset) {
-                    treeID = -1;
-                    treeLoc = null;
-                }
+        else if(!isIdle && treeInfo != null) {   //going after tree code
+            if (nearTree) {   //chopping tree
+                chopTree();
             }
         }
         else{
@@ -400,25 +397,40 @@ public class Lumberjack {
                 TreeInfo[] trees2 = rc.senseNearbyTrees(treeLoc, 0.5f, Team.NEUTRAL);
                 if(trees1.length + trees2.length > 0) {
                     if(trees1.length == 0)
-                        treeID = trees2[0].getID();
+                        treeInfo = trees2[0];
                     else
-                        treeID = trees1[0].getID();
-                    boolean reset = false;
-                    if (rc.canChop(treeID)) {
-                        if(rc.senseTree(treeID).getHealth() <= GameConstants.LUMBERJACK_CHOP_DAMAGE) {
-                            System.out.print("\nChopped down my target!");
-                            printedThisTurn = true;
-                            rc.broadcast(treeChannel, 0);
-                            reset = true;
-                        }
-                        rc.chop(treeID);
-                        if(reset) {
-                            treeID = -1;
-                            treeLoc = null;
-                        }
-                    }
+                        treeInfo = trees1[0];
+                    chopTree();
                 }
             }
+        }
+    }
+    private static MapLocation approachATree(MapLocation tree) throws GameActionException{
+        //Does exactly what it says.
+        //Takes over approacking trees when close (dist <= 1 + maxTreeRadius).
+        //Brings robot as close as possible to the tree.
+        //Throws exceptions when tree is nonexistent 
+        //or not completely inside of view range.
+        //Tree location must be exact and not an approximation.
+        //Returns location to move to.
+        //TODO: make gardeners leave room for others.
+        
+        return null; 
+    }
+    private static void chopTree() throws GameActionException{
+        //didn't want to repeat this twice
+        //chops trees (duh)
+        boolean reset = false;
+        if (treeInfo.getHealth() <= GameConstants.LUMBERJACK_CHOP_DAMAGE) {
+            System.out.print("\nChopped down my target!");
+            printedThisTurn = true;
+            rc.broadcast(treeChannel, 0);
+            reset = true;
+        }
+        rc.chop(treeInfo.getID());
+        if(reset) {
+            treeInfo = null;
+            treeLoc = null;
         }
     }
     public static void pickDest() {

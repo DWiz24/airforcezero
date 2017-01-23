@@ -138,10 +138,7 @@ public class Archon {
         			rc.move(ran);
         		//else if( build < )
         	}
-			float b=rc.getTeamBullets();
-			if (rc.getRoundLimit()-rc.getRoundNum()<400) {
-				rc.donate(b-(b%10));
-			}
+			PublicMethods.donateBullets(rc);
             Clock.yield();
         }
     }

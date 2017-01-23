@@ -11,7 +11,7 @@ public class PublicMethods {
 
         //1st priority: if enough bullets to win game
         if(b/rc.getVictoryPointCost() + v >= 1000)
-            rc.donate(rc.getVictoryPointCost()*(1000 - v));
+            rc.donate(rc.getVictoryPointCost() * (1000 - v));
 
         //2nd priority: if game about to end (less than 400 rounds remaining)
         else if (rc.getRoundLimit() - rc.getRoundNum() < 400)

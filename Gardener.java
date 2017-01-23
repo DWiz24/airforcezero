@@ -158,8 +158,8 @@ public class Gardener {
 			}
     		
     		
-    		if(rc.getTeamBullets()+10*rc.getTeamVictoryPoints() >= 10000){
-    			rc.donate(10000f);
+    		if(rc.getTeamBullets()/rc.getVictoryPointCost()+rc.getTeamVictoryPoints() >= 1000){
+    			rc.donate(rc.getVictoryPointCost()*1000);
     		}
 			float b=rc.getTeamBullets();
 			if (rc.getRoundLimit()-rc.getRoundNum()<400) {

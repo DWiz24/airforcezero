@@ -1,5 +1,6 @@
 package airforcezero;
 import battlecode.common.*;
+
 public class Gardener {
     public static void run(RobotController rc) throws GameActionException {
     	final int roundSpawned = rc.getRoundNum();
@@ -41,9 +42,8 @@ public class Gardener {
     		int planting = 0b0000_0001;
     		if(trees.length > 4)
     			planting = 0b0000_0000;
-    		int message = x;
-    		message = (message << 12) + y;
-    		message = (message << 12) + planting;
+    		int message = (((x << 12) + y) << 12) + planting;
+    		//message = (message << 12) + planting;
     		rc.broadcast(channel, message);
     		
     		if(rc.getHealth() < 5) //If I'm about to die, clear my spot

@@ -83,6 +83,7 @@ public class Scout {
         				rc.move(rand);
         		}
         	}
+			PublicMethods.donateBullets(rc);
             Clock.yield();
         }
     }

@@ -135,7 +135,7 @@ class Nav {
         return rc.getLocation();
     }
     static MapLocation lumberjackNav(RobotController rc, TreeInfo[] trees, RobotInfo[] robots) throws GameActionException {
-        if (dest==null||rc.getLocation().distanceTo(dest)<=4) {
+        if (dest==null||rc.getLocation().distanceTo(dest)<=2.9) {
             Lumberjack.pickDest();
             lastMinUpdate=rc.getRoundNum();
         }
@@ -170,7 +170,7 @@ class Nav {
                     float closest = 999f;
                     for (int i = trees.length - 1; i >= 0; i--) {
                         TreeInfo thisTree = trees[i];
-                        float dist = thisTree.location.distanceTo(rc.getLocation());
+                        float dist = thisTree.location.distanceTo(rc.getLocation());   //treeDists[i]
                         if (dist < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.radius) {
                             bugTree = thisTree.ID;
                             closest = dist;

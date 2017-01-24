@@ -53,7 +53,7 @@ public class Archon {
         		float garX = (mes>>>20)/4.0F;
         		float garY = ((mes<<12)>>8)/4.0F;
   				int priority = mes&0b11111111;	//if all 0 and roomforgardeners then make gardener
-  				System.out.println(""+priority);
+  				//System.out.println(""+priority);
   				if( priority != 0 )
   				{
   					makeG = false;

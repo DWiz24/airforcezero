@@ -39,7 +39,7 @@ public class Soldier {
                             archonDest = m & 0b10000000;
                         }
                     }
-                    if (i==45) i=30;
+                    if (i == 45) i = 30;
                 }
                 if (bestDest != null) {
                     if (bestDest != Nav.dest) {
@@ -94,7 +94,7 @@ public class Soldier {
             }
             System.out.println("Moving: " + (Clock.getBytecodeNum() - bcode));
             bcode = Clock.getBytecodeNum();
-            if (enemies>=0) {
+            if (enemies >= 0) {
                 shootOrMove(rc, toMove, trees, enemy, enemies, friend, friends, bullets, robots);
             } else {
                 rc.move(toMove);
@@ -102,12 +102,12 @@ public class Soldier {
             System.out.println("Shooting: " + (Clock.getBytecodeNum() - bcode));
             bcode = Clock.getBytecodeNum();
             shakeATree(rc);
-            if (enemies >= 0) {
+            if (Clock.getBytecodeNum()<8000 && enemies >= 0) {
 
                 MapLocation loc = enemy[0].location;
                 gotoHacks:
                 {
-                    for (int i = 31; i <= 38; i++) {
+                    for (int i = 31; i <= 45; i++) {
                         int m = rc.readBroadcast(i);
                         if (m != 0) {
                             MapLocation map = getLocation(m);
@@ -183,7 +183,7 @@ public class Soldier {
             MapLocation oloc = allBullets[i].location;
             float dist = loc.distanceTo(oloc);
             if (dist < 2 || Math.asin(2 / dist) >= Math.abs(loc.directionTo(oloc).radiansBetween(allBullets[i].dir))) {
-                bullets[nbullets++]=allBullets[i];
+                bullets[nbullets++] = allBullets[i];
             }
         }
         nbullets--;
@@ -246,9 +246,8 @@ public class Soldier {
         }
         MapLocation best = rc.getLocation();
         Direction dir = Direction.getEast();
-        for (int i = 6; i > 0; i--) {
-            for (float moveDist = 1; moveDist > 0; moveDist -= 0.5) {
-                MapLocation move = rc.getLocation().add(dir, moveDist);
+        for (int i = 8; i > 0; i--) {
+                MapLocation move = rc.getLocation().add(dir, 1);
                 if (rc.canMove(move)) {
                     int damage = 0;
                     for (int k = nbullets; k >= 0; k--) {
@@ -274,8 +273,7 @@ public class Soldier {
                         }
                     }
                 }
-            }
-            dir = dir.rotateLeftDegrees(60);
+            dir = dir.rotateLeftDegrees(45);
         }
         //System.out.println("Other: "+(Clock.getBytecodeNum()-newByte));
         return best;
@@ -332,48 +330,16 @@ public class Soldier {
 
         if (toMove != rc.getLocation()) {
             rc.move(toMove);
-        }
-
-        if (rc.canFireSingleShot()) {
-            MapLocation cur = toMove;
             trees = rc.senseNearbyTrees();
             enemy = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
             enemies = enemy.length - 1;
             friend = rc.senseNearbyRobots(-1, rc.getTeam());
             friends = friend.length - 1;
-            BodyInfo[] avoid = new BodyInfo[trees.length + friends + 1];
-            int avoids = -1;
-            int friendpos = 0;
-            int treepos = 0;
+        }
 
-            while (true) {
-                if (treepos == trees.length) {
-                    for (int i = friendpos; i <= friends; i++) {
-                        avoid[++avoids] = friend[i];
-                    }
-                    break;
-                } else if (friendpos > friends) {
-                    for (int i = treepos; i < trees.length; i++) {
-                        avoid[++avoids] = trees[i];
-                    }
-                    break;
-                } else {
-                    if (trees[treepos].getLocation().distanceTo(toMove) < friend[friendpos].getLocation().distanceTo(toMove)) {
-                        avoid[++avoids] = trees[treepos++];
-
-                    } else {
-                        avoid[++avoids] = friend[friendpos++];
-                    }
-                }
-            }
-            float[] dists = new float[avoids + 1];
-            float[] thetas = new float[avoids + 1];
-            Direction[] dirs = new Direction[avoids + 1];
-            for (int i = avoids; i >= 0; i--) {
-                dists[i] = cur.distanceTo(avoid[i].getLocation());
-                thetas[i] = (float) Math.asin(avoid[i].getRadius() / dists[i]);
-                dirs[i] = cur.directionTo(avoid[i].getLocation());
-            }
+        if (rc.canFireSingleShot()) {
+            MapLocation cur = toMove;
+            int treen=trees.length;
             for (int t = 0; t <= enemies; t++) {
                 RobotInfo target = enemy[t];
                 float d = toMove.distanceTo(target.location);
@@ -383,28 +349,54 @@ public class Soldier {
                 Direction a2 = dir.rotateRightRads(theta);
                 //rc.setIndicatorLine(toMove,toMove.add(a1,2),0,0,255);
                 //rc.setIndicatorLine(toMove,toMove.add(a2,2),0,0,255);
-                boolean valid = true;
-                for (int i = 0; i < avoids; i++) {
-                    if (d + 2 < dists[i]) break;
-                    //rc.setIndicatorDot(avoid[i].getLocation(),255,0,0);
-                    boolean a1contained = Math.abs(a1.radiansBetween(dirs[i])) <= thetas[i];
-                    boolean a2contained = Math.abs(a2.radiansBetween(dirs[i])) <= thetas[i];
-                    if (a1contained && a2contained || a1.radiansBetween(a2) >= 0) {
-                        valid = false;
-                        break;
-                    } else if (a1contained) {
-                        a1 = dirs[i].rotateRightRads(thetas[i] + 0.0001f);
-                    } else if (a2contained) {
-                        a2 = dirs[i].rotateLeftRads(thetas[i] + 0.0001f);
+                gotoHacks:
+                {
+                    boolean leftFriend=false;
+                    boolean rightFriend=false;
+                    for (int i = 0; i <= friends; i++) {
+                        float dist= cur.distanceTo(friend[i].getLocation());
+                        if (d + 2 < dist) break;
+                        //rc.setIndicatorDot(avoid[i].getLocation(),255,0,0);
+                        float thetai = (float) Math.asin(friend[i].getRadius() / dist);
+                        Direction diri = cur.directionTo(friend[i].location);
+                        boolean a1contained = Math.abs(a1.radiansBetween(diri)) <= thetai;
+                        boolean a2contained = Math.abs(a2.radiansBetween(diri)) <= thetai;
+                        if (a1contained && a2contained || a1.radiansBetween(a2) >= 0) {
+                            break gotoHacks;
+                        } else if (a1contained) {
+                            a1 = diri.rotateRightRads(thetai + 0.0001f);
+                            leftFriend=true;
+                        } else if (a2contained) {
+                            a2 = diri.rotateLeftRads(thetai + 0.0001f);
+                            rightFriend=true;
+                        }
                     }
-                }
-                if (valid) {
+                    for (int i = 0; i < treen; i++) {
+                        float dist= cur.distanceTo(trees[i].location);
+                        if (d + 2 < dist) break;
+                        //rc.setIndicatorDot(avoid[i].getLocation(),255,0,0);
+                        float thetai = (float) Math.asin(trees[i].radius / dist);
+                        Direction diri = cur.directionTo(trees[i].location);
+                        boolean a1contained = Math.abs(a1.radiansBetween(diri)) <= thetai;
+                        boolean a2contained = Math.abs(a2.radiansBetween(diri)) <= thetai;
+                        if (a1contained && a2contained || a1.radiansBetween(a2) >= 0) {
+                            break gotoHacks;
+                        } else if (a1contained) {
+                            a1 = diri.rotateRightRads(thetai + 0.0001f);
+                            leftFriend=false;
+                        } else if (a2contained) {
+                            rightFriend=false;
+                            a2 = diri.rotateLeftRads(thetai + 0.0001f);
+                        }
+                    }
                     //rc.setIndicatorDot(target.location,0,255,0);
                     //rc.setIndicatorLine(toMove,toMove.add(a1.rotateRightDegrees(a2.degreesBetween(a1)/2.0f),8),0,0,255);
-                    if (rc.canFirePentadShot() && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 300)) {
-                        rc.firePentadShot(a1.rotateRightDegrees(a2.degreesBetween(a1) / 2.0f));
+                    float degs = a2.degreesBetween(a1) / 2.0f;
+
+                    if (rc.canFirePentadShot() && (degs > 61 || !(leftFriend&&rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 300)) {
+                        rc.firePentadShot(a1.rotateRightDegrees(degs));
                     } else if (target.type != RobotType.ARCHON || rc.getRoundNum() > 500) {
-                        rc.fireSingleShot(a1.rotateRightDegrees(a2.degreesBetween(a1) / 2.0f));
+                        rc.fireSingleShot(a1.rotateRightDegrees(degs));
                     }
                     break;
                 }

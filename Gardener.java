@@ -29,6 +29,17 @@ public class Gardener {
     			shakeATree(rc);
     		
     		//Communicate information to team array...currently takes first available spot
+    		MapLocation myLocation = rc.getLocation();
+    		int directionsICantPlant = 0, directionsICanPlant = 0;
+   			
+   			for(int i = dirs.length-1; i >= 0; i--) {
+   				if(rc.isCircleOccupiedExceptByThisRobot(myLocation.add(dirs[i], 2f), 1f)) {
+   					directionsICantPlant++;
+   				} else {
+   					directionsICanPlant++;
+   				}
+   			}
+   			
     		if(channel == -1) {
     			int tempchannel = 100;
     			while(rc.readBroadcast(tempchannel) != 0)
@@ -36,11 +47,10 @@ public class Gardener {
     			channel = tempchannel;
     		}
     		
-    		MapLocation myLocation = rc.getLocation();
     		int x = (int)myLocation.x;
     		int y = (int)myLocation.y;
     		int planting = 0b0000_0001;
-    		if(trees.length > 4)
+    		if(directionsICanPlant < 2)
     			planting = 0b0000_0000;
     		int message = (((x << 12) + y) << 12) + planting;
     		//message = (message << 12) + planting;
@@ -51,12 +61,7 @@ public class Gardener {
     		//System.out.println("msg " + message);
     		
     		//Before I've determined the best theta, I should figure out if it's even worth moving
-   			int directionsICantPlant = 0;
-   			
-   			for(int i = dirs.length-1; i >= 0; i--)
-   				if(rc.isLocationOccupied(myLocation.add(dirs[i], 2f))) {
-   					directionsICantPlant++;
-   				}
+
    			
    			if(directionsICantPlant == 0)
    				theta = 0f;
@@ -120,7 +125,7 @@ public class Gardener {
    			if(theta>=0.0 && directionsICantPlant > 1) {
    				Direction toMove = new Direction(theta);
    				if(rc.canMove(toMove)) {
-   					//System.out.println("gunna move");
+   					//System.out.println("going to move");
    					rc.move(toMove);
    				}
    			}
@@ -129,8 +134,14 @@ public class Gardener {
     		//What do I build code
     		boolean buildtree = false;
     		
-	   		if(planted == 4 || (planted < 5 && planted < soldiers*2 && soldiers > 1))
+    		int countedSoliders = rc.getRobotCount(); //Right now assuming all robots are soldiers...will be fixed asap
+    		
+	   		if((directionsICanPlant > 1 && planted < soldiers*2 && soldiers >= 1)) {
+	   			if(soldiers > 0 && countedSoliders == 0)
+	   				buildtree = false;
 	   			buildtree = true;
+	   		}
+	   		
 	   		else
 	   			buildtree = false;
 	    		

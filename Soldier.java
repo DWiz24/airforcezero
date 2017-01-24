@@ -22,18 +22,7 @@ public class Soldier {
         while (true) {
             int newLoc=rc.readBroadcast(30);
             if (newLoc!=oldLoc) {
-                float distToDest=rc.getLocation().distanceTo(Nav.dest)*0.8f;
-                for (int i=oldLoc; i!=newLoc; i++) {
-                    int mess=rc.readBroadcast(i);
-                    MapLocation report=getLocation(mess);
-                    if (!importantDest||rc.getLocation().distanceTo(report)<distToDest) {
-                        Nav.setDest(report);
-                        //System.out.println("Changed course");
-                        importantDest=true;
-                        whichDest=i;
-                    }
-                    if (i==45) i=30;
-                }
+                pickDest();
             }
             oldLoc=newLoc;
             //System.out.println(bugging);
@@ -58,10 +47,19 @@ public class Soldier {
             if (enemies==-1&&rc.getRoundNum()-stoppedCreeping>50) {
                 microCreeping=false;
             }
-            if (enemies != -1 || bullets.length != 0) {
+            if (enemies >0 || bullets.length != 0 || (enemies==0 && enemy[0].type!=RobotType.ARCHON)) {
                 toMove = micro(rc, trees, friend, friends, enemy, enemies, bullets);
             } else {
-                toMove = Nav.soldierNav(rc, trees, robots);
+                gotoHack:
+                {
+                    for (int i = trees.length - 1; i >= 0; i--) {
+                        if (trees[i].team == rc.getTeam().opponent()) {
+                            //toMove = rc.approachATree(rc, trees, friend, friends, enemy[0]);
+                            //break gotoHack;
+                        }
+                    }
+                    toMove = Nav.soldierNav(rc, trees, robots);
+                }
             }
             shootOrMove(rc, toMove, trees, enemy, enemies, friend, friends, bullets,robots);
             shakeATree(rc);
@@ -80,7 +78,11 @@ public class Soldier {
                     }
                     //System.out.println("I signaled");
                     //rc.setIndicatorDot(loc,0,0,255);
-                    reportCombatLocation(loc,0);
+                    if (enemies==0 && enemy[0].type==RobotType.ARCHON) {
+                        reportCombatLocation(loc,0b10000000|roundToTime(rc.getRoundNum()));
+                    } else {
+                        reportCombatLocation(loc, 0);
+                    }
                 }
             }
             //rc.move(toMove);
@@ -88,29 +90,39 @@ public class Soldier {
             Clock.yield();
         }
     }
-
+    static int roundToTime(int r) {
+        return (int)(128*r/3000.0);
+    }
     static void pickDest() throws GameActionException{
-        float minDist=99;
+        float minDist=9999999999f;
         MapLocation bestDest=null;
         int chan=-1;
-        int bestMessage=0;
-        for (int i=31; i<=50; i++) {
+        int archonDest=0;
+        for (int i=31; i<=45; i++) {
             int m=rc.readBroadcast(i);
             if (m!=0) {
                 MapLocation map=getLocation(m);
                 float dist=map.distanceTo(rc.getLocation());
+                if ((m&0b10000000)!=0) {
+                    dist=100*(m&0b1111111)+dist;
+                }
                 if (dist<minDist && dist>8) {
-                    bestMessage=m;
                     minDist=dist;
                     bestDest=map;
                     chan=i;
+                    archonDest=m&0b10000000;
                 }
             }
         }
         if (bestDest!=null) {
-            importantDest=true;
-            Nav.setDest(bestDest);
-            whichDest=chan;
+            if (bestDest!=Nav.dest) {
+                importantDest = true;
+                Nav.setDest(bestDest);
+                whichDest = chan;
+                if (archonDest != 0) {
+                    reportCombatLocation(bestDest, 0b10000000 | roundToTime(rc.getRoundNum()), chan);
+                }
+            }
             //rc.setIndicatorDot(bestDest,255,0,0);
         } else {
             importantDest = false;
@@ -244,6 +256,13 @@ public class Soldier {
             if (chan == 46) chan = 31;
             rc.broadcast(30, chan);
         }
+    }
+    static void reportCombatLocation(MapLocation loc, int info, int chan) throws GameActionException{
+        //if (info>255||info<0) System.out.println("BAD INFO "+info);
+        int xpart=((int)(loc.x*4))<<20;
+        int ypart=((int)(loc.y*4))<<8;
+        int message=xpart|ypart|info;
+        rc.broadcast(chan, message);
     }
 
     static MapLocation getLocation(int m) {

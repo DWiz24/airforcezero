@@ -17,10 +17,12 @@ public class Archon {
 		MapLocation[] archons =rc.getInitialArchonLocations(rc.getTeam());
 		MapLocation[] enemyArchons=rc.getInitialArchonLocations(rc.getTeam().opponent());
 		arCount = archons.length;
-		rc.broadcast(30,30+arCount); //for soldier comm channels
-		Soldier.rc=rc;
-		for (int i=arCount-1; i>=0; i--) {
-			Soldier.reportCombatLocation(enemyArchons[i],0);
+		if (rc.getRoundNum()<=2) {
+			//rc.broadcast(30, 30 + arCount); //for soldier comm channels
+			Soldier.rc = rc;
+			for (int i = arCount - 1; i >= 0; i--) {
+				Soldier.reportCombatLocation(enemyArchons[i], 0b10000000);
+			}
 		}
         while(true)
         {

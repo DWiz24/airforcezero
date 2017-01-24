@@ -53,7 +53,7 @@ public class Soldier {
                     //rc.setIndicatorDot(bestDest,255,0,0);
                 }
             }
-            System.out.println("pickDest " + Clock.getBytecodeNum());
+            //System.out.println("pickDest " + Clock.getBytecodeNum());
             oldLoc = newLoc;
             //System.out.println(bugging);
             TreeInfo[] trees = rc.senseNearbyTrees();
@@ -77,7 +77,7 @@ public class Soldier {
             if (enemies == -1 && rc.getRoundNum() - stoppedCreeping > 50) {
                 microCreeping = false;
             }
-            int bcode = Clock.getBytecodeNum();
+            //int bcode = Clock.getBytecodeNum();
             if (enemies > 0 || bullets.length != 0 || (enemies == 0 && enemy[0].type != RobotType.ARCHON)) {
                 toMove = micro(rc, trees, friend, friends, enemy, enemies, bullets);
             } else {
@@ -92,15 +92,15 @@ public class Soldier {
                     toMove = Nav.soldierNav(rc, trees, robots);
                 }
             }
-            System.out.println("Moving: " + (Clock.getBytecodeNum() - bcode));
-            bcode = Clock.getBytecodeNum();
+            //System.out.println("Moving: " + (Clock.getBytecodeNum() - bcode));
+            //bcode = Clock.getBytecodeNum();
             if (enemies >= 0) {
                 shootOrMove(rc, toMove, trees, enemy, enemies, friend, friends, bullets, robots);
             } else {
                 rc.move(toMove);
             }
-            System.out.println("Shooting: " + (Clock.getBytecodeNum() - bcode));
-            bcode = Clock.getBytecodeNum();
+            //System.out.println("Shooting: " + (Clock.getBytecodeNum() - bcode));
+            //bcode = Clock.getBytecodeNum();
             shakeATree(rc);
             if (Clock.getBytecodeNum()<8000 && enemies >= 0) {
 
@@ -125,8 +125,8 @@ public class Soldier {
                     }
                 }
             }
-            System.out.println("Signaling: " + (Clock.getBytecodeNum() - bcode));
-            bcode = Clock.getBytecodeNum();
+            //System.out.println("Signaling: " + (Clock.getBytecodeNum() - bcode));
+            //bcode = Clock.getBytecodeNum();
             //rc.move(toMove);
             PublicMethods.donateBullets(rc);
             Clock.yield();
@@ -340,6 +340,9 @@ public class Soldier {
         if (rc.canFireSingleShot()) {
             MapLocation cur = toMove;
             int treen=trees.length;
+            double bestPri=99999;
+            Direction bestShot=null;
+            boolean penta=false;
             for (int t = 0; t <= enemies; t++) {
                 RobotInfo target = enemy[t];
                 float d = toMove.distanceTo(target.location);
@@ -392,13 +395,38 @@ public class Soldier {
                     //rc.setIndicatorDot(target.location,0,255,0);
                     //rc.setIndicatorLine(toMove,toMove.add(a1.rotateRightDegrees(a2.degreesBetween(a1)/2.0f),8),0,0,255);
                     float degs = a2.degreesBetween(a1) / 2.0f;
-
-                    if (rc.canFirePentadShot() && (degs > 61 || !(leftFriend&&rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 300)) {
-                        rc.firePentadShot(a1.rotateRightDegrees(degs));
-                    } else if (target.type != RobotType.ARCHON || rc.getRoundNum() > 500) {
-                        rc.fireSingleShot(a1.rotateRightDegrees(degs));
+                    if (target.type != RobotType.ARCHON || rc.getRoundNum() > 500) {
+                        double pri=target.health;
+                        switch (target.type) {
+                            case ARCHON:
+                                pri*=100;
+                                break;
+                            case GARDENER:
+                                pri*=6;
+                                break;
+                            case LUMBERJACK:
+                                pri*=8;
+                                break;
+                            case SCOUT:
+                                pri*=4;
+                                break;
+                        }
+                        if (pri<bestPri) {
+                            bestPri=pri;
+                            bestShot=a1.rotateRightDegrees(degs);
+                            penta=rc.canFirePentadShot() && (degs > 61 || !(leftFriend&&rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 400);
+                        }
                     }
-                    break;
+                    if (bestShot!=null&&d<=2+target.getRadius()) {
+                        break;
+                    }
+                }
+            }
+            if (bestShot!=null) {
+                if (penta) {
+                    rc.firePentadShot(bestShot);
+                } else {
+                    rc.fireSingleShot(bestShot);
                 }
             }
         }

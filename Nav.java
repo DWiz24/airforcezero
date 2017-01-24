@@ -135,10 +135,8 @@ class Nav {
         return rc.getLocation();
     }
     static MapLocation lumberjackNav(RobotController rc, TreeInfo[] trees, RobotInfo[] robots) throws GameActionException {
-        if (dest==null||rc.getLocation().distanceTo(dest)<=2.9) {
-            Lumberjack.pickDest();
-            lastMinUpdate=rc.getRoundNum();
-        }
+        if (dest == null || dest.equals(rc.getLocation()))  //base case
+            Lumberjack.pickDest(true);  //update upon reaching
 
         //debug
         if(rc.getTeam() == Team.A)
@@ -146,25 +144,30 @@ class Nav {
         else
             rc.setIndicatorDot(dest, 0, 0, 255);
 
-        Direction toDest = rc.getLocation().directionTo(dest);
         float distToDest = rc.getLocation().distanceTo(dest);
+        if(distToDest < 0.75f && rc.canMove(dest)) {
+            Lumberjack.pickDest(true);  //update upon reaching
+            return dest;
+        }
+
+        Direction toDest = rc.getLocation().directionTo(dest);
         if (distToDest<bugMinDist) {
             bugMinDist=distToDest;
             lastMinUpdate=rc.getRoundNum();
         }
         bugMinDist=Math.min(bugMinDist,distToDest);
-        if (rc.getRoundNum()-lastMinUpdate>50) {
-            Lumberjack.pickDest();
+        if (rc.getRoundNum()-lastMinUpdate>50) {    //stuck (can't get closer for 50 turns)
+            Lumberjack.pickDest(false);
             lastMinUpdate=rc.getRoundNum();
         }
         for (int tries=5; tries>=0; tries--){
 
             if (!bugging) {
                 if (rc.canMove(toDest)) {
-                    return rc.getLocation().add(toDest, 0.8f);
+                    return rc.getLocation().add(toDest, 0.75f);
                 } else {
                     bugging = true;
-                    MapLocation move = rc.getLocation().add(toDest, 0.8f);
+                    MapLocation move = rc.getLocation().add(toDest, 0.75f);
                     hitWall = false;
                     bugstart = rc.getLocation();
                     float closest = 999f;
@@ -189,8 +192,8 @@ class Nav {
                         }
                     }
 
-                    if (closest == 999f) {
-                        Lumberjack.pickDest();
+                    if (closest == 999f) {  //blocked by robots
+                        Lumberjack.pickDest(false);
                         lastMinUpdate=rc.getRoundNum();
                     }
                     if (bugging)
@@ -199,10 +202,10 @@ class Nav {
             }
 
             if (bugging) {
-                float destdist = rc.getLocation().add(toDest, 0.8f).distanceTo(dest);
+                float destdist = rc.getLocation().add(toDest, 0.75f).distanceTo(dest);
                 if (rc.canMove(toDest) && destdist < bugMinDist) {
                     bugging = false;
-                    return rc.getLocation().add(toDest, 0.8f);
+                    return rc.getLocation().add(toDest, 0.75f);
                 } else {
                     BodyInfo following = treeOrNot ? (rc.canSenseTree(bugTree) ? rc.senseTree(bugTree) : null) : (rc.canSenseRobot(bugTree) ? rc.senseRobot(bugTree) : null);
 
@@ -210,14 +213,14 @@ class Nav {
                         bugging = false;
                     } else {
                         float distBtw = rc.getLocation().distanceTo(following.getLocation());
-                        float cosp = ((following.getRadius() + 1) * (following.getRadius() + 1) - 0.64f - distBtw * distBtw) / (1.6f * distBtw);
+                        float cosp = ((following.getRadius() + 1) * (following.getRadius() + 1) - 0.5625f - distBtw * distBtw) / (1.5f * distBtw);
                         float f = (float) Math.acos(cosp);
                         Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.005f:f + 0.005f));
-                        MapLocation theMove=rc.getLocation().add(ndir, 0.8f);
+                        MapLocation theMove=rc.getLocation().add(ndir, 0.75f);
                         if (rc.canSenseAllOfCircle(theMove, 1) && rc.onTheMap(theMove,1)) {
-                            if (hitWall) {
+                            if (hitWall) {  //hit edge of map
                                 //System.out.println("YAYY!");
-                                Lumberjack.pickDest();
+                                Lumberjack.pickDest(false);
                                 lastMinUpdate=rc.getRoundNum();
                             } else {
                                 hitWall=true;
@@ -228,7 +231,7 @@ class Nav {
                             return theMove;
                         } else {
                             bugging = true;
-                            MapLocation move = rc.getLocation().add(ndir, 0.8f);
+                            MapLocation move = rc.getLocation().add(ndir, 0.75f);
                             float closest = 999;
                             for (int i = trees.length - 1; i >= 0; i--) {
                                 TreeInfo thisTree = trees[i];

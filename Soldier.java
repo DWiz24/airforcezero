@@ -115,7 +115,7 @@ public class Soldier {
                                 break gotoHacks;
                             }
                         }
-                    }
+                }
                     //System.out.println("I signaled");
                     //rc.setIndicatorDot(loc,0,0,255);
                     if (enemies == 0 && enemy[0].type == RobotType.ARCHON) {

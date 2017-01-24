@@ -32,7 +32,7 @@ public class Soldier {
                         importantDest=true;
                         whichDest=i;
                     }
-                    if (i==38) i=30;
+                    if (i==45) i=30;
                 }
             }
             oldLoc=newLoc;
@@ -93,12 +93,14 @@ public class Soldier {
         float minDist=99;
         MapLocation bestDest=null;
         int chan=-1;
-        for (int i=31; i<=38; i++) {
+        int bestMessage=0;
+        for (int i=31; i<=50; i++) {
             int m=rc.readBroadcast(i);
             if (m!=0) {
                 MapLocation map=getLocation(m);
                 float dist=map.distanceTo(rc.getLocation());
                 if (dist<minDist && dist>8) {
+                    bestMessage=m;
                     minDist=dist;
                     bestDest=map;
                     chan=i;
@@ -109,7 +111,7 @@ public class Soldier {
             importantDest=true;
             Nav.setDest(bestDest);
             whichDest=chan;
-            rc.setIndicatorDot(bestDest,255,0,0);
+            //rc.setIndicatorDot(bestDest,255,0,0);
         } else {
             importantDest = false;
             Nav.setDest(rc.getLocation().add(new Direction((float) (Math.random() * Math.PI * 2)), 30));
@@ -210,8 +212,10 @@ public class Soldier {
         //System.out.println("Other: "+(Clock.getBytecodeNum()-newByte));
         return best;
     }
-    //we're using 30-38 for combat
+    //we're using 30-45 for combat
     //30 holds the next location to update
+    //info&(1<<7) tells whether this is an archon loc
+    //if archon: info&0b1111111 is the # of visits
     static void reportCombatLocation(MapLocation loc, int info) throws GameActionException{
         //if (info>255||info<0) System.out.println("BAD INFO "+info);
         int xpart=((int)(loc.x*4))<<20;
@@ -224,7 +228,7 @@ public class Soldier {
         //    System.out.println("ERROR");
         //}
         gotoHacks: {
-            for (int i = 31; i <= 38; i++) {
+            for (int i = 31; i <= 45; i++) {
                 if (rc.readBroadcast(i) == 0) {
                     rc.broadcast(i, message);
                     if (i == chan) {
@@ -237,7 +241,7 @@ public class Soldier {
             chan++;
         }
         if (chan!=prevChan) {
-            if (chan == 39) chan = 31;
+            if (chan == 46) chan = 31;
             rc.broadcast(30, chan);
         }
     }

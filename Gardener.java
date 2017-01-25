@@ -4,7 +4,7 @@ import battlecode.common.*;
 public class Gardener {
     public static void run(RobotController rc) throws GameActionException {
     	final int roundSpawned = rc.getRoundNum();
-    	int soldiers = 0, lumbers = 0, planted = 0;    	
+    	int soldiers = 0, lumbers = 0, planted = 0, lastRoundPlanted = 0;    	
     	int channel = -1;
     	float theta = -1.0f;
         while(true){
@@ -52,6 +52,8 @@ public class Gardener {
     		int planting = 0b0000_0001;
     		if(directionsICanPlant < 2)
     			planting = 0b0000_0000;
+		if(rc.getRoundNum() - lastRoundPlanted > 200)
+			planting = 0b000_0000;
     		int message = (((x << 12) + y) << 12) + planting;
     		//message = (message << 12) + planting;
     		rc.broadcast(channel, message);
@@ -161,6 +163,7 @@ public class Gardener {
 					else {
 						if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.SOLDIER, place);
+							lastRoundPlanted = rc.getRoundNum();
 							soldiers++;
 						}
 					}

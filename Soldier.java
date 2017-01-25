@@ -80,7 +80,11 @@ public class Soldier {
             }
             //int bcode = Clock.getBytecodeNum();
             if (enemies > 0 || bullets.length != 0 || (enemies == 0 && ((oneArchon&&!importantDest)||enemy[0].type != RobotType.ARCHON))) {
-                toMove = micro(rc, trees, friend, friends, enemy, enemies, bullets);
+                //if (enemies==-1 || enemy[0].location.distanceTo(rc.getLocation())>10) {
+                //    toMove=twoMovetwoDistMicro(rc, trees, friend, friends, enemy, enemies, bullets);
+                //} else {
+                    toMove = oneMoveTwoDistMicro(rc, trees, friend, friends, enemy, enemies, bullets);
+                //}
             } else {
                 gotoHack:
                 {
@@ -95,11 +99,7 @@ public class Soldier {
             }
             //System.out.println("Moving: " + (Clock.getBytecodeNum() - bcode));
             //bcode = Clock.getBytecodeNum();
-            if (enemies >= 0) {
-                shootOrMove(rc, toMove, trees, enemy, enemies, friend, friends, bullets, robots);
-            } else {
-                rc.move(toMove);
-            }
+            shootOrMove(rc, toMove, trees, enemy, enemies, friend, friends, bullets, robots);
             //System.out.println("Shooting: " + (Clock.getBytecodeNum() - bcode));
             //bcode = Clock.getBytecodeNum();
             shakeATree(rc);
@@ -175,7 +175,7 @@ public class Soldier {
         }
     }
 
-    static MapLocation micro(RobotController rc, TreeInfo[] trees, RobotInfo[] friend, int friends, RobotInfo[] enemy, int enemies, BulletInfo[] allBullets) throws GameActionException{
+    static MapLocation oneMoveTwoDistMicro(RobotController rc, TreeInfo[] trees, RobotInfo[] friend, int friends, RobotInfo[] enemy, int enemies, BulletInfo[] allBullets) throws GameActionException{
         //int prebyte=Clock.getBytecodeNum();
         int nbullets = 0;
         MapLocation loc = rc.getLocation();
@@ -183,7 +183,123 @@ public class Soldier {
         for (int i = allBullets.length - 1; i >= 0; i--) {
             MapLocation oloc = allBullets[i].location;
             float dist = loc.distanceTo(oloc);
-            if (dist < 1.9 || Math.asin(1.9 / dist) >= Math.abs(loc.directionTo(oloc).radiansBetween(allBullets[i].dir))) {
+            if (dist < 1.95 || Math.asin(1.95 / dist) >= Math.abs(loc.directionTo(oloc).radiansBetween(allBullets[i].dir))) {
+                bullets[nbullets++] = allBullets[i];
+            }
+        }
+        nbullets--;
+        float[] dists = new float[bullets.length]; //the distance to the first impact
+        for (int i = nbullets; i >= 0; i--) {
+            BulletInfo b = bullets[i];
+            float minDist = b.speed*2;
+            for (int k = trees.length - 1; k >= 0; k--) {
+                MapLocation tree = trees[k].location;
+                float theta = Math.abs(b.location.directionTo(tree).radiansBetween(b.dir));
+                float dist = tree.distanceTo(b.location);
+                float r = trees[k].radius;
+                if (Math.asin(r / dist) > theta) {
+                    double sintheta = Math.sin(theta);
+                    float y = (float) Math.asin(dist * sintheta / r) - theta;
+                    float impact = (float) (r * Math.sin(y) / sintheta);
+                    minDist = Math.min(minDist, impact);
+                }
+            }
+            for (int k = friends; k >= 0; k--) {
+                if (friend[k].type == RobotType.TANK || friend[k].type == RobotType.ARCHON) {
+                    MapLocation tree = friend[k].location;
+                    float theta = Math.abs(b.location.directionTo(tree).radiansBetween(b.dir));
+                    float dist = tree.distanceTo(b.location);
+                    float r = friend[k].getRadius();
+                    if (Math.asin(r / dist) > theta) {
+                        double sintheta = Math.sin(theta);
+                        float y = (float) Math.asin(dist * sintheta / r) - theta;
+                        float impact = (float) (r * Math.sin(y) / sintheta);
+                        minDist = Math.min(minDist, impact);
+                    }
+                }
+            }
+            dists[i] = minDist + 0.7f;
+        }
+        MapLocation[] jack = new MapLocation[enemies + 1];
+        int jacks = -1;
+        int enemySoldiersNTanks=-1;
+        for (int i = enemies; i >= 0; i--) {
+            switch (enemy[i].type) {
+                case LUMBERJACK:
+                    if (enemy[i].location.distanceTo(rc.getLocation()) < 4.75) jack[++jacks] = enemy[i].location;
+                    ;
+                case SOLDIER:
+                    enemySoldiersNTanks++;
+                    break;
+                case TANK:
+                    enemySoldiersNTanks += 3;
+                    break;
+            }
+        }
+        //int newByte=Clock.getBytecodeNum();
+        //System.out.println("Precomputation: "+(newByte-prebyte));
+        int minDamage = 0;
+        float minDist = 99999;
+        for (int k = nbullets; k >= 0; k--) {
+            BulletInfo b = bullets[k];
+            float dist = b.location.distanceTo(rc.getLocation());
+            if (Math.asin(1 / dist) > Math.abs(b.location.directionTo(rc.getLocation()).radiansBetween(b.dir))) {
+                if (dist < dists[k]) minDamage += b.damage;
+            }
+        }
+
+        for (int k = jacks; k >= 0; k--) {
+            if (rc.getLocation().distanceTo(jack[k]) <= 3.8) minDamage += 2;
+        }
+        for (int i = enemies; i >= 0; i--) {
+            minDist = Math.min(enemy[i].type == RobotType.ARCHON ? rc.getLocation().distanceTo(enemy[i].location) * 99 : rc.getLocation().distanceTo(enemy[i].location), minDist);
+        }
+        MapLocation best = rc.getLocation();
+        Direction dir = Direction.getEast();
+        boolean attackOrRun=enemySoldiersNTanks>friends||friends<1 && rc.getHealth()<20;
+        for (int i = 8; i > 0; i--) {
+                //MapLocation move = rc.getLocation().add(dir, 1.9f);
+                //if (!rc.isCircleOccupied(move,1))
+                MapLocation move=rc.getLocation().add(dir, 0.95f);
+                if (rc.canMove(move)) {
+                    int damage = 0;
+                    for (int k = nbullets; k >= 0; k--) {
+                        BulletInfo b = bullets[k];
+                        float dist = b.location.distanceTo(move);
+                        if (dist <= 1 || Math.asin(1 / dist) > Math.abs(b.location.directionTo(move).radiansBetween(b.dir))) {
+                            if (dist < dists[k]) damage += b.damage;
+                        }
+                    }
+
+                    for (int k = jacks; k >= 0; k--) {
+                        if (move.distanceTo(jack[k]) <= 3.8) damage += 2;
+                    }
+                    if (damage <= minDamage) {
+                        float theDist = 99;
+                        for (int x = enemies; x >= 0; x--) {
+                            theDist = Math.min(enemy[x].type == RobotType.ARCHON ? move.distanceTo(enemy[x].location) * 4 : move.distanceTo(enemy[x].location), theDist);
+                        }
+                        if (damage < minDamage || damage == minDamage && theDist < minDist) {
+                            minDamage = damage;
+                            best = move;
+                            minDist = theDist;
+                        }
+                    }
+                }
+            dir = dir.rotateLeftDegrees(45);
+        }
+        //System.out.println("Other: "+(Clock.getBytecodeNum()-newByte));
+        return best;
+    }
+    static MapLocation twoMovetwoDistMicro(RobotController rc, TreeInfo[] trees, RobotInfo[] friend, int friends, RobotInfo[] enemy, int enemies, BulletInfo[] allBullets) throws GameActionException{
+        //int prebyte=Clock.getBytecodeNum();
+        int nbullets = 0;
+        MapLocation loc = rc.getLocation();
+        BulletInfo[] bullets = new BulletInfo[allBullets.length];
+        for (int i = allBullets.length - 1; i >= 0; i--) {
+            MapLocation oloc = allBullets[i].location;
+            float dist = loc.distanceTo(oloc);
+            if (dist < 2.9 || Math.asin(2.9 / dist) >= Math.abs(loc.directionTo(oloc).radiansBetween(allBullets[i].dir))) {
                 bullets[nbullets++] = allBullets[i];
             }
         }
@@ -240,7 +356,7 @@ public class Soldier {
         }
 
         for (int k = jacks; k >= 0; k--) {
-            if (rc.getLocation().distanceTo(jack[k]) <= 3.8) minDamage += 2;
+            if (rc.getLocation().distanceTo(jack[k]) <= 4.8) minDamage += 2;
         }
         for (int i = enemies; i >= 0; i--) {
             minDist = Math.min(enemy[i].type == RobotType.ARCHON ? rc.getLocation().distanceTo(enemy[i].location) * 99 : rc.getLocation().distanceTo(enemy[i].location), minDist);
@@ -248,40 +364,39 @@ public class Soldier {
         MapLocation best = rc.getLocation();
         Direction dir = Direction.getEast();
         for (int i = 8; i > 0; i--) {
-                //MapLocation move = rc.getLocation().add(dir, 1.9f);
-                //if (!rc.isCircleOccupied(move,1))
-                MapLocation move=rc.getLocation().add(dir, 0.95f);
-                if (rc.canMove(move)) {
-                    int damage = 0;
-                    for (int k = nbullets; k >= 0; k--) {
-                        BulletInfo b = bullets[k];
-                        float dist = b.location.distanceTo(move);
-                        if (dist <= 1 || Math.asin(1 / dist) > Math.abs(b.location.directionTo(move).radiansBetween(b.dir))) {
-                            if (dist < dists[k]) damage += b.damage;
-                        }
-                    }
-
-                    for (int k = jacks; k >= 0; k--) {
-                        if (move.distanceTo(jack[k]) <= 3.8) damage += 2;
-                    }
-                    if (damage <= minDamage) {
-                        float theDist = 99;
-                        for (int x = enemies; x >= 0; x--) {
-                            theDist = Math.min(enemy[x].type == RobotType.ARCHON ? move.distanceTo(enemy[x].location) * 4 : move.distanceTo(enemy[x].location), theDist);
-                        }
-                        if (damage < minDamage || damage == minDamage && theDist < minDist) {
-                            minDamage = damage;
-                            best = move;
-                            minDist = theDist;
-                        }
+            MapLocation move = rc.getLocation().add(dir, 1.9f);
+            if (!rc.isCircleOccupied(move,1))
+            move=rc.getLocation().add(dir, 0.95f);
+            if (rc.canMove(move)) {
+                int damage = 0;
+                for (int k = nbullets; k >= 0; k--) {
+                    BulletInfo b = bullets[k];
+                    float dist = b.location.distanceTo(move);
+                    if (dist <= 1 || Math.asin(1 / dist) > Math.abs(b.location.directionTo(move).radiansBetween(b.dir))) {
+                        if (dist < dists[k]) damage += b.damage;
                     }
                 }
+
+                for (int k = jacks; k >= 0; k--) {
+                    if (move.distanceTo(jack[k]) <= 4.8) damage += 2;
+                }
+                if (damage <= minDamage) {
+                    float theDist = 99;
+                    for (int x = enemies; x >= 0; x--) {
+                        theDist = Math.min(enemy[x].type == RobotType.ARCHON ? move.distanceTo(enemy[x].location) * 4 : move.distanceTo(enemy[x].location), theDist);
+                    }
+                    if (damage < minDamage || damage == minDamage && theDist < minDist) {
+                        minDamage = damage;
+                        best = move;
+                        minDist = theDist;
+                    }
+                }
+            }
             dir = dir.rotateLeftDegrees(45);
         }
         //System.out.println("Other: "+(Clock.getBytecodeNum()-newByte));
         return best;
     }
-
     //we're using 30-45 for combat
     //30 holds the next location to update
     //info&(1<<7) tells whether this is an archon loc

@@ -92,9 +92,17 @@ public class Archon {
         				Direction[] test = {build.opposite(), build.rotateLeftDegrees(90F), build.rotateLeftDegrees(90F), build.rotateRightDegrees(90F)};
         				for(Direction t:test)
         				{
+        					int count = 0;
+        					for( float i = 5F; i > 0; i-- )
+        					{
+        						if( rc.canMove(myLoc.add(t, i)) )
+        							count++;
+        					}
+        					if( count < 3 )
+        						continue;
         					if( rc.onTheMap(myLoc.add(t, 6F)) )
         					{
-        						destination = myLoc.add(t, 5.01F);	//runaway
+        						destination = myLoc.add(t, 6F);	//runaway
         						break;
         					}
         				}

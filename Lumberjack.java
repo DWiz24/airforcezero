@@ -248,7 +248,7 @@ public class Lumberjack {
             }
         }
     }
-    private static TreeInfo findTree(MapLocation approx){
+    private static TreeInfo findTree(MapLocation approx, float uncert){
         //finds tree within max uncertainty of approx
         for(TreeInfo info : enemyTrees){
             if(info == null)
@@ -285,7 +285,7 @@ public class Lumberjack {
             if(dy > dx)
                 dmax = dy;
 
-            if(dmax <= MAX_TREE_UNCERT)   //if goes below max uncert limit
+            if(dmax <= uncert)   //if goes below max uncert limit
                 return info;
         }
         return null;
@@ -295,7 +295,7 @@ public class Lumberjack {
         if(rc.canSenseLocation(treeInfo.location))   //make faster later
             treeInfo = rc.senseTreeAtLocation(treeInfo.location);
         else
-            treeInfo = findTree(treeInfo.location);
+            treeInfo = findTree(treeInfo.location, MAX_TREE_UNCERT);
 
         //chops trees
         boolean reset = false;
@@ -365,7 +365,7 @@ public class Lumberjack {
             //update tree stuff
             float d = rc.getLocation().distanceTo(treeLoc);
             if(treeInfo == null && d <= RobotType.LUMBERJACK.sensorRadius + GameConstants.NEUTRAL_TREE_MAX_RADIUS){  //17
-                treeInfo = findTree(treeLoc);  //check tree
+                treeInfo = findTree(treeLoc, MAX_TREE_UNCERT);  //check tree
                 if(treeInfo != null) {
                     if(DEBUG2) {
                         System.out.print("\nSaw my tree!");
@@ -517,19 +517,19 @@ public class Lumberjack {
         if(tree.containedRobot != null)
         switch(tree.containedRobot){
             case ARCHON:
-                priority += 314;
+                priority += 10;    //314
                 break;
             case GARDENER:
-                priority += 300;
+                priority += 9;  //300
                 break;
             case SOLDIER:
-                priority += 150;
+                priority += 5;  //150
                 break;
             case LUMBERJACK:
-                priority += 150;
+                priority += 5;  //150
                 break;
             case SCOUT:
-                priority += 100;
+                priority += 3;  //100
                 break;
         }
 

@@ -7,11 +7,11 @@ import java.lang.Math;
 public class Lumberjack {
     //global stuff
 
-    public static final boolean DEBUG1 = true, DEBUG2 = true;  //set to false to make them shut up
+    static final boolean DEBUG1 = false, DEBUG2 = false;  //set to false to make them shut up
 
     //constants
     private static final int MIN_GARDENER_RANGE = 2, MAX_GARDENER_RANGE = 6;    //if protecting gardeners, will try to stay between these distances away from them
-    private static final float MAX_TREE_UNCERT = 0.5f, PRIORITY_THRESHHOLD = 10f;   //maximum uncertainty when reporting trees
+    private static final float MAX_TREE_UNCERT = 0.5f;   //maximum uncertainty when reporting trees
 
     //general
     private static RobotController rc;
@@ -37,17 +37,17 @@ public class Lumberjack {
     
     /*
     -2/3 of lumberjacks wander off to search for trees
-    -When a neutral or enemy tree is found, report it
+    -Trees found, report them
+        -Cuts down tree
     -If nothing to chop, wander/stay near gardeners
-    -If trees reported, go to first in list, chop
+    -If trees reported, choose one and chop
         
     -TODO:
+    -strategic determination of which trees to chop
     -Choosing a good location to stand while cutting trees
     -(Important) running away
-    -better travel code
     -bullet dodging
-    -strategic determination of which trees to chop
-    -combat (if necessary)
+    -combat (if necessary) + calling combat
     */
     public static void run(RobotController rcArg) throws GameActionException{
         //general
@@ -291,6 +291,9 @@ public class Lumberjack {
         return null;
     }
     private static void chopTree() throws GameActionException{
+        //update health
+        treeInfo = rc.senseTreeAtLocation(treeInfo.location);
+
         //chops trees
         boolean reset = false;
         if (treeInfo.getHealth() <= GameConstants.LUMBERJACK_CHOP_DAMAGE) {
@@ -306,12 +309,12 @@ public class Lumberjack {
             nearTree = false;
         }
         rc.chop(treeInfo.getID());
-        if(reset) {
+        if(reset)
             treeInfo = null;
-        }
-        else{   //update the health of tree
-            treeInfo = new TreeInfo(treeInfo.ID, treeInfo.team, treeInfo.location, treeInfo.radius, treeInfo.health - GameConstants.LUMBERJACK_CHOP_DAMAGE, treeInfo.containedBullets, treeInfo.containedRobot);
-        }
+    }
+    private static float expandingPriorityThreshold(){
+        //1050 - 900
+        return 1050f - (rc.getRoundNum())/20f;
     }
 
     //movement stuff
@@ -322,7 +325,7 @@ public class Lumberjack {
         if(isIdle){
             if(stayNear && foundGardener){
                 //staying in range of gardeners code
-                double distance = rc.getLocation().distanceTo(prevGardenerPos);
+                float distance = rc.getLocation().distanceTo(prevGardenerPos);
                 if(distance > MAX_GARDENER_RANGE) {
                     Direction d = rc.getLocation().directionTo(prevGardenerPos);
                     if(rc.canMove(d)) {
@@ -427,11 +430,16 @@ public class Lumberjack {
                 }
             }
 
+            float threshold = expandingPriorityThreshold();
             for (int i = 0; i < locationValueArray.length; i++) {
                 Integer locationValue = locationValueArray[i];
                 if (locationValue == null)
                     continue;
-                rc.broadcast(treeNext, priorityToInt(staticPriorityOfTree(treeArray[i])) + locationValue);
+                int staticPriority = staticPriorityOfTree(treeArray[i]);
+                int priority = dynamicPriorityOfTree(treeArray[i].location) + staticPriority;
+                if(priority < threshold)
+                    continue;
+                rc.broadcast(treeNext, priorityToInt(staticPriority) + locationValue);
                 if(DEBUG1) {
                     System.out.print("\nReported tree " + treeArray[i].getID() + " to array location " + treeNext + ".");
                     printedThisTurn = true;
@@ -444,9 +452,15 @@ public class Lumberjack {
         }
     }
     private static void chooseBestTree() throws GameActionException{
-        chooseBestTree(16, 29);
+        chooseBestTree(16, 29, null);
+    }
+    private static void chooseBestTree(MapLocation exclude) throws GameActionException{
+        chooseBestTree(16, 29, exclude);
     }
     private static void chooseBestTree(int lower, int upper) throws GameActionException{
+        chooseBestTree(16, 29, null);
+    }
+    private static void chooseBestTree(int lower, int upper, MapLocation exclude) throws GameActionException{
         int bestPriority = -1;
         int bestChannel = -1;
         int bestValue = -1;
@@ -455,6 +469,20 @@ public class Lumberjack {
             int value = rc.readBroadcast(i);
             if(value == 0)
                 continue;
+
+            //check for exclusion
+            if(exclude != null) {
+                MapLocation existing = intToLocation(value);
+                float dx = existing.x - exclude.x;
+                if (dx < 0)
+                    dx = 0 - dx;
+                float dy = existing.y - exclude.y;
+                if (dy < 0)
+                    dy = 0 - dy;
+                if (dx < MAX_TREE_UNCERT && dy < MAX_TREE_UNCERT)
+                    continue;
+            }
+
             int priority = intToPriority(value) + dynamicPriorityOfTree(intToLocation(value));
 
             if(priority > bestPriority){
@@ -467,10 +495,21 @@ public class Lumberjack {
         setTreeTarget(bestValue, bestChannel);
     }   //with limits
     private static int staticPriorityOfTree(TreeInfo tree){
-        return 0;
+        int priority = 0;
+
+        if(tree.getTeam() == rc.getTeam().opponent())
+            priority += 1000;
+
+        return priority;
     }
     private static int dynamicPriorityOfTree(MapLocation treeLoc){
-        return 0;
+        //expanding circle goes from ~7 to ~28 distance
+        int priority = 0;
+
+        priority += 7.071067812f * (141.4213562f - prevGardenerPos.distanceTo(treeLoc));
+        priority += .7071067812f * (141.4213562f - prevGardenerPos.distanceTo(treeLoc));
+
+        return priority;
     }
     private static void setTreeTarget(TreeInfo tree, int channel){
         treeInfo = tree;
@@ -532,7 +571,7 @@ public class Lumberjack {
                 nearTree = true;
             }
             else{
-                chooseBestTree();
+                chooseBestTree(treeLoc);
                 Nav.setDest(treeLoc);
                 if(DEBUG1) {
                     System.out.print("\nGoing after tree at " + treeLoc.x + ", " + treeLoc.y + ".");
@@ -556,7 +595,7 @@ public class Lumberjack {
     }
 
     //methods to preserve bytecodes
-    private static int round(double a){   //should take less bytecodes than Math.round
-        return (int) (a+0.5);
+    private static int round(float a){   //should take less bytecodes than Math.round
+        return (int) (a+0.5f);
     }
 }

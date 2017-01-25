@@ -44,10 +44,10 @@ class Nav {
 
             if (!bugging) {
                 if (rc.canMove(toDest)) {
-                    return rc.getLocation().add(toDest, 1);
+                    return rc.getLocation().add(toDest, 0.95f);
                 } else {
                     bugging = true;
-                    MapLocation move = rc.getLocation().add(toDest, 1);
+                    MapLocation move = rc.getLocation().add(toDest, 0.95f);
                     hitWall = false;
                     bugstart = rc.getLocation();
                     float closest = 999f;
@@ -82,7 +82,7 @@ class Nav {
                 float destdist = rc.getLocation().add(toDest, 1).distanceTo(dest);
                 if (rc.canMove(toDest) && destdist < bugMinDist) {
                     bugging = false;
-                    return rc.getLocation().add(toDest, 1);
+                    return rc.getLocation().add(toDest, 0.95f);
                 } else {
                     BodyInfo following = treeOrNot ? (rc.canSenseTree(bugTree) ? rc.senseTree(bugTree) : null) : (rc.canSenseRobot(bugTree) ? rc.senseRobot(bugTree) : null);
 
@@ -90,10 +90,10 @@ class Nav {
                         bugging = false;
                     } else {
                         float distBtw = rc.getLocation().distanceTo(following.getLocation());
-                        float cosp = ((following.getRadius() + 1) * (following.getRadius() + 1) - 1 - distBtw * distBtw) / (-2 * distBtw);
+                        float cosp = ((following.getRadius() + 1) * (following.getRadius() + 1) - 0.9025f - distBtw * distBtw) / (-1.9f * distBtw);
                         float f = (float) Math.acos(cosp);
-                        Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.005f:f + 0.005f));
-                        MapLocation theMove=rc.getLocation().add(ndir, 1);
+                        Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.001f:f + 0.001f));
+                        MapLocation theMove=rc.getLocation().add(ndir, 0.95f);
                         if (!(rc.canSenseAllOfCircle(theMove,1) && rc.onTheMap(theMove,1))) {
                             if (hitWall) {
                                 //System.out.println("YAYY!");
@@ -107,7 +107,7 @@ class Nav {
                             return theMove;
                         } else {
                             bugging = true;
-                            MapLocation move = rc.getLocation().add(ndir, 1);
+                            MapLocation move = theMove;
                             float closest = 999;
                             for (int i = trees.length - 1; i >= 0; i--) {
                                 TreeInfo thisTree = trees[i];

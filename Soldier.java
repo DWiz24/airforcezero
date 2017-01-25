@@ -205,7 +205,7 @@ public class Soldier {
                 }
             }
             for (int k = friends; k >= 0; k--) {
-                if (friend[k].type == RobotType.TANK || friend[k].type == RobotType.ARCHON) {
+                if (friend[k].type == RobotType.TANK || friend[k].type==RobotType.ARCHON) {
                     MapLocation tree = friend[k].location;
                     float theta = Math.abs(b.location.directionTo(tree).radiansBetween(b.dir));
                     float dist = tree.distanceTo(b.location);
@@ -222,18 +222,17 @@ public class Soldier {
         }
         MapLocation[] jack = new MapLocation[enemies + 1];
         int jacks = -1;
-        int enemySoldiersNTanks=-1;
+        int enemySoldiersNTanks=0;
         for (int i = enemies; i >= 0; i--) {
             switch (enemy[i].type) {
                 case LUMBERJACK:
                     if (enemy[i].location.distanceTo(rc.getLocation()) < 4.75) jack[++jacks] = enemy[i].location;
-                    ;
+                    break;
                 case SOLDIER:
                     enemySoldiersNTanks++;
                     break;
                 case TANK:
                     enemySoldiersNTanks += 3;
-                    break;
             }
         }
         //int newByte=Clock.getBytecodeNum();
@@ -251,12 +250,23 @@ public class Soldier {
         for (int k = jacks; k >= 0; k--) {
             if (rc.getLocation().distanceTo(jack[k]) <= 3.8) minDamage += 2;
         }
-        for (int i = enemies; i >= 0; i--) {
-            minDist = Math.min(enemy[i].type == RobotType.ARCHON ? rc.getLocation().distanceTo(enemy[i].location) * 99 : rc.getLocation().distanceTo(enemy[i].location), minDist);
+        boolean attackOrRun=(enemySoldiersNTanks>friends+2)||(enemySoldiersNTanks>0 && friends<=1 && rc.getHealth()<20); //true means run
+        if (attackOrRun) rc.setIndicatorDot(rc.getLocation(),0,0,0);
+        if (attackOrRun) {
+            for (int i = enemies; i >= 0; i--) {
+                if (enemy[i].type==RobotType.SOLDIER||enemy[i].type==RobotType.TANK)
+                minDist = Math.min(rc.getLocation().distanceTo(enemy[i].location), minDist);
+            }
+            minDist=-minDist;
+        } else {
+            for (int i = enemies; i >= 0; i--) {
+                minDist = Math.min(enemy[i].type == RobotType.ARCHON ? rc.getLocation().distanceTo(enemy[i].location) * 99 : rc.getLocation().distanceTo(enemy[i].location), minDist);
+            }
+            if (enemies==-1) minDist=rc.getLocation().distanceTo(Nav.dest);
         }
         MapLocation best = rc.getLocation();
         Direction dir = Direction.getEast();
-        boolean attackOrRun=enemySoldiersNTanks>friends||friends<1 && rc.getHealth()<20;
+
         for (int i = 8; i > 0; i--) {
                 //MapLocation move = rc.getLocation().add(dir, 1.9f);
                 //if (!rc.isCircleOccupied(move,1))
@@ -275,15 +285,25 @@ public class Soldier {
                         if (move.distanceTo(jack[k]) <= 3.8) damage += 2;
                     }
                     if (damage <= minDamage) {
-                        float theDist = 99;
-                        for (int x = enemies; x >= 0; x--) {
-                            theDist = Math.min(enemy[x].type == RobotType.ARCHON ? move.distanceTo(enemy[x].location) * 4 : move.distanceTo(enemy[x].location), theDist);
+                        float theDist = 9999999;
+                        if (attackOrRun) {
+                            for (int x = enemies; x >= 0; x--) {
+                                if (enemy[x].type==RobotType.SOLDIER||enemy[x].type==RobotType.TANK)
+                                    theDist = Math.min(rc.getLocation().distanceTo(enemy[x].location), theDist);
+                            }
+                            theDist=-theDist;
+                        } else {
+                            for (int x = enemies; x >= 0; x--) {
+                                theDist = Math.min(enemy[x].type == RobotType.ARCHON ? move.distanceTo(enemy[x].location) * 99 : move.distanceTo(enemy[x].location), theDist);
+                            }
                         }
-                        if (damage < minDamage || damage == minDamage && theDist < minDist) {
-                            minDamage = damage;
-                            best = move;
-                            minDist = theDist;
-                        }
+                        if (enemies==-1) theDist=move.distanceTo(Nav.dest);
+                            if (damage < minDamage || damage == minDamage && theDist < minDist) {
+                                minDamage = damage;
+                                best = move;
+                                minDist = theDist;
+                            }
+
                     }
                 }
             dir = dir.rotateLeftDegrees(45);

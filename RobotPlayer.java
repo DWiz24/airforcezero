@@ -27,7 +27,7 @@ public class RobotPlayer {
             } catch (Throwable t) {
 
                 t.printStackTrace();
-                System.out.println(t);
+                //System.out.println(t);
             }
         }
     }

@@ -403,6 +403,8 @@ public class Lumberjack {
             //goes through all trees and combines arrays, while computing int from location
             int index = 0;
             for (TreeInfo info : enemy) {
+                if(index > 5)
+                    break;
                 if(info == null)
                     break;
                 locationValueArray[index] = locationToInt(info.location);
@@ -410,6 +412,8 @@ public class Lumberjack {
                 index++;
             }
             for (TreeInfo info : neutral) {
+                if(index > 5)
+                    break;
                 if(info == null)
                     break;
                 locationValueArray[index] = locationToInt(info.location);

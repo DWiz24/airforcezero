@@ -19,7 +19,7 @@ public class Scout {
         	//if so target = null
         	
         	//find archon or gardener in range
-        	for( int i = robots.length-1; i >= 0; i-- )
+        	/*for( int i = robots.length-1; i >= 0; i-- )
         	{
         		if( robots[i].getTeam().equals(rc.getTeam().opponent()) && (robots[i].getType().equals(RobotType.ARCHON) 
         				|| robots[i].getType().equals(RobotType.GARDENER)) )
@@ -33,7 +33,7 @@ public class Scout {
         				overlapTree = false;
         			}
         		}
-        	}
+        	}*/
         	//try initial archon locations
         	MapLocation[] archons = rc.getInitialArchonLocations(rc.getTeam().opponent());
         	if( target == null && deadArchons != archons.length )

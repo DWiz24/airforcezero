@@ -81,34 +81,39 @@ public class Archon {
         	if( (round == 3 || round > 20) && makeG && roomForGardeners && (nearRobotEnemies.length == 0 || rc.getTeamBullets() >= 184) )
         	{
         		//System.out.println("MAKING");
-        		if( !pickArchon(rc) ) //this is not best archon
-        			break;
-        		for( int x = 0; x < dLen; x++ )
-        		{
-        			build = dirs[x];
-        			if( rc.canHireGardener(build) )
+        		if( pickArchon(rc) )
+        		{	
+        			//System.out.println("Is Archon");
+        			for( int x = 0; x < dLen; x++ )
         			{
-        				rc.hireGardener(build);
-        				Direction[] test = {build.opposite(), build.rotateLeftDegrees(90F), build.rotateLeftDegrees(90F), build.rotateRightDegrees(90F)};
-        				for(Direction t:test)
+        				build = dirs[x];
+        				if( rc.canHireGardener(build) )
         				{
-        					int count = 0;
-        					for( float i = 5F; i > 0; i-- )
+        					rc.hireGardener(build);
+        					Direction[] test = {build.opposite(), build.rotateLeftDegrees(90F), build.rotateLeftDegrees(90F), build.rotateRightDegrees(90F)};
+        					for(Direction t:test)
         					{
-        						if( rc.canMove(myLoc.add(t, i)) )
-        							count++;
+        						int count = 0;
+        						for( float i = 5F; i > 0; i-- )
+        						{
+        							if( rc.canMove(myLoc.add(t, i)) )
+        								count++;
+        						}
+        						if( count < 3 )
+        							continue;
+        						if( rc.onTheMap(myLoc.add(t, 6F)) )
+        						{
+        							destination = myLoc.add(t, 6F);	//runaway
+        							break;
+        						}
         					}
-        					if( count < 3 )
-        						continue;
-        					if( rc.onTheMap(myLoc.add(t, 6F)) )
-        					{
-        						destination = myLoc.add(t, 6F);	//runaway
-        						break;
-        					}
+        				   //System.out.println("created");
         				}
-        				//System.out.println(""+targetCreation);
-        				break;
         			}
+        			//System.out.println("FS");
+        			int t = rc.senseNearbyTrees().length;
+    	            t = (t<<8)+0b00000100; //same as 0 but 0 = dead or non existant
+    	            reportBuildStatus(rc, t);
         		}
         	}
         	//System.out.println("Hi");
@@ -130,7 +135,7 @@ public class Archon {
         	//away from gardener or no destination
         	else
         	{
-        		RobotInfo[] nearAll = rc.senseNearbyRobots(4F, rc.getTeam());
+        		RobotInfo[] nearAll = rc.senseNearbyRobots(5F, rc.getTeam());
         		for( RobotInfo r: nearAll )
         		{
         			if( r.type == RobotType.SOLDIER )
@@ -139,9 +144,9 @@ public class Archon {
         				Direction[] test = {goA.opposite(), goA.rotateLeftDegrees(90F), goA.rotateLeftDegrees(90F), goA.rotateRightDegrees(90F)};
         				for(Direction t:test)
         				{
-        					if( rc.onTheMap(myLoc.add(t, 4F)) )
+        					if( rc.onTheMap(myLoc.add(t, 5F)) )
         					{
-        						destination = myLoc.add(t, 4F);	//runaway
+        						destination = myLoc.add(t, 5F);	//runaway
         						rc.move(Nav.archonNav(rc, trees, rc.senseNearbyRobots()));
         						Clock.yield();
         					}
@@ -170,8 +175,14 @@ public class Archon {
     	{
     		int mes = r.readBroadcast(i);
     		//System.out.println("" + (mes>>8) + " " + (mes&0b11111111));
+    		//System.out.println("" + (stat>>8) + " " + (stat&0b11111111));
     		if( mes == 0 )	//ded
     			continue;
+    		if( (mes&0b11111111) == 4 )
+    		{
+    			reportBuildStatus(r, (r.senseNearbyTrees().length<<8)+0b00000011);
+    	    	return true;
+    		}
     		if( (mes>>>8) < (stat>>>8) )
     		{
     			//System.out.println("False stat");

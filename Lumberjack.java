@@ -10,7 +10,7 @@ public class Lumberjack {
     static final boolean DEBUG1 = false, DEBUG2 = false;  //set to false to make them shut up
 
     //constants
-    private static final int MIN_GARDENER_RANGE = 2, MAX_GARDENER_RANGE = 6;    //if protecting gardeners, will try to stay between these distances away from them
+    private static final int MIN_GARDENER_RANGE = 5, MAX_GARDENER_RANGE = 7;    //if protecting gardeners, will try to stay between these distances away from them
     private static final float MAX_TREE_UNCERT = 0.5f;   //maximum uncertainty when reporting trees
 
     //general
@@ -313,8 +313,8 @@ public class Lumberjack {
             treeInfo = null;
     }
     private static float expandingPriorityThreshold(){
-        //1050 - 900
-        return 1050f - (rc.getRoundNum())/20f;
+        //950 - 800
+        return 950f - (rc.getRoundNum())/20f;
     }
 
     //movement stuff
@@ -440,7 +440,7 @@ public class Lumberjack {
                 if (locationValue == null)
                     continue;
                 int staticPriority = staticPriorityOfTree(treeArray[i]);
-                int priority = dynamicPriorityOfTree(treeArray[i].location) + staticPriority;
+                int priority = (int)dynamicPriorityFromBase(treeArray[i].location) + staticPriority;
                 if(priority < threshold)
                     continue;
                 rc.broadcast(treeNext, priorityToInt(staticPriority) + locationValue);
@@ -462,7 +462,7 @@ public class Lumberjack {
         chooseBestTree(16, 29, exclude);
     }
     private static void chooseBestTree(int lower, int upper) throws GameActionException{
-        chooseBestTree(16, 29, null);
+        chooseBestTree(lower, upper, null);
     }
     private static void chooseBestTree(int lower, int upper, MapLocation exclude) throws GameActionException{
         int bestPriority = -1;
@@ -510,10 +510,16 @@ public class Lumberjack {
         //expanding circle goes from ~7 to ~28 distance
         int priority = 0;
 
-        priority += 7.071067812f * (141.4213562f - prevGardenerPos.distanceTo(treeLoc));
-        priority += .7071067812f * (141.4213562f - prevGardenerPos.distanceTo(treeLoc));
+        priority += 0.25f * dynamicPriorityFromBase(treeLoc);
+        priority += 0.75f * dynamicPriorityFromMe(treeLoc);
 
         return priority;
+    }
+    private static float dynamicPriorityFromBase(MapLocation treeLoc){
+        return 7.071067812f * (141.4213562f - prevGardenerPos.distanceTo(treeLoc));
+    }
+    private static float dynamicPriorityFromMe(MapLocation treeLoc){
+        return 7.071067812f * (141.4213562f - rc.getLocation().distanceTo(treeLoc));
     }
     private static void setTreeTarget(TreeInfo tree, int channel){
         treeInfo = tree;

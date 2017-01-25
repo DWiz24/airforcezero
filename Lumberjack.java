@@ -7,7 +7,7 @@ import java.lang.Math;
 public class Lumberjack {
     //global stuff
 
-    static final boolean DEBUG1 = false, DEBUG2 = false;  //set to false to make them shut up
+    static final boolean DEBUG1 = true, DEBUG2 = true;  //set to false to make them shut up
 
     //constants
     private static final int MIN_GARDENER_RANGE = 5, MAX_GARDENER_RANGE = 7;    //if protecting gardeners, will try to stay between these distances away from them
@@ -58,10 +58,11 @@ public class Lumberjack {
         prevGardenerPos = rc.getInitialArchonLocations(rc.getTeam())[0];
         stayNear = false;
         printedThisTurn = false;
+        if(rc.getID() % 3 == 0)
+            stayNear = true;
         if(DEBUG1){
             System.out.print("\nI am a lumberjack!");
-            if (rc.getID() % 3 == 0) {
-                stayNear = true;
+            if (stayNear){
                 System.out.print("\nI protect gardeners.");
             } else {
                 System.out.print("\nI explore.");
@@ -266,7 +267,7 @@ public class Lumberjack {
             if(dy > dx)
                 dmax = dy;
 
-            if(dmax <= MAX_TREE_UNCERT)   //if goes below max uncert limit
+            if(dmax <= uncert)   //if goes below max uncert limit
                 return info;
         }
         for(TreeInfo info : neutralTrees){
@@ -291,6 +292,16 @@ public class Lumberjack {
         return null;
     }
     private static void chopTree() throws GameActionException{
+        //defensive manuever - remove later
+        if(treeInfo == null){
+            if(DEBUG1){
+                System.out.print("\nERROR: Found a non-existent tree. Handled safely");
+                printedThisTurn = true;
+            }
+            pickDest(false);
+            return;
+        }   
+        
         //update health
         if(rc.canSenseLocation(treeInfo.location))   //make faster later
             treeInfo = rc.senseTreeAtLocation(treeInfo.location);
@@ -326,6 +337,9 @@ public class Lumberjack {
             return null;
 
         if(isIdle){
+            //quick workaround - fix later
+            //if(enemyRobots > 0)   //running away code
+            //    Nav.setDest(prevGardenerLoc);
             if(stayNear && foundGardener){
                 //staying in range of gardeners code
                 float distance = rc.getLocation().distanceTo(prevGardenerPos);

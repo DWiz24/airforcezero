@@ -70,7 +70,7 @@ public class Gardener {
    			
     		//Moves to a good space for planting, based on more successful teams, changes turn to turn, stops trying after a certain number of turns
 			
-   			if(theta < -1.0f) { //For now, unable to move at all
+   			if(theta < -2.0f) { //For now, unable to move at all
    				
    				float deltaTheta = (float)(Math.PI/6.0);
    				
@@ -151,7 +151,7 @@ public class Gardener {
 					rc.plantTree(place);
 					planted++;
 				}
-					if((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 2) && soldiers < 2) {
+					if((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 2) && soldiers > 2) {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
 							lumbers++;

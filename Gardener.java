@@ -33,7 +33,7 @@ public class Gardener {
     		int directionsICantPlant = 0, directionsICanPlant = 0;
    			
    			for(int i = dirs.length-1; i >= 0; i--) {
-   				if(rc.isCircleOccupiedExceptByThisRobot(myLocation.add(dirs[i], 2f), 1f)) {
+   				if(rc.isCircleOccupiedExceptByThisRobot(myLocation.add(dirs[i], 2.01f), 1f)) {
    					directionsICantPlant++;
    				} else {
    					directionsICanPlant++;
@@ -70,7 +70,7 @@ public class Gardener {
    			
     		//Moves to a good space for planting, based on more successful teams, changes turn to turn, stops trying after a certain number of turns
 			
-   			if(theta < -2.0f) { //For now, unable to move at all
+   			if(theta < -1.0f) { //For now, unable to move at all
    				
    				float deltaTheta = (float)(Math.PI/6.0);
    				

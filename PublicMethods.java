@@ -18,7 +18,7 @@ public class PublicMethods {
             rc.donate(b - (b % rc.getVictoryPointCost()));
 
         //3rd priority: if team has too many bullets (donate down to 100)
-        else if(b > 100)
+        else if(b > 100 && rc.getRoundNum() > 50) //Otherwise we donate the bullets that would be used to build gardeners early game
             rc.donate((b - 100) - ((b - 100) % rc.getVictoryPointCost()));
     }
 }

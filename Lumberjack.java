@@ -7,7 +7,7 @@ import java.lang.Math;
 public class Lumberjack {
     //global stuff
 
-    static final boolean DEBUG1 = true, DEBUG2 = true;  //set to false to make them shut up
+    static final boolean DEBUG1 = false, DEBUG2 = false;  //set to false to make them shut up
 
     //constants
     private static final int MIN_GARDENER_RANGE = 5, MAX_GARDENER_RANGE = 7;    //if protecting gardeners, will try to stay between these distances away from them
@@ -338,8 +338,8 @@ public class Lumberjack {
 
         if(isIdle){
             //quick workaround - fix later
-            //if(enemyRobots > 0)   //running away code
-            //    Nav.setDest(prevGardenerLoc);
+            //if(enemyRobotCount > 0)   //running away code
+            //    Nav.setDest(prevGardenerPos);
             if(stayNear && foundGardener){
                 //staying in range of gardeners code
                 float distance = rc.getLocation().distanceTo(prevGardenerPos);

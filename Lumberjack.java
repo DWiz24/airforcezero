@@ -514,12 +514,24 @@ public class Lumberjack {
         priority += b / 4;
 
         //contained robot
-//        if()
-//        switch(){
-//            case(null):
-//                break;
-//            case
-//        }
+        if(tree.containedRobot != null)
+        switch(tree.containedRobot){
+            case ARCHON:
+                priority += 314;
+                break;
+            case GARDENER:
+                priority += 300;
+                break;
+            case SOLDIER:
+                priority += 150;
+                break;
+            case LUMBERJACK:
+                priority += 150;
+                break;
+            case SCOUT:
+                priority += 100;
+                break;
+        }
 
         return priority;
     }

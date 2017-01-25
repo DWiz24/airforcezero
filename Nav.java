@@ -138,11 +138,12 @@ class Nav {
         if (dest == null || dest.equals(rc.getLocation()))  //base case
             Lumberjack.pickDest(true);  //update upon reaching
 
-        //debug
-        if(rc.getTeam() == Team.A)
-            rc.setIndicatorDot(dest, 255, 0, 0);
-        else
-            rc.setIndicatorDot(dest, 0, 0, 255);
+        if(Lumberjack.DEBUG1){
+            if(rc.getTeam() == Team.A)
+                rc.setIndicatorDot(dest, 255, 0, 0);
+            else
+                rc.setIndicatorDot(dest, 0, 0, 255);
+        }
 
         float distToDest = rc.getLocation().distanceTo(dest);
         if(distToDest < 0.75f && rc.canMove(dest)) {
@@ -217,7 +218,7 @@ class Nav {
                         float f = (float) Math.acos(cosp);
                         Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.005f:f + 0.005f));
                         MapLocation theMove=rc.getLocation().add(ndir, 0.75f);
-                        if (rc.canSenseAllOfCircle(theMove, 1) && rc.onTheMap(theMove,1)) {
+                        if (!(rc.canSenseAllOfCircle(theMove,1) && rc.onTheMap(theMove,1))) {
                             if (hitWall) {  //hit edge of map
                                 //System.out.println("YAYY!");
                                 Lumberjack.pickDest(false);

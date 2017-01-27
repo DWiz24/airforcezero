@@ -29,7 +29,7 @@ public class Scout {
         			{
         				MapLocation temp = trees[i].getLocation();
         				float tempDist = temp.distanceTo(me);
-        				if( tempDist < 2.5F )
+        				if( tempDist <= trees[i].radius )
         					continue;
         				target = temp;
         				break;

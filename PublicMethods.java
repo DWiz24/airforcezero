@@ -23,9 +23,14 @@ public class PublicMethods {
     }
     
     static boolean isAboutToDie(RobotController rc, float lastTurnHealth) {
-    	float deltaHealth = lastTurnHealth - rc.getHealth();
+    	float currentHealth = rc.getHealth();
+    	float deltaHealth = lastTurnHealth - currentHealth;
+    	
     	if(deltaHealth == 0)
     		return false;
-    	return true;
+    	else if(deltaHealth > currentHealth / 2f)
+    		return true;
+    	
+    	return false;
     }
 }

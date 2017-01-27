@@ -3,12 +3,17 @@ import battlecode.common.*;
 
 public class Gardener {
     public static void run(RobotController rc) throws GameActionException {
+    
     	final int roundSpawned = rc.getRoundNum();
     	int soldiers = 0, lumbers = 0, planted = 0, lastRoundPlanted = 0;    	
     	int channel = -1;
+    	int censusChannel = 1;
     	float theta = -1.0f;
+    	float lastTurnHealth = rc.getHealth();
+    	boolean onSpawn = true, dead = false;
+    	
         while(true){
-        	
+        		
         	//RobotType[] canBuild = {RobotType.SOLDIER, RobotType.LUMBERJACK, RobotType.TANK, RobotType.SCOUT};
         	
     		Direction[] dirs={new Direction(0f), new Direction((float)(Math.PI/3.0)), new Direction((float)(2.0*Math.PI/3.0)), new Direction((float)(3.0*Math.PI/3.0)), new Direction((float)(4.0*Math.PI/3.0)), new Direction((float)(5.0*Math.PI/3.0))}; 
@@ -25,10 +30,21 @@ public class Gardener {
     		}
     		if(sad!=null && rc.canWater(sad))
     			rc.water(sad);
+    		
     		if(rc.canShake())
     			shakeATree(rc);
     		
-    		//Communicate information to team array...currently takes first available spot
+    		//Communicate information to team array - first to census [0,5], then to archon for other stuff
+    		
+    		if(onSpawn) {
+    			rc.broadcast(censusChannel, rc.readBroadcast(censusChannel) + 1);
+    			onSpawn = false;
+    		}
+    		if(PublicMethods.isAboutToDie(rc, lastTurnHealth) && !dead) {
+    			rc.broadcast(censusChannel, rc.readBroadcast(censusChannel) - 1);
+    			dead = true;
+    		}
+    		
     		MapLocation myLocation = rc.getLocation();
     		int directionsICantPlant = 0, directionsICanPlant = 0;
    			
@@ -39,23 +55,19 @@ public class Gardener {
    					directionsICanPlant++;
    				}
    			}
-   			
+   			//System.out.println("I can plant in this many directions: " + directionsICanPlant);
     		if(channel == -1) {
     			int tempchannel = 100;
     			while(rc.readBroadcast(tempchannel) != 0)
     				tempchannel++;
     			channel = tempchannel;
     		}
-    		
     		int x = (int)myLocation.x;
     		int y = (int)myLocation.y;
     		int planting = 0b0000_0001;
-    		if(directionsICanPlant < 2)
+    		if(directionsICanPlant < 2 || rc.getRoundNum() - lastRoundPlanted > 200)
     			planting = 0b0000_0000;
-    		if(rc.getRoundNum() - lastRoundPlanted > 200)
-    			planting = 0b000_0000;
     		int message = (((x << 12) + y) << 12) + planting;
-    		//message = (message << 12) + planting;
     		rc.broadcast(channel, message);
     		
     		if(rc.getHealth() < 5) //If I'm about to die, clear my spot
@@ -133,6 +145,7 @@ public class Gardener {
    			}
     		//End trying to move code
     		
+   			
     		//What do I build code
     		boolean buildtree = false;
     		

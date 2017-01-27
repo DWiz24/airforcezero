@@ -66,7 +66,7 @@ public class Scout {
     				break;
         		}
         	}
-        	System.out.println("" + target.x + "y: " + target.y);
+        	//System.out.println("" + target.x + "y: " + target.y);
         	if( !ScoutNav.goToTarget(rc, target) )
         	{
         		//if( target == null )

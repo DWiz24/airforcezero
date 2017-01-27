@@ -204,16 +204,6 @@ public class Archon {
     		r.broadcast(myIndex, myStat);
     		return;
     	}
-    	/*for (int i=80; i<=82; i++)
-    	{
-    		int mes = r.readBroadcast(i);
-    		if( mes == 0 )
-    		{
-    			myIndex = i;
-    			break;
-    		}
-    	}*/
-    	//System.out.println("error");
     	r.broadcast(myIndex, myStat);
     }
     public static boolean moveToEmptyArea(RobotController myR) throws GameActionException

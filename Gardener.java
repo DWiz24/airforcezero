@@ -33,7 +33,7 @@ public class Gardener {
     		int directionsICantPlant = 0, directionsICanPlant = 0;
    			
    			for(int i = dirs.length-1; i >= 0; i--) {
-   				if(rc.isCircleOccupiedExceptByThisRobot(myLocation.add(dirs[i], 2.01f), 1f)) {
+   				if(rc.isCircleOccupiedExceptByThisRobot(myLocation.add(dirs[i], 2.01f), 1f) || !rc.onTheMap(myLocation.add(dirs[i], 2.01f), 1f)) {
    					directionsICantPlant++;
    				} else {
    					directionsICanPlant++;
@@ -52,8 +52,8 @@ public class Gardener {
     		int planting = 0b0000_0001;
     		if(directionsICanPlant < 2)
     			planting = 0b0000_0000;
-		if(rc.getRoundNum() - lastRoundPlanted > 200)
-			planting = 0b000_0000;
+    		if(rc.getRoundNum() - lastRoundPlanted > 200)
+    			planting = 0b000_0000;
     		int message = (((x << 12) + y) << 12) + planting;
     		//message = (message << 12) + planting;
     		rc.broadcast(channel, message);

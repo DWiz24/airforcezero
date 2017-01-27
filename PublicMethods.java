@@ -21,4 +21,11 @@ public class PublicMethods {
         else if(b > 200 && rc.getRoundNum() > 50) //Otherwise we donate the bullets that would be used to build gardeners early game
             rc.donate((b - 100) - ((b - 100) % rc.getVictoryPointCost()));
     }
+    
+    static boolean isAboutToDie(RobotController rc, float lastTurnHealth) {
+    	float deltaHealth = lastTurnHealth - rc.getHealth();
+    	if(deltaHealth == 0)
+    		return false;
+    	return true;
+    }
 }

@@ -567,6 +567,7 @@ public class Soldier {
                     }
                 }
             }
+            if (pastTarget!=null && bestShot==null && rc.canSensePartOfCircle(pastTarget.location,pastTarget.getRadius())) pastTarget=null;
             if (bestShot == null && pastTarget != null && rc.getRoundNum() - pastTargetSet < 10) {
                 RobotInfo target = pastTarget;
                 float d = toMove.distanceTo(target.location);

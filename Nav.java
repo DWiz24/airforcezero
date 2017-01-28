@@ -46,10 +46,10 @@ class Nav {
 
             if (!bugging) {
                 if (rc.canMove(toDest)) {
-                    return rc.getLocation().add(toDest, 0.95f);
+                    return rc.getLocation().add(toDest, 0.8f);
                 } else {
                     bugging = true;
-                    MapLocation move = rc.getLocation().add(toDest, 0.95f);
+                    MapLocation move = rc.getLocation().add(toDest, 0.8f);
                     hitWall = false;
                     bugstart = rc.getLocation();
                     float closest = 999f;
@@ -81,10 +81,10 @@ class Nav {
             }
 
             if (bugging) {
-                float destdist = rc.getLocation().add(toDest, 0.95f).distanceTo(dest);
+                float destdist = rc.getLocation().add(toDest, 0.8f).distanceTo(dest);
                 if (rc.canMove(toDest) && destdist < bugMinDist) {
                     bugging = false;
-                    return rc.getLocation().add(toDest, 0.95f);
+                    return rc.getLocation().add(toDest, 0.8f);
                 } else {
                     BodyInfo following = treeOrNot ? (rc.canSenseTree(bugTree) ? rc.senseTree(bugTree) : null) : (rc.canSenseRobot(bugTree) ? rc.senseRobot(bugTree) : null);
 
@@ -94,10 +94,10 @@ class Nav {
                         //rc.setIndicatorLine(dest,dest.add(toDest.opposite(),bugMinDist),0,0,0);
                         //rc.setIndicatorDot(following.getLocation(),0,255,0);
                         float distBtw = rc.getLocation().distanceTo(following.getLocation());
-                        float cosp = ((following.getRadius() + 1) * (following.getRadius() + 1) - 0.9025f - distBtw * distBtw) / (-1.9f * distBtw);
+                        float cosp = ((following.getRadius() + 1) * (following.getRadius() + 1) - 0.64f - distBtw * distBtw) / (-1.6f * distBtw);
                         float f = (float) Math.acos(cosp);
                         Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.001f:f + 0.001f));
-                        MapLocation theMove=rc.getLocation().add(ndir, 0.95f);
+                        MapLocation theMove=rc.getLocation().add(ndir, 0.8f);
                         //rc.setIndicatorDot(theMove,255,255,255);
                         if (!(rc.canSenseAllOfCircle(theMove,1) && rc.onTheMap(theMove,1))) {
                             if (hitWall) {
@@ -139,7 +139,7 @@ class Nav {
         }
         return rc.getLocation();
     }
-    static MapLocation lumberjackNav(RobotController rc, TreeInfo[] trees, RobotInfo[] robots) throws GameActionException {
+    static MapLocation lumberjackNav(RobotController rc, TreeInfo[] trees, RobotInfo[] robots, float[] treeDists, float[] robotDists, boolean hasStruck) throws GameActionException {
         if (dest == null || dest.equals(rc.getLocation()))  //base case
             Lumberjack.pickDest(true);  //update upon reaching
 
@@ -148,6 +148,12 @@ class Nav {
                 rc.setIndicatorDot(dest, 255, 0, 0);
             else
                 rc.setIndicatorDot(dest, 0, 0, 255);
+        }
+        if(Lumberjack.DEBUG2){
+            if(rc.getTeam() == Team.A)
+                rc.setIndicatorLine(rc.getLocation(), dest, 255, 0, 0);
+            else
+                rc.setIndicatorLine(rc.getLocation(), dest, 0, 0, 255);
         }
 
         float distToDest = rc.getLocation().distanceTo(dest);
@@ -171,43 +177,58 @@ class Nav {
             if (!bugging) {
                 if (rc.canMove(toDest)) {
                     return rc.getLocation().add(toDest, 0.75f);
-                } else {
-                    bugging = true;
+                }
+                else {
                     MapLocation move = rc.getLocation().add(toDest, 0.75f);
-                    hitWall = false;
-                    bugstart = rc.getLocation();
-                    float closest = 999f;
-                    for (int i = trees.length - 1; i >= 0; i--) {
-                        TreeInfo thisTree = trees[i];
-                        float dist = thisTree.location.distanceTo(rc.getLocation());   //treeDists[i]
-                        if (dist < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.radius) {
-                            bugTree = thisTree.ID;
-                            closest = dist;
-                            treeOrNot = true;
-                            prevLoc = thisTree.location;
-                        }
-                    }
-                    for (int i = robots.length - 1; i >= 0; i--) {
-                        RobotInfo thisTree = robots[i];
-                        float dist = thisTree.location.distanceTo(rc.getLocation());
-                        if (dist < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.type.bodyRadius) {
-                            bugTree = thisTree.ID;
-                            closest = dist;
-                            treeOrNot = false;
-                            prevLoc = thisTree.location;
-                        }
-                    }
 
-                    if (closest == 999f) {  //blocked by something unknown (probably won't happen)
-                        Lumberjack.pickDest(false);
-                        lastMinUpdate=rc.getRoundNum();
+                    TreeInfo[] blocking = rc.senseNearbyTrees(move, 1, null);
+                    TreeInfo target = null;
+                    for(TreeInfo info : blocking){
+                        if(info.team != rc.getTeam()){
+                            target = info;
+                            break;
+                        }
                     }
-                    if (bugging)
-                        left=toDest.degreesBetween(rc.getLocation().directionTo(prevLoc))>0;
+                    if(target != null){
+                        if(!hasStruck)
+                            rc.chop(target.ID); //chopping trees in my way
+                        return null;
+                    }
+                    else{
+                        bugging = true;
+                        hitWall = false;
+                        bugstart = rc.getLocation();
+                        float closest = 999f;
+                        for (int i = trees.length - 1; i >= 0; i--) {
+                            TreeInfo thisTree = trees[i];
+                            if (treeDists[i] < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.radius) {
+                                bugTree = thisTree.ID;
+                                closest = treeDists[i];
+                                treeOrNot = true;
+                                prevLoc = thisTree.location;
+                            }
+                        }
+                        for (int i = robots.length - 1; i >= 0; i--) {
+                            RobotInfo thisTree = robots[i];
+                            if (robotDists[i] < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.type.bodyRadius) {
+                                bugTree = thisTree.ID;
+                                closest = robotDists[i];
+                                treeOrNot = false;
+                                prevLoc = thisTree.location;
+                            }
+                        }
+
+                        if (closest == 999f) {  //blocked by something unknown (probably won't happen)
+                            Lumberjack.pickDest(false);
+                            lastMinUpdate = rc.getRoundNum();
+                        }
+                        if (bugging)
+                            left = toDest.degreesBetween(rc.getLocation().directionTo(prevLoc)) > 0;
+                    }
                 }
             }
 
-            if (bugging) {
+            else {  //bugging
                 float destdist = rc.getLocation().add(toDest, 0.75f).distanceTo(dest);
                 if (rc.canMove(toDest) && destdist < bugMinDist) {
                     bugging = false;
@@ -236,25 +257,37 @@ class Nav {
                         } else if (rc.canMove(ndir)) {
                             return theMove;
                         } else {
-                            bugging = true;
                             MapLocation move = rc.getLocation().add(ndir, 0.75f);
+
+                            TreeInfo[] blocking = rc.senseNearbyTrees(move, 1, null);
+                            TreeInfo target = null;
+                            for(TreeInfo info : blocking){
+                                if(info.team != rc.getTeam()){
+                                    target = info;
+                                    break;
+                                }
+                            }
+                            if(target != null){
+                                if(!hasStruck)
+                                    rc.chop(target.ID); //chopping trees in my way
+                                return null;
+                            }
+                            bugging = true;
                             float closest = 999;
                             for (int i = trees.length - 1; i >= 0; i--) {
                                 TreeInfo thisTree = trees[i];
-                                float dist = thisTree.location.distanceTo(rc.getLocation());
-                                if (dist < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.radius) {
+                                if (treeDists[i] < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.radius) {
                                     bugTree = thisTree.ID;
-                                    closest = dist;
+                                    closest = treeDists[i];
                                     treeOrNot = true;
                                     prevLoc = thisTree.location;
                                 }
                             }
                             for (int i = robots.length - 1; i >= 0; i--) {
                                 RobotInfo thisTree = robots[i];
-                                float dist = thisTree.location.distanceTo(rc.getLocation());
-                                if (dist < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.type.bodyRadius) {
+                                if (robotDists[i] < closest && thisTree.location.distanceTo(move) <= 1 + thisTree.type.bodyRadius) {
                                     bugTree = thisTree.ID;
-                                    closest = dist;
+                                    closest = robotDists[i];
                                     treeOrNot = false;
                                     prevLoc = thisTree.location;
                                 }
@@ -264,7 +297,7 @@ class Nav {
                 }
             }
         }
-        return rc.getLocation();
+        return null;
     }
     static MapLocation gardenerNav(RobotController rc, TreeInfo[] trees, RobotInfo[] robots) throws GameActionException {
         if (dest==null||rc.getLocation().distanceTo(dest)<=4) {

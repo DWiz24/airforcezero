@@ -7,40 +7,33 @@ import java.lang.Math;
 public class Lumberjack {
     //global stuff
 
-    static final boolean DEBUG1 = false, DEBUG2 = false;  //set to false to make them shut up
-
-    //constants
-    private static final int MIN_GARDENER_RANGE = 5, MAX_GARDENER_RANGE = 7;    //if protecting gardeners, will try to stay between these distances away from them
-    private static final float MAX_TREE_UNCERT = 0.5f;   //maximum uncertainty when reporting trees
+    static final boolean DEBUG1 = true, DEBUG2 = true;  //set to false to make them shut up
 
     //general
     private static RobotController rc;
     private static Random rng;
 
     //variables related to my robot's behavior
-    private static MapLocation prevGardenerPos;   //previous gardener sighting
-    private static boolean stayNear, isIdle, foundGardener, firstRound, printedThisTurn;
-
-    //info about my tree target
-    private static TreeInfo treeInfo;  //used when tree is seen
-    private static MapLocation treeLoc, nearTreeLoc; //can be an approximation | used for approaching
-    private static boolean nearTree;    //if able to chop tree
-    private static int treeChannel;
+    private static boolean traveling, locationsNear, printedThisTurn;
+    private static int travelingChannel;
+    private static MapLocation prevGardenerPos;
 
     //channels
-    private static int prevTreeNext, treeNext = -1; //previous and current turn next tree channel to write to
+    private static int prevNext, next = -1; //previous and current turn next tree channel to write to
 
     //info about my surroundings, updates every turn
     private static RobotInfo[] allRobots, friendlyRobots, enemyRobots, friendlyGardeners;
     private static TreeInfo[] allTrees, friendlyTrees, neutralTrees, enemyTrees;
+    private static float[] allRobotDists, friendlyRobotDists, enemyRobotDists, allTreeDists, friendlyTreeDists, neutralTreeDists, enemyTreeDists;
     private static int friendlyRobotCount, enemyRobotCount, friendlyTreeCount, neutralTreeCount, enemyTreeCount, friendlyGardenerCount;
+    private static float bestPriority;
+    private static int bestPriorityStatic;
+    private static TreeInfo bestTree, bestTreeStatic;
     
     /*
-    -2/3 of lumberjacks wander off to search for trees
-    -Trees found, report them
-        -Cuts down tree
-    -If nothing to chop, wander/stay near gardeners
-    -If trees reported, choose one and chop
+    -If nothing better to do, lumberjacks wander off to search for trees
+    -Make own decisions
+    -Report locations where support is needed to array
         
     -TODO:
     -strategic determination of which trees to chop
@@ -55,68 +48,62 @@ public class Lumberjack {
         rng = new Random(rc.getID());
 
         //variables related to my robot's behavior
-        prevGardenerPos = rc.getInitialArchonLocations(rc.getTeam())[0];
-        stayNear = false;
         printedThisTurn = false;
-        if(rc.getID() % 3 == 0)
-            stayNear = true;
         if(DEBUG1){
             System.out.print("\nI am a lumberjack!");
-            if (stayNear){
-                System.out.print("\nI protect gardeners.");
-            } else {
-                System.out.print("\nI explore.");
-            }
             printedThisTurn = true;
         }
-        isIdle = true;
-        foundGardener = false;
-        firstRound = true;
-
-        //info about my tree target
-        setTreeTarget(null, -1);
+        traveling = false;
+        travelingChannel = -1;
+        locationsNear = false;
+        prevGardenerPos = rc.getInitialArchonLocations(rc.getTeam())[0];    //in case gardener runs away
 
         //channels
-        treeNext = rc.readBroadcast(15);
-        if (treeNext == 0) { //in case this is the first lumberjack, set the index to default
+        next = rc.readBroadcast(15);
+        if (next == 0) { //in case this is the first lumberjack, set the index to default
             rc.broadcast(15, 16);
-            treeNext = 16;
-            prevTreeNext = 16;
+            next = 16;
+            prevNext = 16;
         }
         else {
-            prevTreeNext = treeNext - 1;
-            if (prevTreeNext == 15)
-                prevTreeNext = 29;
+            prevNext = next - 1;
+            if (prevNext == 15)
+                prevNext = 29;
         }
 
         //code below repeats every turn
         while (true) {
             //updating info about robots and trees around me
             updateInfo();
-            prevTreeNext = treeNext;
-            treeNext = rc.readBroadcast(15);
-
-            //report + check trees
-            reportTreesInRange(rc, neutralTrees, neutralTreeCount, enemyTrees, enemyTreeCount);
-
-            //gardener update
-            foundGardener = false;
-            if (stayNear && friendlyGardenerCount > 0) {
-                foundGardener = true;
+            prevNext = next;
+            next = rc.readBroadcast(15);
+            if (friendlyGardenerCount > 0) {
                 prevGardenerPos = friendlyGardeners[0].location;
             }
 
-            //check for changes
-            checkTreeArrayChange();
+            //check for better locations
+            if(!traveling){
+                chooseBestLocation();
+            }
+            else
+                //make a call to get whether locations are around, since chooseBestLocation was never called
+                areLocationsNear();
+            if(!locationsNear && bestTreeStatic != null && bestPriorityStatic * 66.66666667f + dynamicPriorityFromBase(bestTreeStatic) > shrinkingPriority())
+                //if not locations in range and found locations worth reporting
+                lumberajckNeeded(bestTreeStatic.location, bestPriorityStatic, 1);
+
+            //striking
+            boolean hasStruck = false;
+            if(bodiesWithinDistance(enemyRobots, enemyRobotDists, 2) > 0 && bodiesWithinDistance(friendlyRobots, friendlyRobotDists, 2) == 0) {
+                rc.strike();
+                hasStruck = true;
+            }
 
             //move, shake, and chop
-            MapLocation move = determineMove();
+            MapLocation move = Nav.lumberjackNav(rc, allTrees, allRobots, allTreeDists, allRobotDists, hasStruck);
             if(move != null)
                 rc.move(move);
             shakeATree();
-            if (!isIdle && nearTree) {
-                chopTree();   //chop tree
-            }
             
             if(printedThisTurn){
                System.out.println();
@@ -126,7 +113,6 @@ public class Lumberjack {
             PublicMethods.donateBullets(rc);
             
             //end of while loop - yield to end
-            firstRound = false;
             Clock.yield();
         }
     }
@@ -137,417 +123,309 @@ public class Lumberjack {
         friendlyRobots = new RobotInfo[allRobots.length];
         enemyRobots = new RobotInfo[allRobots.length];
         friendlyGardeners = new RobotInfo[allRobots.length];
+
+        allRobotDists = new float[allRobots.length];
+        friendlyRobotDists = new float[allRobots.length];
+        enemyRobotDists = new float[allRobots.length];
+
         allTrees = rc.senseNearbyTrees();
         friendlyTrees = new TreeInfo[allTrees.length];
         neutralTrees = new TreeInfo[allTrees.length];
         enemyTrees = new TreeInfo[allTrees.length];
+
+        allTreeDists = new float[allTrees.length];
+        friendlyTreeDists = new float[allTrees.length];
+        neutralTreeDists = new float[allTrees.length];
+        enemyTreeDists = new float[allTrees.length];
+
         friendlyRobotCount = 0;
         enemyRobotCount = 0;
-        friendlyGardenerCount = 0;
         friendlyTreeCount = 0;
         neutralTreeCount = 0;
         enemyTreeCount = 0;
+        friendlyGardenerCount = 0;
+
+        bestPriority = -1f;
+        bestPriorityStatic = -1;
+        bestTree = null;
+        bestTreeStatic = null;
         if(rc.getTeam() == Team.A) {
+            int robotCount = 0;
             for(RobotInfo info : allRobots) {
+                float dist = rc.getLocation().distanceTo(info.location);
+                allRobotDists[robotCount] = dist;
                 switch(info.team) {
                     case A:
                         friendlyRobots[friendlyRobotCount] = info;
+                        friendlyRobotDists[friendlyRobotCount] = dist;
                         friendlyRobotCount++;
-                        if(info.type == RobotType.GARDENER){
+                        if(info.type == RobotType.LUMBERJACK){
                             friendlyGardeners[friendlyGardenerCount] = info;
                             friendlyGardenerCount++;
                         }
                         break;
                     case B:
                         enemyRobots[enemyRobotCount] = info;
+                        enemyRobotDists[enemyRobotCount] = dist;
                         enemyRobotCount++;
                 }
+                robotCount++;
             }
+            int treeCount = 0;
             for(TreeInfo info : allTrees){
+                float dist = rc.getLocation().distanceTo(info.location);
+                allTreeDists[treeCount] = dist;
                 switch(info.team) {
                     case A:
                         friendlyTrees[friendlyTreeCount] = info;
+                        friendlyTreeDists[friendlyTreeCount] = dist;
                         friendlyTreeCount++;
                         break;
                     case B:
                         enemyTrees[enemyTreeCount] = info;
+                        enemyTreeDists[enemyTreeCount] = dist;
                         enemyTreeCount++;
                         break;
                     case NEUTRAL:
                         neutralTrees[neutralTreeCount] = info;
+                        neutralTreeDists[neutralTreeCount] = dist;
                         neutralTreeCount++;
                 }
+                int staticPriority = staticPriorityOfTree(info);
+                float priority = staticPriority * 66.66666667f + dynamicPriorityOfTree(info);
+                if(staticPriority > -1 && priority > bestPriority){
+                    bestPriority = priority;
+                    bestTree = info;
+                }
+                if(staticPriority > bestPriorityStatic){
+                    bestPriorityStatic = staticPriority;
+                    bestTreeStatic = info;
+                }
+                treeCount++;
             }
         }
         else{
-            for (RobotInfo info : allRobots) {
-                switch (info.team) {
+            int robotCount = 0;
+            for(RobotInfo info : allRobots) {
+                float dist = rc.getLocation().distanceTo(info.location);
+                allRobotDists[robotCount] = dist;
+                switch(info.team) {
                     case B:
-                        if(info.type == RobotType.GARDENER){
+                        friendlyRobots[friendlyRobotCount] = info;
+                        friendlyRobotDists[friendlyRobotCount] = dist;
+                        friendlyRobotCount++;
+                        if(info.type == RobotType.LUMBERJACK){
                             friendlyGardeners[friendlyGardenerCount] = info;
                             friendlyGardenerCount++;
                         }
-                        friendlyRobots[friendlyRobotCount] = info;
-                        friendlyRobotCount++;
                         break;
                     case A:
                         enemyRobots[enemyRobotCount] = info;
+                        enemyRobotDists[enemyRobotCount] = dist;
                         enemyRobotCount++;
                 }
+                robotCount++;
             }
+            int treeCount = 0;
             for(TreeInfo info : allTrees){
+                float dist = rc.getLocation().distanceTo(info.location);
+                allTreeDists[treeCount] = dist;
                 switch(info.team) {
                     case B:
                         friendlyTrees[friendlyTreeCount] = info;
+                        friendlyTreeDists[friendlyTreeCount] = dist;
                         friendlyTreeCount++;
                         break;
                     case A:
                         enemyTrees[enemyTreeCount] = info;
+                        enemyTreeDists[enemyTreeCount] = dist;
                         enemyTreeCount++;
                         break;
                     case NEUTRAL:
                         neutralTrees[neutralTreeCount] = info;
+                        neutralTreeDists[neutralTreeCount] = dist;
                         neutralTreeCount++;
                 }
+                int staticPriority = staticPriorityOfTree(info);
+                float priority = staticPriority * 66.66666667f + dynamicPriorityOfTree(info);
+                if(staticPriority > -1 && priority > bestPriority){
+                    bestPriority = priority;
+                    bestTree = info;
+                }
+                if(staticPriority > bestPriorityStatic){
+                    bestPriorityStatic = staticPriority;
+                    bestTreeStatic = info;
+                }
+                treeCount++;
             }
         }
     }
-    private static void checkTreeArrayChange() throws GameActionException{
-        if (isIdle) {
-            if(prevTreeNext != treeNext) {
-                isIdle = false;
-                chooseBestTree(prevTreeNext, treeNext);
-                if(DEBUG1){
-                    System.out.print("\nTree update in the array sensed. Becoming active and going after tree at " + treeLoc.x + ", " + treeLoc.y + ".");
-                    printedThisTurn = true;
-                }
-            }
-        }
-        else{
-            int diff = treeNext - treeChannel;
-            if(rc.readBroadcast(treeChannel) == 0){
-                setTreeTarget(null, -1);
-                if(rc.readBroadcast(treeNext) == 0 && (diff == 1 || diff == -13)){
-                    if(DEBUG1) {
-                        System.out.print("\nTree target was removed and no other targets detected. Becoming idle.");
-                        printedThisTurn = true;
-                    }
-                    isIdle = true;
-                    if(stayNear)
-                        Nav.setDest(prevGardenerPos);   //edit me later
-                    else{
-                        pickDest(true);
-                    }
-                }
-                else{
-                    chooseBestTree();
-                    if(DEBUG1) {
-                        System.out.print("\nTree target was removed. Going after tree at " + treeLoc.x + ", " + treeLoc.y + ".");
-                        printedThisTurn = true;
-                    }
-                }
-            }
-        }
-    }
-    private static TreeInfo findTree(MapLocation approx, float uncert){
-        //finds tree within max uncertainty of approx
-        for(TreeInfo info : enemyTrees){
-            if(info == null)
+    private static int bodiesWithinDistance(BodyInfo[] bodies, float[] dists, float dmax){
+        //gives the amount of bodies from given sorted array (represented by dists) that are closer than distance
+        int count = 0;
+        for(int i = 0; i < dists.length; i++){
+            //0.0 is default for float arrays
+            if(dists[i] == 0.0f)
                 break;
-
-            float dx = info.location.x - approx.x;
-            if(dx < 0)
-                dx = 0 - dx;
-
-            float dy = info.location.y - approx.y;
-            if(dy < 0)
-                dy = 0 - dy;
-
-            float dmax = dx;
-            if(dy > dx)
-                dmax = dy;
-
-            if(dmax <= uncert)   //if goes below max uncert limit
-                return info;
-        }
-        for(TreeInfo info : neutralTrees){
-            if(info == null)
+            else if(dists[i] - bodies[i].getRadius() <= dmax)
+                count++;
+            else if(dists[i] - 2 > dmax)
                 break;
-
-            float dx = info.location.x - approx.x;
-            if(dx < 0)
-                dx = 0 - dx;
-
-            float dy = info.location.y - approx.y;
-            if(dy < 0)
-                dy = 0 - dy;
-
-            float dmax = dx;
-            if(dy > dx)
-                dmax = dy;
-
-            if(dmax <= uncert)   //if goes below max uncert limit
-                return info;
         }
-        return null;
+        return count;
     }
-    private static void chopTree() throws GameActionException{
-        //defensive manuever - remove later
-        if(treeInfo == null){
-            if(DEBUG1){
-                System.out.print("\nERROR: Found a non-existent tree. Handled safely");
-                printedThisTurn = true;
-            }
-            pickDest(false);
-            return;
-        }   
-        
-        //update health
-        if(rc.canSenseLocation(treeInfo.location))   //make faster later
-            treeInfo = rc.senseTreeAtLocation(treeInfo.location);
-        else
-            treeInfo = findTree(treeInfo.location, MAX_TREE_UNCERT);
-
-        //chops trees
-        boolean reset = false;
-        if (treeInfo.getHealth() <= GameConstants.LUMBERJACK_CHOP_DAMAGE) {
-            if(DEBUG1) {
-                System.out.print("\nChopped down my target!");
-                printedThisTurn = true;
-            }
-            rc.broadcast(treeChannel, 0);
-            reset = true;
-
-            //not using setTreeTarget because still need to keep treeInfo
-            treeLoc = null;
-            nearTree = false;
-        }
-        rc.chop(treeInfo.getID());
-        if(reset)
-            treeInfo = null;
-    }
-    private static float expandingPriorityThreshold(){
+    private static float shrinkingPriority(){
         //950 - 800
         return 950f - (rc.getRoundNum())/20f;
     }
+    private static void areLocationsNear() throws GameActionException{
+        locationsNear = false;
 
-    //movement stuff
-    private static MapLocation determineMove() throws GameActionException{
-        if(nearTree)    //base case: stand still while chopping
-            return null;
-
-        if(isIdle){
-            //quick workaround - fix later
-            //if(enemyRobotCount > 0)   //running away code
-            //    Nav.setDest(prevGardenerPos);
-            if(stayNear && foundGardener){
-                //staying in range of gardeners code
-                float distance = rc.getLocation().distanceTo(prevGardenerPos);
-                if(distance > MAX_GARDENER_RANGE) {
-                    Direction d = rc.getLocation().directionTo(prevGardenerPos);
-                    if(rc.canMove(d)) {
-                        if(DEBUG2) {
-                            System.out.print("\nMoved towards gardener.");
-                            printedThisTurn = true;
-                        }
-                        return rc.getLocation().add(d);
-                    }
-                }
-                else if(distance < MIN_GARDENER_RANGE){
-                    Direction d = prevGardenerPos.directionTo(rc.getLocation());
-                    if(rc.canMove(d)) {
-                        if (DEBUG2) {
-                            System.out.print("\nMoved away from gardener.");
-                            printedThisTurn = true;
-                        }
-                        return rc.getLocation().add(d);
-                    }
-                }
-                for (int i = 0; i < 10; i++) {    //prevents infinite while loops if stuck
-                    Direction d = new Direction(rng.nextFloat() * 2 * (float) Math.PI);
-                    if (rc.canMove(d)) {
-                        if (DEBUG2) {
-                            System.out.print("\nMoved in range of gardener.");
-                            printedThisTurn = true;
-                        }
-                        return rc.getLocation().add(d);
-                    }
-                }
-            }
-        }
-        else{
-            //update tree stuff
-            float d = rc.getLocation().distanceTo(treeLoc);
-            if(treeInfo == null && d <= RobotType.LUMBERJACK.sensorRadius + GameConstants.NEUTRAL_TREE_MAX_RADIUS){  //17
-                treeInfo = findTree(treeLoc, MAX_TREE_UNCERT);  //check tree
-                if(treeInfo != null) {
-                    if(DEBUG2) {
-                        System.out.print("\nSaw my tree!");
-                        printedThisTurn = true;
-                    }
-                    treeLoc = treeInfo.location;
-                    Nav.setDest(treeLoc);
-                }
-            }
-            if(treeInfo != null && d <= RobotType.LUMBERJACK.bodyRadius + RobotType.LUMBERJACK.strideRadius + treeInfo.radius) //2.25-11.75
-                pickNearTreeLoc(treeInfo);
-        }
-        return Nav.lumberjackNav(rc, allTrees, allRobots);
-    }
-    private static void pickNearTreeLoc(TreeInfo tree) throws GameActionException{
-        //Does exactly what it says.
-        //Takes over approaching trees when close (dist <= 1 + maxTreeRadius).
-        //TODO: make gardeners leave room for others.
-        if(nearTreeLoc == null){
-            nearTreeLoc = tree.location.add(tree.location.directionTo(rc.getLocation()), tree.radius + RobotType.LUMBERJACK.bodyRadius + 0.001f);
-            Nav.setDest(nearTreeLoc);
-        }
-    }
-
-    //tree handling stuff
-    public static void reportTreesInRange(RobotController rc, TreeInfo[] neutral, int neutralCount, TreeInfo[] enemy, int enemyCount) throws GameActionException{
-        //Please use this method!
-        //specify the arrays of and numbers of neutral and enemy trees within your vision,
-        //and this method will handle everything else
-        if (enemyCount + neutralCount > 0) {
-            if(rc.getType() == RobotType.LUMBERJACK)
-                treeNext = rc.readBroadcast(15);
-
-            //for later reference
-            Integer[] locationValueArray = new Integer[enemyCount + neutralCount];
-            TreeInfo[] treeArray = new TreeInfo[enemyCount + neutralCount];
-
-            //goes through all trees and combines arrays, while computing int from location
-            int index = 0;
-            for (TreeInfo info : enemy) {
-                if(index > 5)
-                    break;
-                if(info == null)
-                    break;
-                locationValueArray[index] = locationToInt(info.location);
-                treeArray[index] = info;
-                index++;
-            }
-            for (TreeInfo info : neutral) {
-                if(index > 5)
-                    break;
-                if(info == null)
-                    break;
-                locationValueArray[index] = locationToInt(info.location);
-                treeArray[index] = info;
-                index++;
-            }
-            //here it checks if trees have already been reported
-            if (rc.getType() != RobotType.LUMBERJACK || (firstRound || !isIdle || prevTreeNext != treeNext)) {  //the beginning of the game, or trees already in array (for lumberjacks)
-                for (int i = 16; i < 30; i++) {
-                    int existingTreeLocationVal = isolateLocation(rc.readBroadcast(i));
-                    for (int i2 = 0; i2 < locationValueArray.length; i2++) {
-                        Integer newTreeLocationVal = locationValueArray[i2];
-                        if (newTreeLocationVal != null) {
-                            if (newTreeLocationVal == existingTreeLocationVal)
-                                locationValueArray[i2] = null;   //removes tree to report
-                        }
-                    }
-                }
-            }
-
-            float threshold = expandingPriorityThreshold();
-            for (int i = 0; i < locationValueArray.length; i++) {
-                Integer locationValue = locationValueArray[i];
-                if (locationValue == null)
-                    continue;
-                int staticPriority = staticPriorityOfTree(treeArray[i]);
-                int priority = (int)dynamicPriorityFromBase(treeArray[i]) + staticPriority;
-                if(priority < threshold)
-                    continue;
-                rc.broadcast(treeNext, priorityToInt(staticPriority) + locationValue);
-                if(DEBUG1) {
-                    System.out.print("\nReported tree " + treeArray[i].getID() + " to array location " + treeNext + ".");
-                    printedThisTurn = true;
-                }
-                treeNext++;
-                if(treeNext == 30)
-                    treeNext = 16;
-            }
-            rc.broadcast(15, treeNext);
-        }
-    }
-    private static void chooseBestTree() throws GameActionException{
-        chooseBestTree(16, 29, null);
-    }
-    private static void chooseBestTree(MapLocation exclude) throws GameActionException{
-        chooseBestTree(16, 29, exclude);
-    }
-    private static void chooseBestTree(int lower, int upper) throws GameActionException{
-        chooseBestTree(lower, upper, null);
-    }
-    private static void chooseBestTree(int lower, int upper, MapLocation exclude) throws GameActionException{
-        int bestPriority = -1;
-        int bestChannel = -1;
-        int bestValue = -1;
-
-        for(int i = lower; i < upper+1; i++){
+        for(int i = 16; i < 30; i++){
             int value = rc.readBroadcast(i);
+            MapLocation valueLoc = intToLocation(value);
             if(value == 0)
                 continue;
 
+            if(!locationsNear && valueLoc.distanceTo(rc.getLocation()) <= 7f) {
+                locationsNear = true;
+                return;
+            }
+        }
+    }
+
+    //movement stuff
+    private static MapLocation pickNearTreeLoc(TreeInfo tree) throws GameActionException{
+        //Does exactly what it says.
+        //Takes over approaching trees when close (dist <= 1 + maxTreeRadius).
+        //TODO: make gardeners leave room for others.
+        MapLocation nearTreeLoc = tree.location.add(tree.location.directionTo(rc.getLocation()), tree.radius + RobotType.LUMBERJACK.bodyRadius + 0.001f);
+        Nav.setDest(nearTreeLoc);
+        return nearTreeLoc;
+    }
+
+    //tree handling stuff
+    public static void lumberajckNeeded(MapLocation location, int priority, int number) throws GameActionException{
+        //PLEASE USE
+        //priority can be in range [0, 15] (use something greater than 10)
+        //number can be in range [0, 7], and this number of lumberjacks will arrive
+
+        if(rc.getType() != RobotType.LUMBERJACK)
+            next = rc.readBroadcast(15);
+
+        rc.broadcast(next, priorityToInt(priority) | neededToInt(number) | locationToInt(location));
+        next++;
+
+        rc.broadcast(15, next);
+    }
+    private static void chooseBestLocation() throws GameActionException{
+        chooseBestLocation(null);
+    }
+    private static void chooseBestLocation(MapLocation exclude) throws GameActionException{
+        int bestP = -1;
+        int bestValue = -1;
+        int bestChannel = -1;
+        MapLocation bestLocation = null;
+
+        locationsNear = false;
+
+        for(int i = 16; i < 30; i++){
+            int value = rc.readBroadcast(i);
+            MapLocation valueLoc = intToLocation(value);
+            if(value == 0)
+                continue;
+
+            if(!locationsNear && valueLoc.distanceTo(rc.getLocation()) <= 7f)
+                locationsNear = true;
+
             //check for exclusion
             if(exclude != null) {
-                MapLocation existing = intToLocation(value);
-                float dx = existing.x - exclude.x;
-                if (dx < 0)
-                    dx = 0 - dx;
-                float dy = existing.y - exclude.y;
-                if (dy < 0)
-                    dy = 0 - dy;
-                if (dx < MAX_TREE_UNCERT && dy < MAX_TREE_UNCERT)
+                if(exclude.equals(valueLoc))
                     continue;
             }
 
-            int priority = intToPriority(value) + dynamicPriorityOfTree(intToLocation(value));
+            //check for 0 needed
+            if(intToNeeded(value) == 0)
+                continue;
 
-            if(priority > bestPriority){
-                bestPriority = priority;
-                bestChannel = i;
+            int priority = intToPriority(value) + dynamicPriorityOfTree(valueLoc);
+
+            if(priority > bestP){
+                bestP = priority;
+                bestLocation = valueLoc;
                 bestValue = value;
+                bestChannel = i;
             }
         }
 
-        setTreeTarget(bestValue, bestChannel);
-    }   //with limits
-    private static int staticPriorityOfTree(TreeInfo tree){
-        int priority = 0;
-
-        //enemy trees
-        if(tree.getTeam() == rc.getTeam().opponent())
-            priority += 500;
-        //bullets
-        int b = tree.containedBullets;
-        if(b > 1000)
-            b = 1000;
-        priority += b / 4;
-
-        //contained robot
-        if(tree.containedRobot != null)
-        switch(tree.containedRobot){
-            case ARCHON:
-                priority += 10;    //314
-                break;
-            case GARDENER:
-                priority += 9;  //300
-                break;
-            case SOLDIER:
-                priority += 5;  //150
-                break;
-            case LUMBERJACK:
-                priority += 5;  //150
-                break;
-            case SCOUT:
-                priority += 3;  //100
-                break;
+        if(bestLocation != null){
+            rc.broadcast(bestChannel, isolatePriority(bestValue) | neededToInt((bestValue)-1) | isolateLocation(bestValue));
+            traveling = true;
+            travelingChannel = bestChannel;
+            Nav.setDest(bestLocation);
+            if(DEBUG1){
+                System.out.print("\nTraveling to " + bestLocation.x + ", " + bestLocation.y + ".");
+                printedThisTurn = true;
+            }
         }
+    }
+    private static int staticPriorityOfTree(TreeInfo tree){
+        //-1 for our trees (later ignored)
+        //0 for neutral
+        //5 for enemy
+        //5 - 15 for robots
 
-        return priority;
+        if(rc.getTeam() == Team.A){
+            switch(tree.team){
+                case A:
+                    return -1;
+                case B:
+                    return 5;
+                case NEUTRAL:
+                    if(tree.containedRobot == null)
+                        return 0;
+                    switch(tree.containedRobot){
+                        case ARCHON:
+                            return 15;
+                        case TANK:
+                            return 5;
+                        case SOLDIER:
+                            return 14;
+                        case SCOUT:
+                            return 11;
+                        case LUMBERJACK:
+                            return 12;
+                        case GARDENER:
+                            return 13;
+                    }
+            }
+        }
+        else{
+            switch(tree.team){
+                case B:
+                    return -1;
+                case A:
+                    return 5;
+                case NEUTRAL:
+                    if(tree.containedRobot == null)
+                        return 0;
+                    switch(tree.containedRobot){
+                        case ARCHON:
+                            return 15;
+                        case TANK:
+                            return 5;
+                        case SOLDIER:
+                            return 14;
+                        case SCOUT:
+                            return 11;
+                        case LUMBERJACK:
+                            return 12;
+                        case GARDENER:
+                            return 13;
+                    }
+            }
+        }
+        return -1;  //never reached
     }
     private static int dynamicPriorityOfTree(TreeInfo treeInfo){
         //expanding circle goes from ~7 to ~28 distance
@@ -579,46 +457,35 @@ public class Lumberjack {
     private static float dynamicPriorityFromMe(MapLocation treeLoc){
         return 7.071067812f * (141.4213562f - rc.getLocation().distanceTo(treeLoc) + 0.5f);
     }
-    private static void setTreeTarget(TreeInfo tree, int channel){
-        treeInfo = tree;
-        nearTree = false;
-        nearTreeLoc = null;
-        if(tree == null){
-            treeLoc = null;
-            //not changing treeChannel cause using it later
-        }
-        else{
-            treeLoc = tree.location;
-            treeChannel = channel;
-        }
-        Nav.setDest(treeLoc);
-    }
-    private static void setTreeTarget(int value, int channel){  //alternative way of setting target by integer value
-        treeInfo = null;
-        nearTree = false;
-        nearTreeLoc = null;
-        treeLoc = intToLocation(value);
-        treeChannel = channel;
-        Nav.setDest(treeLoc);
-    }
     //conversions
-    private static int isolateLocation(int i){
-        return i % 1000000;
-    }
+    //priority is integer [0, 15], 4-bit
+    //needed is integer [0, 7], 3-bit
+    //locations are float [0, 600] turned 10-bit
     private static int isolatePriority(int i){
-        return i / 1000000 * 1000000;
+        return i & 0b111100000000000000000000000;
     }
-    private static int locationToInt(MapLocation loc){
-        return 1000 * round(loc.x) + round(loc.y);
+    private static int isolateLocation(int i){
+        return i & 0b11111111111111111111;
     }
     private static int priorityToInt(int p){
-        return 1000000 * p;
+        return p << 23;
     }
-    private static MapLocation intToLocation(int i){
-        return new MapLocation((i / 1000) % 1000, i % 1000);
+    private static int neededToInt(int n){
+        return n << 20;
+    }
+    private static int locationToInt(MapLocation loc){
+        //1.705 = 1023/600
+        return (round(loc.x * 1.705f) << 10) | round(loc.y * 1.705f);
     }
     private static int intToPriority(int i){
-        return i / 1000000;
+        return i >>> 23;
+    }
+    private static int intToNeeded(int i){
+        return (i >>> 20) & 0b111;
+    }
+    private static MapLocation intToLocation(int i){
+        //0.5865102639 = 600/1023
+        return new MapLocation(0.5865102639f * ((i >>> 10) & 0b1111111111), 0.5865102639f * (i & 0b1111111111));
     }
 
     //integration methods
@@ -631,20 +498,19 @@ public class Lumberjack {
             printedThisTurn = true;
         }
 
-        if(isIdle) {
+        if(traveling && reached){
+            traveling = false;
+            rc.broadcast(travelingChannel, 0);
+            travelingChannel = -1;
+        }
+        if(bestTree == null) {
             Nav.setDest(rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float) Math.PI), 20));   //explorer code
         }
         else{
-            if(reached) { //reached tree to chop - stay in place and chop
-                nearTree = true;
-            }
-            else{
-                chooseBestTree(treeLoc);
-                Nav.setDest(treeLoc);
-                if(DEBUG1) {
-                    System.out.print("\nGoing after tree at " + treeLoc.x + ", " + treeLoc.y + ".");
-                    printedThisTurn = true;
-                }
+            Nav.setDest(bestTree.location);
+            if(DEBUG2) {
+                System.out.print("\nGoing after tree at " + bestTree.location.x + ", " + bestTree.location.y + ".");
+                printedThisTurn = true;
             }
         }
     }

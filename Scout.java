@@ -23,13 +23,13 @@ public class Scout {
         	if( target == null )
         	{
         		TreeInfo[] trees = rc.senseNearbyTrees();
-        		for( int i = trees.length-1; i >= 0; i-- )
+        		for( int i = 0; i < trees.length; i++ )
             	{
         			if( trees[i].containedBullets > 0 )
         			{
         				MapLocation temp = trees[i].getLocation();
         				float tempDist = temp.distanceTo(me);
-        				if( tempDist < 1F )
+        				if( tempDist <= trees[i].radius )
         					continue;
         				target = temp;
         				break;
@@ -39,7 +39,7 @@ public class Scout {
         	//find archon or gardener in range
         	if( target == null )
         	{
-        		for( int i = robots.length-1; i >= 0; i-- )
+        		for( int i = 0; i < robots.length; i++ )
         		{
         			if( robots[i].getTeam().equals(rc.getTeam().opponent()) && (robots[i].getType().equals(RobotType.ARCHON) 
         					|| robots[i].getType().equals(RobotType.GARDENER)) )
@@ -57,7 +57,7 @@ public class Scout {
         	MapLocation[] archons = rc.getInitialArchonLocations(rc.getTeam().opponent());
         	if( target == null && deadArchons != archons.length )
         	{
-        		for( int x = archons.length-1; x >= 0; x-- )
+        		for( int x = 0; x < archons.length; x++ )
         		{
         			float tempDist = archons[x].distanceTo(me);
         			if( tempDist < 1F )
@@ -66,15 +66,16 @@ public class Scout {
     				break;
         		}
         	}
+        	//System.out.println("" + target.x + "y: " + target.y);
         	if( !ScoutNav.goToTarget(rc, target) )
         	{
-        		if( target == null )
-        		{
+        		//if( target == null )
+        		//{
         			//if( )
         			Direction rand = new Direction((float)Math.random() * 2 * (float)Math.PI);
         			if( rc.canMove(rand) )
         				rc.move(rand);
-        		}
+        		//}
         		//could not move - how to deal with this?
         	    //move in a random direction between certain degrees depending on LR
         		ScoutNav.compareLR(me, target);

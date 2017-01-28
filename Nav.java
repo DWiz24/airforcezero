@@ -32,7 +32,9 @@ class Nav {
             bugMinDist=distToDest;
             lastMinUpdate=rc.getRoundNum();
         }
-        bugMinDist=Math.min(bugMinDist,distToDest);
+        //rc.setIndicatorDot(dest,255,0,0);
+
+        //bugMinDist=Math.min(bugMinDist,distToDest);
         if (rc.getRoundNum()-lastMinUpdate>60) {
             Soldier.pickDest();
         }
@@ -79,7 +81,7 @@ class Nav {
             }
 
             if (bugging) {
-                float destdist = rc.getLocation().add(toDest, 1).distanceTo(dest);
+                float destdist = rc.getLocation().add(toDest, 0.95f).distanceTo(dest);
                 if (rc.canMove(toDest) && destdist < bugMinDist) {
                     bugging = false;
                     return rc.getLocation().add(toDest, 0.95f);
@@ -89,11 +91,14 @@ class Nav {
                     if (following == null || following.getLocation() != prevLoc) {
                         bugging = false;
                     } else {
+                        //rc.setIndicatorLine(dest,dest.add(toDest.opposite(),bugMinDist),0,0,0);
+                        //rc.setIndicatorDot(following.getLocation(),0,255,0);
                         float distBtw = rc.getLocation().distanceTo(following.getLocation());
                         float cosp = ((following.getRadius() + 1) * (following.getRadius() + 1) - 0.9025f - distBtw * distBtw) / (-1.9f * distBtw);
                         float f = (float) Math.acos(cosp);
                         Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.001f:f + 0.001f));
                         MapLocation theMove=rc.getLocation().add(ndir, 0.95f);
+                        //rc.setIndicatorDot(theMove,255,255,255);
                         if (!(rc.canSenseAllOfCircle(theMove,1) && rc.onTheMap(theMove,1))) {
                             if (hitWall) {
                                 //System.out.println("YAYY!");

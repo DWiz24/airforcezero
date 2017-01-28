@@ -69,7 +69,7 @@ public class Archon {
   				if( priority != 0 )
   				{
   					makeG = false;
-  					//System.out.println("FALSE");
+  					System.out.println("FALSE");
   				}
   				gardeners[tc] = new MapLocation(garX, garY);
         	}
@@ -77,13 +77,16 @@ public class Archon {
         	int s = rc.senseNearbyTrees().length;
             s = (s<<8)+0b00000001; //same as 0 but 0 = dead or non existant
             reportBuildStatus(rc, s);
-
-        	if( (round == 3 || round > 20) && makeG && roomForGardeners && (nearRobotEnemies.length == 0 || rc.getTeamBullets() >= 184) )
+            System.out.println("makeG"+makeG);
+            System.out.println("roomForG"+roomForGardeners);
+            System.out.println("Index"+(myIndex-80+2));
+        	if( round >= (myIndex-80+3) && makeG && roomForGardeners && (nearRobotEnemies.length == 0 || rc.getTeamBullets() >= 184) )
         	{
-        		//System.out.println("MAKING");
+        		System.out.println("Index"+(myIndex-80+2));
+        		System.out.println("MAKING");
         		if( pickArchon(rc) )
         		{	
-        			//System.out.println("Is Archon");
+        			System.out.println("Is Archon");
         			for( int x = 0; x < dLen; x++ )
         			{
         				build = dirs[x];
@@ -101,7 +104,7 @@ public class Archon {
         						}
         						if( count < 3 )
         							continue;
-        						if( rc.onTheMap(myLoc.add(t, 6F)) )
+        						if( rc.onTheMap(myLoc.add(t, 8F)) && !rc.isLocationOccupiedByTree(myLoc.add(t, 6F)) )
         						{
         							destination = myLoc.add(t, 6F);	//runaway
         							break;
@@ -127,26 +130,30 @@ public class Archon {
         		Clock.yield();
         	}*/
         	//try to move away from gardener
-        	if( destination != null && myLoc.distanceTo(destination) > .5F )
+        	if( destination != null && myLoc.distanceTo(destination) > 4F )
         	{
+        			System.out.println("Still gard??");
+        			System.out.println("" + destination.x + " "+destination.y);
+        			
         			rc.move(Nav.archonNav(rc, trees, rc.senseNearbyRobots()));
         			Clock.yield();
         	}
         	//away from gardener or no destination
         	else
         	{
-        		RobotInfo[] nearAll = rc.senseNearbyRobots(5F, rc.getTeam());
+        		RobotInfo[] nearAll = rc.senseNearbyRobots(6F, rc.getTeam());
         		for( RobotInfo r: nearAll )
         		{
         			if( r.type == RobotType.SOLDIER )
         			{
         				Direction goA = myLoc.directionTo(r.location);
-        				Direction[] test = {goA.opposite(), goA.rotateLeftDegrees(90F), goA.rotateLeftDegrees(90F), goA.rotateRightDegrees(90F)};
+        				Direction[] test = {goA.opposite(), goA.rotateRightDegrees(45F), goA.rotateLeftDegrees(90F), goA.rotateRightDegrees(90F)};
         				for(Direction t:test)
         				{
-        					if( rc.onTheMap(myLoc.add(t, 5F)) )
+        					if( rc.onTheMap(myLoc.add(t, 8F)) && !rc.isLocationOccupiedByTree(myLoc.add(t, 6F)))
         					{
-        						destination = myLoc.add(t, 5F);	//runaway
+        						System.out.println("Runaway");
+        						destination = myLoc.add(t, 6F);	//runaway
         						rc.move(Nav.archonNav(rc, trees, rc.senseNearbyRobots()));
         						Clock.yield();
         					}
@@ -174,8 +181,8 @@ public class Archon {
     	for (int i=80; i<=82; i++)
     	{
     		int mes = r.readBroadcast(i);
-    		//System.out.println("" + (mes>>8) + " " + (mes&0b11111111));
-    		//System.out.println("" + (stat>>8) + " " + (stat&0b11111111));
+    		System.out.println("mes" + (mes>>8) + " " + (mes&0b11111111));
+    		System.out.println("stat" + (stat>>8) + " " + (stat&0b11111111));
     		if( mes == 0 )	//ded
     			continue;
     		if( (mes&0b11111111) == 4 )

@@ -185,7 +185,7 @@ public class Soldier {
         for (int i = allBullets.length - 1; i >= 0; i--) {
             MapLocation oloc = allBullets[i].location;
             float dist = loc.distanceTo(oloc);
-            if (dist < 1.95 || Math.asin(1.95 / dist) >= Math.abs(loc.directionTo(oloc).radiansBetween(allBullets[i].dir))) {
+            if (dist < 1.95 || Math.asin(1.8 / dist) >= Math.abs(loc.directionTo(oloc).radiansBetween(allBullets[i].dir))) {
                 bullets[nbullets++] = allBullets[i];
             }
         }
@@ -273,7 +273,7 @@ public class Soldier {
         for (int i = 8; i > 0; i--) {
             //MapLocation move = rc.getLocation().add(dir, 1.9f);
             //if (!rc.isCircleOccupied(move,1))
-            MapLocation move = rc.getLocation().add(dir, 0.95f);
+            MapLocation move = rc.getLocation().add(dir, 0.8f);
             if (rc.canMove(move)) {
                 int damage = 0;
                 for (int k = nbullets; k >= 0; k--) {

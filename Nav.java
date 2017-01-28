@@ -193,7 +193,7 @@ class Nav {
                         }
                     }
 
-                    if (closest == 999f) {  //blocked by robots
+                    if (closest == 999f) {  //blocked by something unknown (probably won't happen)
                         Lumberjack.pickDest(false);
                         lastMinUpdate=rc.getRoundNum();
                     }

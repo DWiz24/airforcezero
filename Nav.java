@@ -592,8 +592,9 @@ class Nav {
                     } else {
                         float distBtw = rc.getLocation().distanceTo(following.getLocation());
                         float cosp = ((following.getRadius() + 2) * (following.getRadius() + 2) - 0.25f - distBtw * distBtw) / (distBtw);
+                        //System.out.println(cosp);
                         float f = (float) Math.acos(cosp);
-                        Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.005f:f + 0.005f));
+                        Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.0005f:f + 0.0005f));
                         MapLocation theMove=rc.getLocation().add(ndir, 0.5f);
                         if (rc.canSenseAllOfCircle(theMove, 1) && !rc.onTheMap(theMove,2)) {
                             if (hitWall) {

@@ -6,7 +6,7 @@ public class Gardener {
     	Direction[] dirs={new Direction(0f), new Direction((float)(Math.PI/3.0)), new Direction((float)(2.0*Math.PI/3.0)), new Direction((float)(3.0*Math.PI/3.0)), new Direction((float)(4.0*Math.PI/3.0)), new Direction((float)(5.0*Math.PI/3.0))};
     	final int roundSpawned = rc.getRoundNum();
     	int soldiers = 0, lumbers = 0, planted = 0, lastRoundPlanted = rc.getRoundNum(), lastRoundCreated = rc.getRoundNum();    	
-    	int scounts = 2;
+    	int scounts = 1;
     	int channel = -1;
     	int censusChannel = 1;
     	float theta = -1.0f;
@@ -60,6 +60,9 @@ public class Gardener {
     			rc.broadcast(censusChannel, rc.readBroadcast(censusChannel) - 1);
     			dead = true;
     		}
+    		
+    		lumbers = rc.readBroadcast(2);
+    		soldiers = rc.readBroadcast(3);
     		
     		MapLocation myLocation = rc.getLocation();
     		int directionsICantPlant = 0, directionsICanPlant = 0;
@@ -195,9 +198,16 @@ public class Gardener {
     		//TreeInfo[] nearbyTrees = rc.senseNearbyTrees();
     		
     		boolean safe = true;
-    		if(distance < 20f && rc.getRoundNum() < 100) {
+    		if((distance < 20f && rc.getRoundNum() < 100)) {
     			safe = false;
     		}
+    		
+    		if(rc.getHealth() < lastTurnHealth) {
+    			Soldier.reportCombatLocation(myLocation, 0);
+    			safe = false;
+    		}
+    			
+    		lastTurnHealth = rc.getHealth(); 
     		RobotInfo[] allRobots = rc.senseNearbyRobots(5f);
     		for(RobotInfo thisRobot : allRobots) {
     			if(thisRobot.team == enemyTeam)
@@ -224,15 +234,18 @@ public class Gardener {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							lastRoundCreated = rc.getRoundNum();
 							rc.buildRobot(RobotType.LUMBERJACK, place);
-							lumbers++;
+							rc.broadcast(2, rc.readBroadcast(2) + 1);
 						}
-					}
-				
-					else {
+					} else if(safe && soldiers > 1 && scounts > 0) {
+						if(rc.canBuildRobot(RobotType.SCOUT, place)) {
+							rc.buildRobot(RobotType.SCOUT, place);
+							scounts--;
+						}
+					} else {
 						if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.SOLDIER, place);
 							lastRoundCreated = rc.getRoundNum();
-							soldiers++;
+							rc.broadcast(3, rc.readBroadcast(3) + 1);
 						}
 					}
 					

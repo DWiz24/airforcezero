@@ -480,8 +480,8 @@ public class Lumberjack {
         //expanding circle goes from ~7 to ~28 distance
         int priority = 0;
 
-        priority += 0.5f * dynamicPriorityFromBase(treeInfo);
-        priority += 0.5f * dynamicPriorityFromMe(treeInfo);
+        priority += 0.6f * dynamicPriorityFromBase(treeInfo);
+        priority += 0.4f * dynamicPriorityFromMe(treeInfo);
 
         return priority;
     }
@@ -489,8 +489,8 @@ public class Lumberjack {
         //expanding circle goes from ~7 to ~28 distance
         int priority = 0;
 
-        priority += 0.25f * dynamicPriorityFromBase(treeLoc);
-        priority += 0.75f * dynamicPriorityFromMe(treeLoc);
+        priority += 0.6f * dynamicPriorityFromBase(treeLoc);
+        priority += 0.4f * dynamicPriorityFromMe(treeLoc);
 
         return priority;
     }

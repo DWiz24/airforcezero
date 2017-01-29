@@ -69,13 +69,31 @@ public class Gardener {
    					directionsICantPlant++;
    					RobotInfo inWay = rc.senseRobotAtLocation(myLocation.add(dirs[i], 2.01f));
    					if(inWay != null && inWay.type == RobotType.ARCHON) {
-   						//System.out.println("I have functional code");
    						archonInWay = true;
    					}
    				} else {
    					directionsICanPlant++;
    				}
+   			} 
+   			
+   			if(directionsICanPlant==0) {
+   				boolean foundGoodDirection = false;
+   				float direction = 0f;
+   				while(!rc.canBuildRobot(RobotType.LUMBERJACK, new Direction((float) (direction))) && direction < (float)(2.0*Math.PI)) {
+   					direction += (float)(Math.PI/48.0);
+   					if(rc.canBuildRobot(RobotType.LUMBERJACK, new Direction((float) (direction)))) {
+   						foundGoodDirection = true;
+   						break;
+   					}
+   					//System.out.println(direction);
+   				}
+   				
+   				if(foundGoodDirection) {
+   	   				for(int i = 0; i < dirs.length; i++)
+   	   					dirs[i] = new Direction(direction + (float)(((double)i*Math.PI/3.0)%(2.0*Math.PI)));
+   	   			}
    			}
+   			
    			//System.out.println("I can plant in this many directions: " + directionsICanPlant);
     		if(channel == -1) {
     			int tempchannel = 100;
@@ -108,7 +126,7 @@ public class Gardener {
    			
     		//Moves to a good space for planting, based on more successful teams, changes turn to turn, stops trying after a certain number of turns
 			
-   			if(theta <= -2.0f) { //For now, unable to move at all
+   			if(theta <= -2.0f) {
    				
    				float deltaTheta = (float)(Math.PI/6.0);
    				
@@ -175,8 +193,6 @@ public class Gardener {
     		
     		//int countedSoliders = get from team shared array
     		//TreeInfo[] nearbyTrees = rc.senseNearbyTrees();
-    		
-    		//System.out.println("THIS IS THE SMOLEST DISTACE " + distance);
     		
     		boolean safe = true;
     		if(distance < 20f && rc.getRoundNum() < 100) {

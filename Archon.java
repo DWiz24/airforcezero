@@ -177,7 +177,7 @@ public class Archon {
         			if( reset )
         				break;
         		}
-        		if( !hired && !moved )
+        		if( !hired && !moved && makeG)
         		{
         			//System.out.println("Try to runtree");
         			if( trees.length > 0 )
@@ -213,7 +213,7 @@ public class Archon {
     	if( r.getHealth() < 6 )
     		stat = 0;
     	reportBuildStatus(r, stat);
-    	for (int i=80; i<=82; i++)
+    	for (int i=80; i<=90; i++)
     	{
     		int mes = r.readBroadcast(i);
     		//System.out.println("mes" + (mes>>8) + " " + (mes&0b11111111));
@@ -250,51 +250,18 @@ public class Archon {
     		r.broadcast(myIndex, myStat);
     		return;
     	}
-    }
-    public static boolean moveToEmptyArea(RobotController myR) throws GameActionException
-    {
-    	//determine if current is empty
-    	if( isEmptyArea(myR, myR.getLocation()) ) 
+    	for( int i=80; i<=90; i++ )
     	{
-    		//System.out.println("is empty");
-    		return true;
-    	}
-    	for( int x = 0; x < dLen; x++ )
-		{
-			Direction m = dirs[x];
-			if( myR.canMove(m) )
-			{
-				//System.out.println("RunAway");
-				myR.move(m);
-				return true;
-				/*if( isEmptyArea(myR, myR.getLocation().add(m)) )
-				{
-					myR.move(m);
-					return true;
-				}*/
-			}
-		}
-    	return false;
-    }
-    //Empty = can build gardener and still move out of area
-    public static boolean isEmptyArea(RobotController myR, MapLocation center) throws GameActionException
-    {
-    	int count = 0;
-    	for( int x = 0; x < dLen/2; x++ )
-    	{
-    		MapLocation newLoc = center.add(dirs[x], 3F);
-    		if( myR.onTheMap(newLoc) )
+    		if( r.readBroadcast(i) == 0 )
     		{
-    			if( !myR.isLocationOccupied(center.add(dirs[x], 3F)) )
-    				count++;
+    			myIndex = i;
+    			break;
     		}
     	}
-    	if( count >= 2 )
-    		return true;
-    	//if( myR.senseNearbyRobots(center, 3.01F, null).length <= 3 )
-    		//return true;
-    	return false;
+    	//System.out.println("Index" + myIndex);
+    	r.broadcast(myIndex, myStat);
     }
+    
     public static boolean needToDodgeAndMove(RobotController myR, BulletInfo[] b) throws GameActionException
     {
     	Direction run = null;

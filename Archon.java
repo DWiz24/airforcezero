@@ -67,7 +67,7 @@ public class Archon {
         		float garX = (mes>>>20)/4.0F;
         		float garY = ((mes<<12)>>8)/4.0F;
   				int priority = mes&0b11111111;	//if all 0 and roomforgardeners then make gardener
-  				//System.out.println(""+priority);
+  				//System.out.println("priority"+priority);
   				if( priority != 0 )
   				{
   					makeG = false;
@@ -82,6 +82,7 @@ public class Archon {
             //System.out.println("makeG"+makeG);
            // System.out.println("roomForG"+roomForGardeners);
             //System.out.println("Index"+(myIndex-80+2));
+            boolean hired = false;
         	if( round >= (myIndex-80+3) && makeG && roomForGardeners && (nearRobotEnemies.length == 0 || rc.getTeamBullets() >= 184) )
         	{
         		//System.out.println("Index"+(myIndex-80+2));
@@ -99,7 +100,6 @@ public class Archon {
         						lastHired.rotateRightDegrees(150F), lastHired.rotateLeftDegrees(150F)};
         				Gardirs = temp;
         			}
-        			boolean hired = false;
         			for( int x = 0; x < Gardirs.length; x++ )
         			{
         				build = Gardirs[x];
@@ -137,7 +137,7 @@ public class Archon {
         			}
         		}
         	}
-        	
+        	//System.out.println("here");
         	//try to move away from gardener
         	if( destination != null && myLoc.distanceTo(destination) > 4F )
         	{
@@ -149,6 +149,7 @@ public class Archon {
         	//away from soldier or no destination
         	else
         	{
+        		//System.out.println("soldier sit");
         		boolean reset = false;
         		RobotInfo[] nearAll = rc.senseNearbyRobots(6F, rc.getTeam());
         		for( RobotInfo r: nearAll )
@@ -172,11 +173,18 @@ public class Archon {
         			if( reset )
         				break;
         		}
-        		if( !moveToEmptyArea(rc) )
+        		if( !hired)
         		{
-        			Direction ran = new Direction((float)Math.random() * 2 * (float)Math.PI);
-        			if( rc.canMove(ran) )
-        				rc.move(ran);
+        			//System.out.println("Try to runtree");
+        			Direction runTree = myLoc.directionTo(trees[(int)(Math.random()*trees.length/2)].location).opposite();
+        			if( rc.canMove(runTree) )
+        				rc.move(runTree);
+        			else
+        			{
+        				Direction ran = new Direction((float)Math.random() * 2 * (float)Math.PI);
+        				if( rc.canMove(ran) )
+        					rc.move(ran);
+        			}
         		}
         	}
 			PublicMethods.donateBullets(rc);
@@ -227,7 +235,6 @@ public class Archon {
     		r.broadcast(myIndex, myStat);
     		return;
     	}
-    	r.broadcast(myIndex, myStat);
     }
     public static boolean moveToEmptyArea(RobotController myR) throws GameActionException
     {

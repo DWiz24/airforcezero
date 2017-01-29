@@ -7,7 +7,7 @@ import java.lang.Math;
 public class Lumberjack {
     //global stuff
 
-    static final boolean DEBUG1 = false, DEBUG2 = false;  //set to false to make them shut up
+    static final boolean DEBUG1 = true, DEBUG2 = true;  //set to false to make them shut up
 
     //general
     private static RobotController rc;
@@ -82,7 +82,7 @@ public class Lumberjack {
             else
                 //make a call to get whether locations are around, since chooseBestLocation was never called
                 areLocationsNear();
-            if(!locationsNear && bestTreeStatic != null && bestPriorityStatic * 66.66666667f + dynamicPriorityFromBase(bestTreeStatic) > shrinkingPriority())
+            if(!locationsNear && bestTreeStatic != null && rc.getLocation().distanceTo(bestTreeStatic.location) < 7 && bestPriorityStatic * 66.66666667f + dynamicPriorityFromBase(bestTreeStatic) > shrinkingPriority())
                 //if not locations in range and found locations worth reporting
                 lumberajckNeeded(bestTreeStatic.location, bestPriorityStatic, 1);
 
@@ -304,6 +304,15 @@ public class Lumberjack {
         //priority can be in range [0, 15] (use something greater than 10)
         //number can be in range [0, 7], and this number of lumberjacks will arrive
 
+        if(Lumberjack.DEBUG1){
+            System.out.print("\nRequested " + number + " lumberjack(s) at " + location.x + ", " + location.y + " with priority " + priority + ".");
+            printedThisTurn = true;
+            if(rc.getTeam() == Team.A)
+                rc.setIndicatorDot(location, 200, 255, 0);
+            else
+                rc.setIndicatorDot(location, 0, 255, 200);
+        }
+
         if(rc.getType() != RobotType.LUMBERJACK)
             next = rc.readBroadcast(15);
 
@@ -319,7 +328,7 @@ public class Lumberjack {
         chooseBestLocation(null);
     }
     private static void chooseBestLocation(MapLocation exclude) throws GameActionException{
-        int bestP = -1;
+        float bestP = bestPriority + 100; //additional 100 for preferring to stay where I am
         int bestValue = -1;
         int bestChannel = -1;
         MapLocation bestLocation = null;
@@ -345,7 +354,7 @@ public class Lumberjack {
             if(intToNeeded(value) == 0)
                 continue;
 
-            int priority = intToPriority(value) + dynamicPriorityOfTree(valueLoc);
+            float priority = intToPriority(value) * 66.66666667f + dynamicPriorityOfTree(valueLoc);
 
             if(priority > bestP){
                 bestP = priority;
@@ -360,6 +369,10 @@ public class Lumberjack {
             traveling = true;
             travelingChannel = bestChannel;
             Nav.setDest(bestLocation);
+            if(DEBUG2){
+                System.out.print("Priority " + bestP + " exceeds current priority " + bestPriority + ".");
+                printedThisTurn = true;
+            }
             if(DEBUG1){
                 System.out.print("\nTraveling to " + bestLocation.x + ", " + bestLocation.y + ".");
                 printedThisTurn = true;

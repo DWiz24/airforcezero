@@ -3,24 +3,46 @@ import battlecode.common.*;
 
 public class Gardener {
     public static void run(RobotController rc) throws GameActionException {
-    
+    	Direction[] dirs={new Direction(0f), new Direction((float)(Math.PI/3.0)), new Direction((float)(2.0*Math.PI/3.0)), new Direction((float)(3.0*Math.PI/3.0)), new Direction((float)(4.0*Math.PI/3.0)), new Direction((float)(5.0*Math.PI/3.0))};
     	final int roundSpawned = rc.getRoundNum();
     	int soldiers = 0, lumbers = 0, planted = 0, lastRoundPlanted = 0;    	
     	int channel = -1;
     	int censusChannel = 1;
+    	int builds = 0; 
     	float theta = -1.0f;
     	float lastTurnHealth = rc.getHealth();
     	boolean onSpawn = true, dead = false;
+    	Team myTeam = rc.getTeam();
+        Team enemyTeam = null;
+    	if(myTeam == Team.A) {
+        	enemyTeam = Team.B;
+    	} else {
+    		enemyTeam = Team.A;
+    	}
     	
-        while(true){
-        		
-        	//RobotType[] canBuild = {RobotType.SOLDIER, RobotType.LUMBERJACK, RobotType.TANK, RobotType.SCOUT};
-        	
-    		Direction[] dirs={new Direction(0f), new Direction((float)(Math.PI/3.0)), new Direction((float)(2.0*Math.PI/3.0)), new Direction((float)(3.0*Math.PI/3.0)), new Direction((float)(4.0*Math.PI/3.0)), new Direction((float)(5.0*Math.PI/3.0))}; 
+    	//Finds the shortest distance between our archons vs their archons
+    	MapLocation[] theirArchons = rc.getInitialArchonLocations(enemyTeam);
+		MapLocation[] myArchons = rc.getInitialArchonLocations(myTeam);
+		float distance = 99999f;
+		if(myArchons.length == 1) {
+			distance = myArchons[0].distanceTo(theirArchons[0]);
+		} else {
+			for(int i = theirArchons.length-1; i >= 0; i--) {
+				for(int n = myArchons.length-1; i>=0; i--) {
+					float thisDistance = myArchons[n].distanceTo(theirArchons[i]); 
+					if(thisDistance < distance) {
+						distance = thisDistance;
+					}
+				}
+			}
+		}
+		
+		
+    	while(true){
     		
     		MapLocation sad = null; //Find lowest health tree, water it
     		float minhealth = 50f; 
-    		Team myTeam = rc.getTeam();
+    		
     		TreeInfo[] trees = rc.senseNearbyTrees(3.0f, myTeam);
     		for(TreeInfo tree:trees) {
     			if(tree.health < minhealth && rc.canWater(tree.ID)){
@@ -30,12 +52,12 @@ public class Gardener {
     		}
     		if(sad!=null && rc.canWater(sad))
     			rc.water(sad);
-    		
     		if(rc.canShake())
     			shakeATree(rc);
+    		//End water and shaking
+    		
     		
     		//Communicate information to team array - first to census [0,5], then to archon for other stuff
-    		
     		if(onSpawn) {
     			rc.broadcast(censusChannel, rc.readBroadcast(censusChannel) + 1);
     			onSpawn = false;
@@ -50,11 +72,15 @@ public class Gardener {
    			
    			for(int i = dirs.length-1; i >= 0; i--) {
    				if(rc.isCircleOccupiedExceptByThisRobot(myLocation.add(dirs[i], 2.01f), 1f) || !rc.onTheMap(myLocation.add(dirs[i], 2.01f), 1f)) {
-   					directionsICantPlant++;
+   					RobotInfo robotInWay = rc.senseRobotAtLocation(myLocation.add(dirs[i], 2.01f)); 
+   					if(robotInWay != null && robotInWay.type != RobotType.ARCHON) {
+   						directionsICantPlant++;
+   					}
    				} else {
    					directionsICanPlant++;
    				}
    			}
+   			
    			//System.out.println("I can plant in this many directions: " + directionsICanPlant);
     		if(channel == -1) {
     			int tempchannel = 100;
@@ -62,6 +88,7 @@ public class Gardener {
     				tempchannel++;
     			channel = tempchannel;
     		}
+    		System.out.println("My channel is " + channel);
     		int x = (int)myLocation.x;
     		int y = (int)myLocation.y;
     		int planting = 0b0000_0001;
@@ -149,24 +176,32 @@ public class Gardener {
     		//What do I build code
     		boolean buildtree = false;
     		
-    		int countedSoliders = rc.getRobotCount(); //Right now assuming all robots are soldiers...will be fixed asap
+    		//int countedSoliders = get from team shared array
+    		//TreeInfo[] nearbyTrees = rc.senseNearbyTrees();
     		
-	   		if((directionsICanPlant > 1 && planted < soldiers*2 && soldiers >= 1)) {
-	   			if(soldiers > 0 && countedSoliders == 0)
-	   				buildtree = false;
+    		System.out.println("THIS IS THE SMOLEST DISTACE " + distance);
+    		
+    		boolean safe = true;
+    		if(distance < 20f && rc.getRoundNum() < 100) {
+    			safe = false;
+    		}
+    		
+	   		if(directionsICanPlant > 1 && safe) { // && planted < soldiers*2 && soldiers >= 1)
 	   			buildtree = true;
+	   		} else {
+	   			buildtree = false;
 	   		}
 	   		
-	   		else
-	   			buildtree = false;
-	    		
+	   		
 			for (Direction place : dirs) {
 				//if(sad!=null && rc.isLocationOccupied(sad.add(place)))
 				if (rc.canPlantTree(place) && buildtree) { 
 					rc.plantTree(place);
+					lastRoundPlanted = rc.getRoundNum();
 					planted++;
 				}
-					if(((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 1 && soldiers > 1) && (directionsICantPlant >= 4 || planted < 3)) && ((float)lumbers < (float)soldiers/(2f + rc.getRoundNum()/300f))) {
+					//if(((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 1 && directionsICantPlant > 1) && (directionsICantPlant >= 4 || planted < 3)) && ((float)lumbers < (float)soldiers/(2f + rc.getRoundNum()/300f))) {
+					if(rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 1) {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
 							lumbers++;
@@ -176,7 +211,6 @@ public class Gardener {
 					else {
 						if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.SOLDIER, place);
-							lastRoundPlanted = rc.getRoundNum();
 							soldiers++;
 						}
 					}

@@ -6,7 +6,7 @@ public class Gardener {
     	Direction[] dirs={new Direction(0f), new Direction((float)(Math.PI/3.0)), new Direction((float)(2.0*Math.PI/3.0)), new Direction((float)(3.0*Math.PI/3.0)), new Direction((float)(4.0*Math.PI/3.0)), new Direction((float)(5.0*Math.PI/3.0))};
     	final int roundSpawned = rc.getRoundNum();
     	int soldiers = 0, lumbers = 0, planted = 0, lastRoundPlanted = rc.getRoundNum(), lastRoundCreated = rc.getRoundNum();    	
-    	int scounts = 2;
+    	int scounts = 1;
     	int channel = -1;
     	int censusChannel = 1;
     	float theta = -1.0f;
@@ -61,6 +61,9 @@ public class Gardener {
     			dead = true;
     		}
     		
+    		lumbers = rc.readBroadcast(2);
+    		soldiers = rc.readBroadcast(3);
+    		
     		MapLocation myLocation = rc.getLocation();
     		int directionsICantPlant = 0, directionsICanPlant = 0;
    			boolean archonInWay = false;
@@ -69,13 +72,31 @@ public class Gardener {
    					directionsICantPlant++;
    					RobotInfo inWay = rc.senseRobotAtLocation(myLocation.add(dirs[i], 2.01f));
    					if(inWay != null && inWay.type == RobotType.ARCHON) {
-   						//System.out.println("I have functional code");
    						archonInWay = true;
    					}
    				} else {
    					directionsICanPlant++;
    				}
+   			} 
+   			
+   			if(directionsICanPlant==0) {
+   				boolean foundGoodDirection = false;
+   				float direction = 0f;
+   				while(!rc.canBuildRobot(RobotType.LUMBERJACK, new Direction((float) (direction))) && direction < (float)(2.0*Math.PI)) {
+   					direction += (float)(Math.PI/48.0);
+   					if(rc.canBuildRobot(RobotType.LUMBERJACK, new Direction((float) (direction)))) {
+   						foundGoodDirection = true;
+   						break;
+   					}
+   					//System.out.println(direction);
+   				}
+   				
+   				if(foundGoodDirection) {
+   	   				for(int i = 0; i < dirs.length; i++)
+   	   					dirs[i] = new Direction(direction + (float)(((double)i*Math.PI/3.0)%(2.0*Math.PI)));
+   	   			}
    			}
+   			
    			//System.out.println("I can plant in this many directions: " + directionsICanPlant);
     		if(channel == -1) {
     			int tempchannel = 100;
@@ -108,7 +129,7 @@ public class Gardener {
    			
     		//Moves to a good space for planting, based on more successful teams, changes turn to turn, stops trying after a certain number of turns
 			
-   			if(theta <= -2.0f) { //For now, unable to move at all
+   			if(theta <= -2.0f) {
    				
    				float deltaTheta = (float)(Math.PI/6.0);
    				
@@ -176,12 +197,17 @@ public class Gardener {
     		//int countedSoliders = get from team shared array
     		//TreeInfo[] nearbyTrees = rc.senseNearbyTrees();
     		
-    		//System.out.println("THIS IS THE SMOLEST DISTACE " + distance);
-    		
     		boolean safe = true;
-    		if(distance < 20f && rc.getRoundNum() < 100) {
+    		if((distance < 20f && rc.getRoundNum() < 100)) {
     			safe = false;
     		}
+    		
+    		if(rc.getHealth() < lastTurnHealth) {
+    			Soldier.reportCombatLocation(myLocation, 0);
+    			safe = false;
+    		}
+    			
+    		lastTurnHealth = rc.getHealth(); 
     		RobotInfo[] allRobots = rc.senseNearbyRobots(5f);
     		for(RobotInfo thisRobot : allRobots) {
     			if(thisRobot.team == enemyTeam)
@@ -208,15 +234,18 @@ public class Gardener {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							lastRoundCreated = rc.getRoundNum();
 							rc.buildRobot(RobotType.LUMBERJACK, place);
-							lumbers++;
+							rc.broadcast(2, rc.readBroadcast(2) + 1);
 						}
-					}
-				
-					else {
+					} else if(safe && soldiers > 1 && scounts > 0) {
+						if(rc.canBuildRobot(RobotType.SCOUT, place)) {
+							rc.buildRobot(RobotType.SCOUT, place);
+							scounts--;
+						}
+					} else {
 						if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.SOLDIER, place);
 							lastRoundCreated = rc.getRoundNum();
-							soldiers++;
+							rc.broadcast(3, rc.readBroadcast(3) + 1);
 						}
 					}
 					

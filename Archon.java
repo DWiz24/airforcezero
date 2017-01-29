@@ -37,6 +37,7 @@ public class Archon {
         while(true)
         {
         	
+        	boolean moved = false;
         	MapLocation myLoc = rc.getLocation();
         	int round = rc.getRoundNum();
         	Direction build = null;
@@ -67,7 +68,7 @@ public class Archon {
         		float garX = (mes>>>20)/4.0F;
         		float garY = ((mes<<12)>>8)/4.0F;
   				int priority = mes&0b11111111;	//if all 0 and roomforgardeners then make gardener
-  				//System.out.println(""+priority);
+  				//System.out.println("priority"+priority);
   				if( priority != 0 )
   				{
   					makeG = false;
@@ -75,13 +76,15 @@ public class Archon {
   				}
   				gardeners[tc] = new MapLocation(garX, garY);
         	}
-
+        	if( needToDodgeAndMove(rc, rc.senseNearbyBullets()) )
+        		moved = true;
         	int s = rc.senseNearbyTrees(6.5F).length+robots.length;
             s = (s<<8)+0b00000001; //same as 0 but 0 = dead or non existant
             reportBuildStatus(rc, s);
             //System.out.println("makeG"+makeG);
            // System.out.println("roomForG"+roomForGardeners);
             //System.out.println("Index"+(myIndex-80+2));
+            boolean hired = false;
         	if( round >= (myIndex-80+3) && makeG && roomForGardeners && (nearRobotEnemies.length == 0 || rc.getTeamBullets() >= 184) )
         	{
         		//System.out.println("Index"+(myIndex-80+2));
@@ -99,7 +102,6 @@ public class Archon {
         						lastHired.rotateRightDegrees(150F), lastHired.rotateLeftDegrees(150F)};
         				Gardirs = temp;
         			}
-        			boolean hired = false;
         			for( int x = 0; x < Gardirs.length; x++ )
         			{
         				build = Gardirs[x];
@@ -137,18 +139,20 @@ public class Archon {
         			}
         		}
         	}
-        	
+        	//System.out.println("here");
         	//try to move away from gardener
-        	if( destination != null && myLoc.distanceTo(destination) > 4F )
+        	if( !moved && destination != null && myLoc.distanceTo(destination) > 4F )
         	{
         			//System.out.println("Still gard??");
         			//System.out.println("" + destination.x + " "+destination.y);
         			
         			rc.move(Nav.archonNav(rc, trees, robots));
+        			moved = true;
         	}
         	//away from soldier or no destination
-        	else
+        	else if(!moved)
         	{
+        		//System.out.println("soldier sit");
         		boolean reset = false;
         		RobotInfo[] nearAll = rc.senseNearbyRobots(6F, rc.getTeam());
         		for( RobotInfo r: nearAll )
@@ -165,6 +169,7 @@ public class Archon {
         						destination = myLoc.add(t, 6F);	//runaway
         						reset = true;
         						rc.move(Nav.archonNav(rc, trees, robots));
+        						moved = true;
         						break;
         					}
         				}
@@ -172,11 +177,29 @@ public class Archon {
         			if( reset )
         				break;
         		}
-        		if( !moveToEmptyArea(rc) )
+        		if( !hired && !moved )
         		{
-        			Direction ran = new Direction((float)Math.random() * 2 * (float)Math.PI);
-        			if( rc.canMove(ran) )
-        				rc.move(ran);
+        			//System.out.println("Try to runtree");
+        			if( trees.length > 0 )
+        			{
+        				Direction runTree = myLoc.directionTo(trees[(int)(Math.random()*(trees.length-1))].location);
+        				Direction[] treeTry = {runTree.opposite(), runTree.rotateLeftDegrees(90F), runTree.rotateRightDegrees(90F)};
+        				for( int x = 0; x < 3; x++ )
+        				{
+        					if( rc.canMove(treeTry[x]) )
+        					{
+        						rc.move(treeTry[x]);
+        						moved = true;
+        						break;
+        					}
+        				}
+        			}
+        			if( !moved )
+        			{
+        				Direction ran = new Direction((float)Math.random() * 2 * (float)Math.PI);
+        				if( rc.canMove(ran) )
+        					rc.move(ran);
+        			}
         		}
         	}
 			PublicMethods.donateBullets(rc);
@@ -274,28 +297,56 @@ public class Archon {
     }
     public static boolean needToDodgeAndMove(RobotController myR, BulletInfo[] b) throws GameActionException
     {
-
+    	Direction run = null;
+    	MapLocation runLoc = null;
+    	MapLocation runLocP2 = null;
     	boolean runAway = false;
-    	for( BulletInfo bull: b )
+    	for( int x = 0; x < b.length; x++ )
     	{
+    		BulletInfo bull = b[x];
     		Direction head = bull.getDir();
     		MapLocation loc = bull.getLocation();
     		float speed = bull.getSpeed();
     		MapLocation end = loc.add(head, speed*2);
     		boolean hitMe = bulletWillHit(loc, end, myR.getLocation());
     		if( hitMe )
+    		{
     			runAway = true;
+    			run = head;
+    			runLoc = loc;
+    			if( b.length == 1 )
+    				runLocP2 = loc;
+    			else if( x == b.length-1 )
+    				runLocP2 = b[x-1].location;
+    			else
+    				runLocP2 = b[x+1].location;
+    		}
     	}
-    	isBlockingGardener = false;
     	if( runAway )
     	{
-    		//make better run away actually use bullets
-    		if( moveToEmptyArea(myR) )
-    			return true;
-    		//rip
-    		Direction ran = new Direction((float)Math.random() * 2 * (float)Math.PI);
-    		if( myR.canMove(ran) )
-    			myR.move(ran);
+    		float shotDir = runLoc.x-runLocP2.x;
+    		Direction[] trying = {run.rotateLeftDegrees(45F), run.rotateLeftDegrees(90F), run.rotateRightDegrees(45F), run.rotateRightDegrees(90F)};
+    		if( shotDir != 0 )
+    		{
+    			if( shotDir > 0 )
+    			{
+    				Direction[] temp = {run.rotateRightDegrees(30F), run.rotateRightDegrees(60F), run.rotateRightDegrees(90F), run.rotateRightDegrees(120F), run.rotateRightDegrees(150F)};
+    				trying = temp;
+    			}
+    			else
+    			{
+    				Direction[] temp = {run.rotateLeftDegrees(30F), run.rotateLeftDegrees(60F), run.rotateLeftDegrees(90F), run.rotateLeftDegrees(120F), run.rotateLeftDegrees(150F)};
+    				trying = temp;
+    			}
+    		}
+    		for( Direction d : trying )
+    		{
+    			if(myR.canMove(d))
+    			{
+    				myR.move(d);
+    				return true;
+    			}
+    		}
     	}
     	return false;
     }

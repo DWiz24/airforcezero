@@ -63,12 +63,6 @@ public class Lumberjack {
         if (next == 0) { //in case this is the first lumberjack, set the index to default
             rc.broadcast(15, 16);
             next = 16;
-            prevNext = 16;
-        }
-        else {
-            prevNext = next - 1;
-            if (prevNext == 15)
-                prevNext = 29;
         }
 
         //code below repeats every turn
@@ -315,6 +309,9 @@ public class Lumberjack {
 
         rc.broadcast(next, priorityToInt(priority) | neededToInt(number) | locationToInt(location));
         next++;
+
+        if(next == 30)
+            next = 16;
 
         rc.broadcast(15, next);
     }

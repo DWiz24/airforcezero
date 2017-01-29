@@ -63,20 +63,14 @@ public class Gardener {
     		
     		MapLocation myLocation = rc.getLocation();
     		int directionsICantPlant = 0, directionsICanPlant = 0;
-   			
+   			boolean archonInWay = false;
    			for(int i = dirs.length-1; i >= 0; i--) {
-   				if(!rc.onTheMap(myLocation.add(dirs[i], 2.01f), 1f)) {
+   				if(!rc.onTheMap(myLocation.add(dirs[i], 2.01f), 1f) || rc.isCircleOccupiedExceptByThisRobot(myLocation.add(dirs[i], 2.01f), 1f)) {
    					directionsICantPlant++;
-   					continue;
-   				} else if (rc.isCircleOccupiedExceptByThisRobot(myLocation.add(dirs[i], 2.01f), 1f)) {
-   					RobotInfo robotInWay = rc.senseRobotAtLocation(myLocation.add(dirs[i], 2.01f));
-   					if(robotInWay == null) {
-   						directionsICantPlant++;
-   						continue;
-   					}
-   					if(robotInWay.type != RobotType.ARCHON) {
-   						directionsICanPlant++;
-   						continue;
+   					RobotInfo inWay = rc.senseRobotAtLocation(myLocation.add(dirs[i], 2.01f));
+   					if(inWay != null && inWay.type == RobotType.ARCHON) {
+   						System.out.println("I have functional code");
+   						archonInWay = true;
    					}
    				} else {
    					directionsICanPlant++;
@@ -95,6 +89,8 @@ public class Gardener {
     		int planting = 0b0000_0001;
     		if((directionsICanPlant < 2 || rc.getRoundNum() - lastRoundPlanted > 200) && ((lumbers + soldiers > 0) || directionsICanPlant == 0))
     			planting = 0b0000_0000;
+    		if(archonInWay)
+    			planting = 0b0000_0001;
     		int message = (((x << 12) + y) << 12) + planting;
     		rc.broadcast(channel, message);
     		
@@ -208,7 +204,7 @@ public class Gardener {
 					planted++;
 				}
 					//if(((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 1 && directionsICantPlant > 1) && (directionsICantPlant >= 4 || planted < 3)) && ((float)lumbers < (float)soldiers/(2f + rc.getRoundNum()/300f))) {
-					if(rc.senseNearbyTrees(7f, Team.NEUTRAL).length > 0 && lumbers < 1 && safe) {
+					if((rc.senseNearbyTrees(7f, Team.NEUTRAL).length > 0) && lumbers < 1 && safe) {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							lastRoundCreated = rc.getRoundNum();
 							rc.buildRobot(RobotType.LUMBERJACK, place);

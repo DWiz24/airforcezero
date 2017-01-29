@@ -12,6 +12,7 @@ public class Archon {
 	static boolean isBlockingGardener = false;
 	static int myIndex = -1;
 	static int[] myAr = new int[3];
+	static Direction lastHired = null;
     public static void run(RobotController rc) throws GameActionException {
 
 		MapLocation[] archons =rc.getInitialArchonLocations(rc.getTeam());
@@ -41,6 +42,7 @@ public class Archon {
         	Direction build = null;
         	RobotInfo[] nearRobotEnemies = rc.senseNearbyRobots(5F, rc.getTeam().opponent());
         	TreeInfo[] trees = rc.senseNearbyTrees();
+        	RobotInfo[] robots = rc.senseNearbyRobots();
         	//BulletInfo[] bullets = rc.senseNearbyBullets(8);
         	
         	//shake trees
@@ -74,7 +76,7 @@ public class Archon {
   				gardeners[tc] = new MapLocation(garX, garY);
         	}
 
-        	int s = rc.senseNearbyTrees().length;
+        	int s = rc.senseNearbyTrees(6.5F).length+robots.length;
             s = (s<<8)+0b00000001; //same as 0 but 0 = dead or non existant
             reportBuildStatus(rc, s);
             //System.out.println("makeG"+makeG);
@@ -84,15 +86,28 @@ public class Archon {
         	{
         		//System.out.println("Index"+(myIndex-80+2));
         		//System.out.println("MAKING");
-        		if( pickArchon(rc) )
+        		if( pickArchon(rc, robots.length) )
         		{	
         			//System.out.println("Is Archon");
-        			for( int x = 0; x < dLen; x++ )
+        			//choose gardener direction
+        			Direction[] Gardirs = dirs;
+        			if( lastHired != null )
         			{
-        				build = dirs[x];
+        				Direction[] temp = {lastHired, lastHired.rotateRightDegrees(60F), lastHired.rotateLeftDegrees(60F),
+        						lastHired.rotateRightDegrees(90F), lastHired.rotateLeftDegrees(90F), 
+        						lastHired.rotateRightDegrees(120F), lastHired.rotateLeftDegrees(120F), 
+        						lastHired.rotateRightDegrees(150F), lastHired.rotateLeftDegrees(150F)};
+        				Gardirs = temp;
+        			}
+        			boolean hired = false;
+        			for( int x = 0; x < Gardirs.length; x++ )
+        			{
+        				build = Gardirs[x];
         				if( rc.canHireGardener(build) )
         				{
+        					lastHired = build;
         					rc.hireGardener(build);
+        					hired = true;
         					Direction[] test = {build.opposite(), build.rotateLeftDegrees(90F), build.rotateLeftDegrees(90F), build.rotateRightDegrees(90F)};
         					for(Direction t:test)
         					{
@@ -114,30 +129,24 @@ public class Archon {
         				}
         			}
         			//System.out.println("FS");
-        			int t = rc.senseNearbyTrees().length;
-    	            t = (t<<8)+0b00000100; //same as 0 but 0 = dead or non existant
-    	            reportBuildStatus(rc, t);
+        			if( !hired )
+        			{
+        				//int t = rc.senseNearbyTrees(6.5F).length;
+        				s = ((s>>8)<<8)+0b00000100; //same as 0 but 0 = dead or non existant
+        				reportBuildStatus(rc, s);
+        			}
         		}
         	}
-        	//System.out.println("Hi");
-        	//try not to get killed
-        	//wtf logic FIX IT
-        	//if isBlockingGardener = true needToDodgeAndMove = false else returns false but moves archon and false
-        	/*if( needToDodgeAndMove(rc, bullets) || isBlockingGardener )	//sets isBlockingGardener true if don't move
-        	{
-        		//System.out.print("Dog");
-        		isBlockingGardener = false;
-        		Clock.yield();
-        	}*/
+        	
         	//try to move away from gardener
         	if( destination != null && myLoc.distanceTo(destination) > 4F )
         	{
         			//System.out.println("Still gard??");
         			//System.out.println("" + destination.x + " "+destination.y);
         			
-        			rc.move(Nav.archonNav(rc, trees, rc.senseNearbyRobots()));
+        			rc.move(Nav.archonNav(rc, trees, robots));
         	}
-        	//away from gardener or no destination
+        	//away from soldier or no destination
         	else
         	{
         		boolean reset = false;
@@ -155,7 +164,7 @@ public class Archon {
         						//System.out.println("Runaway");
         						destination = myLoc.add(t, 6F);	//runaway
         						reset = true;
-        						rc.move(Nav.archonNav(rc, trees, rc.senseNearbyRobots()));
+        						rc.move(Nav.archonNav(rc, trees, robots));
         						break;
         					}
         				}
@@ -174,18 +183,18 @@ public class Archon {
             Clock.yield();
         }
     }
-    public static boolean pickArchon(RobotController r) throws GameActionException
+    public static boolean pickArchon(RobotController r, int aroundRobs) throws GameActionException
     {
     	int fourCount = 0;
-    	int stat = (r.senseNearbyTrees().length<<8) + 0b00000001;
+    	int stat = ((r.senseNearbyTrees(6.5F).length+aroundRobs)<<8) + 0b00000001;
     	if( r.getHealth() < 6 )
     		stat = 0;
     	reportBuildStatus(r, stat);
     	for (int i=80; i<=82; i++)
     	{
     		int mes = r.readBroadcast(i);
-    		//System.out.println("mes" + (mes>>8) + " " + (mes&0b11111111));
-    		//System.out.println("stat" + (stat>>8) + " " + (stat&0b11111111));
+    		System.out.println("mes" + (mes>>8) + " " + (mes&0b11111111));
+    		System.out.println("stat" + (stat>>8) + " " + (stat&0b11111111));
     		if( mes == 0 )	//ded
     			continue;
     		if( (mes&0b11111111) == 4 )
@@ -193,7 +202,7 @@ public class Archon {
     			fourCount++;
     			if( fourCount == arCount-1 )
     			{
-    				reportBuildStatus(r, (r.senseNearbyTrees().length<<8)+0b00000011);
+    				reportBuildStatus(r, ((stat>>8)<<8)+0b00000011);
     				return true;
     			}
     		}
@@ -208,7 +217,7 @@ public class Archon {
     			return false;
     		}
     	}
-    	reportBuildStatus(r, (r.senseNearbyTrees().length<<8)+0b00000011);
+    	reportBuildStatus(r, ((stat>>8)<<8)+0b00000011);
     	return true;
     }
     public static void reportBuildStatus(RobotController r, int myStat) throws GameActionException
@@ -266,16 +275,7 @@ public class Archon {
     }
     public static boolean needToDodgeAndMove(RobotController myR, BulletInfo[] b) throws GameActionException
     {
-    	//RobotInfo gardener = null;
-    	//MapLocation gLoc = null;
-    	/*if( targetCreation != -1 )
-    	{
-    		if( myR.canSenseRobot(targetCreation) )
-    		{
-    			gardener = myR.senseRobot(targetCreation);
-    			gLoc = myR.getLocation();
-    		}
-    	}*/
+
     	boolean runAway = false;
     	for( BulletInfo bull: b )
     	{
@@ -286,16 +286,6 @@ public class Archon {
     		boolean hitMe = bulletWillHit(loc, end, myR.getLocation());
     		if( hitMe )
     			runAway = true;
-    		/*if( gardener != null )
-    		{
-    			if( speed*2 > loc.distanceTo(gLoc) )
-    				break;
-    			if( hitMe && bulletWillHit(loc, end, gLoc) )
-    			{
-    				isBlockingGardener = true;
-    				return false;
-    			}
-    		}*/
     	}
     	isBlockingGardener = false;
     	if( runAway )

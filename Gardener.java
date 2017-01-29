@@ -88,7 +88,7 @@ public class Gardener {
     				tempchannel++;
     			channel = tempchannel;
     		}
-    		System.out.println("My channel is " + channel);
+    		//System.out.println("My channel is " + channel);
     		int x = (int)myLocation.x;
     		int y = (int)myLocation.y;
     		int planting = 0b0000_0001;
@@ -179,7 +179,7 @@ public class Gardener {
     		//int countedSoliders = get from team shared array
     		//TreeInfo[] nearbyTrees = rc.senseNearbyTrees();
     		
-    		System.out.println("THIS IS THE SMOLEST DISTACE " + distance);
+    		//System.out.println("THIS IS THE SMOLEST DISTACE " + distance);
     		
     		boolean safe = true;
     		if(distance < 20f && rc.getRoundNum() < 100) {

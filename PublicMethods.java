@@ -17,9 +17,9 @@ public class PublicMethods {
         else if (rc.getRoundLimit() - rc.getRoundNum() < 400)
             rc.donate(b - (b % rc.getVictoryPointCost()));
 
-        //3rd priority: if team has too many bullets (donate down to 100)
-        else if(b > 200 && rc.getRoundNum() > 50) //Otherwise we donate the bullets that would be used to build gardeners early game
-            rc.donate((b - 100) - ((b - 100) % rc.getVictoryPointCost()));
+        //3rd priority: if not beginning of game and if team has too many bullets (donate down to 150)
+        else if(b > 150 && rc.getRoundNum() > 50)
+            rc.donate((b - 150) - ((b - 150) % rc.getVictoryPointCost()));
     }
     
     static boolean isAboutToDie(RobotController rc, float lastTurnHealth) {

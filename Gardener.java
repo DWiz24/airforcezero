@@ -6,19 +6,14 @@ public class Gardener {
     	Direction[] dirs={new Direction(0f), new Direction((float)(Math.PI/3.0)), new Direction((float)(2.0*Math.PI/3.0)), new Direction((float)(3.0*Math.PI/3.0)), new Direction((float)(4.0*Math.PI/3.0)), new Direction((float)(5.0*Math.PI/3.0))};
     	final int roundSpawned = rc.getRoundNum();
     	int soldiers = 0, lumbers = 0, planted = 0, lastRoundPlanted = 0;    	
+    	int scounts = 2;
     	int channel = -1;
     	int censusChannel = 1;
-    	int builds = 0; 
     	float theta = -1.0f;
     	float lastTurnHealth = rc.getHealth();
     	boolean onSpawn = true, dead = false;
     	Team myTeam = rc.getTeam();
-        Team enemyTeam = null;
-    	if(myTeam == Team.A) {
-        	enemyTeam = Team.B;
-    	} else {
-    		enemyTeam = Team.A;
-    	}
+        Team enemyTeam = myTeam.opponent();
     	
     	//Finds the shortest distance between our archons vs their archons
     	MapLocation[] theirArchons = rc.getInitialArchonLocations(enemyTeam);
@@ -71,9 +66,17 @@ public class Gardener {
     		int directionsICantPlant = 0, directionsICanPlant = 0;
    			
    			for(int i = dirs.length-1; i >= 0; i--) {
-   				if(rc.isCircleOccupiedExceptByThisRobot(myLocation.add(dirs[i], 2.01f), 1f) || !rc.onTheMap(myLocation.add(dirs[i], 2.01f), 1f)) {
-   					RobotInfo robotInWay = rc.senseRobotAtLocation(myLocation.add(dirs[i], 2.01f)); 
-   					if(robotInWay != null && robotInWay.type != RobotType.ARCHON) {
+   				if(!rc.onTheMap(myLocation.add(dirs[i], 2.01f), 1f)) {
+   					directionsICantPlant++;
+   					continue;
+   				}
+   				else if(rc.isCircleOccupiedExceptByThisRobot(myLocation.add(dirs[i], 2.01f), 1f)) {
+   					RobotInfo robotInWay = rc.senseRobotAtLocation(myLocation.add(dirs[i], 2.01f));
+   					if(robotInWay == null) {
+   						directionsICantPlant++;
+   						continue;
+   					}
+   					if(robotInWay.type != RobotType.ARCHON) {
    						directionsICantPlant++;
    					}
    				} else {
@@ -201,7 +204,7 @@ public class Gardener {
 					planted++;
 				}
 					//if(((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 1 && directionsICantPlant > 1) && (directionsICantPlant >= 4 || planted < 3)) && ((float)lumbers < (float)soldiers/(2f + rc.getRoundNum()/300f))) {
-					if(rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 1) {
+					if(rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 0 && lumbers < 3) {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
 							lumbers++;

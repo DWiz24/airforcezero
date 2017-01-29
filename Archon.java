@@ -37,6 +37,7 @@ public class Archon {
         while(true)
         {
         	
+        	boolean moved = false;
         	MapLocation myLoc = rc.getLocation();
         	int round = rc.getRoundNum();
         	Direction build = null;
@@ -75,7 +76,8 @@ public class Archon {
   				}
   				gardeners[tc] = new MapLocation(garX, garY);
         	}
-
+        	if( needToDodgeAndMove(rc, rc.senseNearbyBullets()) )
+        		moved = true;
         	int s = rc.senseNearbyTrees(6.5F).length+robots.length;
             s = (s<<8)+0b00000001; //same as 0 but 0 = dead or non existant
             reportBuildStatus(rc, s);
@@ -139,15 +141,16 @@ public class Archon {
         	}
         	//System.out.println("here");
         	//try to move away from gardener
-        	if( destination != null && myLoc.distanceTo(destination) > 4F )
+        	if( !moved && destination != null && myLoc.distanceTo(destination) > 4F )
         	{
         			//System.out.println("Still gard??");
         			//System.out.println("" + destination.x + " "+destination.y);
         			
         			rc.move(Nav.archonNav(rc, trees, robots));
+        			moved = true;
         	}
         	//away from soldier or no destination
-        	else
+        	else if(!moved)
         	{
         		//System.out.println("soldier sit");
         		boolean reset = false;
@@ -166,6 +169,7 @@ public class Archon {
         						destination = myLoc.add(t, 6F);	//runaway
         						reset = true;
         						rc.move(Nav.archonNav(rc, trees, robots));
+        						moved = true;
         						break;
         					}
         				}
@@ -173,13 +177,24 @@ public class Archon {
         			if( reset )
         				break;
         		}
-        		if( !hired)
+        		if( !hired && !moved )
         		{
         			//System.out.println("Try to runtree");
-        			Direction runTree = myLoc.directionTo(trees[(int)(Math.random()*trees.length/2)].location).opposite();
-        			if( rc.canMove(runTree) )
-        				rc.move(runTree);
-        			else
+        			if( trees.length > 0 )
+        			{
+        				Direction runTree = myLoc.directionTo(trees[(int)(Math.random()*(trees.length-1))].location);
+        				Direction[] treeTry = {runTree.opposite(), runTree.rotateLeftDegrees(90F), runTree.rotateRightDegrees(90F)};
+        				for( int x = 0; x < 3; x++ )
+        				{
+        					if( rc.canMove(treeTry[x]) )
+        					{
+        						rc.move(treeTry[x]);
+        						moved = true;
+        						break;
+        					}
+        				}
+        			}
+        			if( !moved )
         			{
         				Direction ran = new Direction((float)Math.random() * 2 * (float)Math.PI);
         				if( rc.canMove(ran) )
@@ -282,28 +297,56 @@ public class Archon {
     }
     public static boolean needToDodgeAndMove(RobotController myR, BulletInfo[] b) throws GameActionException
     {
-
+    	Direction run = null;
+    	MapLocation runLoc = null;
+    	MapLocation runLocP2 = null;
     	boolean runAway = false;
-    	for( BulletInfo bull: b )
+    	for( int x = 0; x < b.length; x++ )
     	{
+    		BulletInfo bull = b[x];
     		Direction head = bull.getDir();
     		MapLocation loc = bull.getLocation();
     		float speed = bull.getSpeed();
     		MapLocation end = loc.add(head, speed*2);
     		boolean hitMe = bulletWillHit(loc, end, myR.getLocation());
     		if( hitMe )
+    		{
     			runAway = true;
+    			run = head;
+    			runLoc = loc;
+    			if( b.length == 1 )
+    				runLocP2 = loc;
+    			else if( x == b.length-1 )
+    				runLocP2 = b[x-1].location;
+    			else
+    				runLocP2 = b[x+1].location;
+    		}
     	}
-    	isBlockingGardener = false;
     	if( runAway )
     	{
-    		//make better run away actually use bullets
-    		if( moveToEmptyArea(myR) )
-    			return true;
-    		//rip
-    		Direction ran = new Direction((float)Math.random() * 2 * (float)Math.PI);
-    		if( myR.canMove(ran) )
-    			myR.move(ran);
+    		float shotDir = runLoc.x-runLocP2.x;
+    		Direction[] trying = {run.rotateLeftDegrees(45F), run.rotateLeftDegrees(90F), run.rotateRightDegrees(45F), run.rotateRightDegrees(90F)};
+    		if( shotDir != 0 )
+    		{
+    			if( shotDir > 0 )
+    			{
+    				Direction[] temp = {run.rotateRightDegrees(30F), run.rotateRightDegrees(60F), run.rotateRightDegrees(90F), run.rotateRightDegrees(120F), run.rotateRightDegrees(150F)};
+    				trying = temp;
+    			}
+    			else
+    			{
+    				Direction[] temp = {run.rotateLeftDegrees(30F), run.rotateLeftDegrees(60F), run.rotateLeftDegrees(90F), run.rotateLeftDegrees(120F), run.rotateLeftDegrees(150F)};
+    				trying = temp;
+    			}
+    		}
+    		for( Direction d : trying )
+    		{
+    			if(myR.canMove(d))
+    			{
+    				myR.move(d);
+    				return true;
+    			}
+    		}
     	}
     	return false;
     }

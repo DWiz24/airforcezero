@@ -136,11 +136,11 @@ public class Archon {
         			//System.out.println("" + destination.x + " "+destination.y);
         			
         			rc.move(Nav.archonNav(rc, trees, rc.senseNearbyRobots()));
-        			Clock.yield();
         	}
         	//away from gardener or no destination
         	else
         	{
+        		boolean reset = false;
         		RobotInfo[] nearAll = rc.senseNearbyRobots(6F, rc.getTeam());
         		for( RobotInfo r: nearAll )
         		{
@@ -154,19 +154,21 @@ public class Archon {
         					{
         						//System.out.println("Runaway");
         						destination = myLoc.add(t, 6F);	//runaway
+        						reset = true;
         						rc.move(Nav.archonNav(rc, trees, rc.senseNearbyRobots()));
-        						Clock.yield();
+        						break;
         					}
         				}
         			}
-        				
+        			if( reset )
+        				break;
         		}
-        		if( moveToEmptyArea(rc) )
-        			Clock.yield();
-        		Direction ran = new Direction((float)Math.random() * 2 * (float)Math.PI);
-        		if( rc.canMove(ran) )
-        			rc.move(ran);
-        		//else if( build < )
+        		if( !moveToEmptyArea(rc) )
+        		{
+        			Direction ran = new Direction((float)Math.random() * 2 * (float)Math.PI);
+        			if( rc.canMove(ran) )
+        				rc.move(ran);
+        		}
         	}
 			PublicMethods.donateBullets(rc);
             Clock.yield();
@@ -174,6 +176,7 @@ public class Archon {
     }
     public static boolean pickArchon(RobotController r) throws GameActionException
     {
+    	int fourCount = 0;
     	int stat = (r.senseNearbyTrees().length<<8) + 0b00000001;
     	if( r.getHealth() < 6 )
     		stat = 0;
@@ -187,8 +190,12 @@ public class Archon {
     			continue;
     		if( (mes&0b11111111) == 4 )
     		{
-    			reportBuildStatus(r, (r.senseNearbyTrees().length<<8)+0b00000011);
-    	    	return true;
+    			fourCount++;
+    			if( fourCount == arCount-1 )
+    			{
+    				reportBuildStatus(r, (r.senseNearbyTrees().length<<8)+0b00000011);
+    				return true;
+    			}
     		}
     		if( (mes>>>8) < (stat>>>8) )
     		{

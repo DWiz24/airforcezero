@@ -21,7 +21,7 @@ public class Lumberjack {
     static float limit;
 
     //channels
-    private static int prevNext, next = -1; //previous and current turn next tree channel to write to
+    private static int next = -1; //previous and current turn next tree channel to write to
 
     //info about my surroundings, updates every turn
     private static RobotInfo[] allRobots, friendlyRobots, enemyRobots, friendlyGardeners;
@@ -38,11 +38,9 @@ public class Lumberjack {
     -Report locations where support is needed to array
         
     -TODO:
-    -strategic determination of which trees to chop
-    -Choosing a good location to stand while cutting trees
     -(Important) running away
     -bullet dodging
-    -combat (if necessary) + calling combat
+    -calling combat
     */
     public static void run(RobotController rcArg) throws GameActionException{
         //general
@@ -72,10 +70,13 @@ public class Lumberjack {
         while (true) {
             //updating info about robots and trees around me
             updateInfo();
-            prevNext = next;
             next = rc.readBroadcast(15);
+            //System.out.print(next + ", " + prevNext);
             if (friendlyGardenerCount > 0) {
                 prevGardenerPos = friendlyGardeners[0].location;
+            }
+            if(DEBUG2) {
+                rc.setIndicatorDot(prevGardenerPos, 0, 0, 0);
             }
 
             //check for better locations
@@ -95,7 +96,7 @@ public class Lumberjack {
                     Nav.setDest(bestTreeStatic.location);
                     setLimit(bestTreeStatic.radius);
                 }
-                lumberjackNeeded(bestTreeStatic.location, bestPriorityStatic, 1, bestTreeStatic.radius);
+                lumberjackNeeded(rc, bestTreeStatic.location, bestPriorityStatic, numberNeeded(bestTreeStatic), bestTreeStatic.radius);
             }
 
             //striking
@@ -165,7 +166,7 @@ public class Lumberjack {
                         friendlyRobots[friendlyRobotCount] = info;
                         friendlyRobotDists[friendlyRobotCount] = dist;
                         friendlyRobotCount++;
-                        if(info.type == RobotType.LUMBERJACK){
+                        if(info.type == RobotType.GARDENER){
                             friendlyGardeners[friendlyGardenerCount] = info;
                             friendlyGardenerCount++;
                         }
@@ -220,7 +221,7 @@ public class Lumberjack {
                         friendlyRobots[friendlyRobotCount] = info;
                         friendlyRobotDists[friendlyRobotCount] = dist;
                         friendlyRobotCount++;
-                        if(info.type == RobotType.LUMBERJACK){
+                        if(info.type == RobotType.GARDENER){
                             friendlyGardeners[friendlyGardenerCount] = info;
                             friendlyGardenerCount++;
                         }
@@ -325,14 +326,16 @@ public class Lumberjack {
     }
 
     //tree handling stuff
-    public static void lumberjackNeeded(MapLocation location, int priority, int number, float radius) throws GameActionException{
+    public static void lumberjackNeeded(RobotController rc, MapLocation location, int priority, int number, float radius) throws GameActionException{
         //PLEASE USE
         //priority can be in range [0, 15] (use something greater than 10)
         //number can be in range [0, 7], and this number of lumberjacks will arrive
         //ALSO, if requesting location is the center of a tree, specify its radius, otherwise pass 0
 
-        if(Lumberjack.DEBUG1){
+        if(DEBUG1){
             System.out.print("\nRequested " + number + " lumberjack(s) at " + location.x + ", " + location.y + " with priority " + priority + ".");
+            if(DEBUG2)
+                System.out.print("\nBroadcasted to channel " + next);
             printedThisTurn = true;
             if(rc.getTeam() == Team.A)
                 rc.setIndicatorDot(location, 255, 255, 0);
@@ -399,23 +402,18 @@ public class Lumberjack {
         }
 
         if(bestLocation != null){
-            rc.broadcast(bestChannel, isolateRadius(bestValue) | isolatePriority(bestValue) | neededToInt((bestValue)-1) | isolateLocation(bestValue));
+            rc.broadcast(bestChannel, isolateRadius(bestValue) | isolatePriority(bestValue) | neededToInt(intToNeeded(bestValue)-1) | isolateLocation(bestValue));
             traveling = true;
             travelingChannel = bestChannel;
             Nav.setDest(bestLocation);
             setLimit(intToRadius(bestValue));
             if(DEBUG2){
                 System.out.print("\nPriority " + bestP + " exceeds current priority " + bestPriority + ".");
+                System.out.print("\n" + (intToNeeded(bestValue)-1) + " remaining.");
                 printedThisTurn = true;
             }
             if(DEBUG1){
                 System.out.print("\nTraveling to " + bestLocation.x + ", " + bestLocation.y + ".");
-                printedThisTurn = true;
-            }
-        }
-        else{
-            if(DEBUG2){
-                System.out.print("\nPriority " + bestPriority + " is too large to travel.");
                 printedThisTurn = true;
             }
         }
@@ -439,7 +437,7 @@ public class Lumberjack {
                         case ARCHON:
                             return 15;
                         case TANK:
-                            return 5;
+                            return 11;
                         case SOLDIER:
                             return 14;
                         case SCOUT:
@@ -482,8 +480,8 @@ public class Lumberjack {
         //expanding circle goes from ~7 to ~28 distance
         int priority = 0;
 
-        priority += 0.25f * dynamicPriorityFromBase(treeInfo);
-        priority += 0.75f * dynamicPriorityFromMe(treeInfo);
+        priority += 0.5f * dynamicPriorityFromBase(treeInfo);
+        priority += 0.5f * dynamicPriorityFromMe(treeInfo);
 
         return priority;
     }
@@ -507,6 +505,37 @@ public class Lumberjack {
     }
     private static float dynamicPriorityFromMe(MapLocation treeLoc){
         return 7.071067812f * (141.4213562f - rc.getLocation().distanceTo(treeLoc) + 0.5f);
+    }
+    private static int numberNeeded(TreeInfo tree){
+        //determines how many lumberjacks needed on tree
+        //for trees with robots: 1 at size 1.0, 7 at size 10.0
+        if(rc.getTeam() == Team.A){
+            switch(tree.team){
+                case A:
+                    return 0;
+                case B:
+                    return 2;
+                case NEUTRAL:
+                    if(tree.containedRobot == null)
+                        return 1;
+                    else
+                        return round((tree.radius-1f)/1.5f) + 1;
+            }
+        }
+        else{
+            switch(tree.team){
+                case B:
+                    return 0;
+                case A:
+                    return 2;
+                case NEUTRAL:
+                    if(tree.containedRobot == null)
+                        return 1;
+                    else
+                        return round((tree.radius-1f)/1.5f) + 1;
+            }
+        }
+        return -1;
     }
     //conversions
     //radius is 3-bit

@@ -145,12 +145,16 @@ class Nav {
         return rc.getLocation();
     }
     static MapLocation lumberjackNav(RobotController rc, TreeInfo[] trees, RobotInfo[] robots, float[] treeDists, float[] robotDists, boolean hasStruck) throws GameActionException {
-        if (dest == null || dest.equals(rc.getLocation()))  //base case
+        if (dest == null || dest.equals(rc.getLocation())) {  //base case
             Lumberjack.pickDest(true);  //update upon reaching
+            lastMinUpdate=rc.getRoundNum();
+        }
 
         float distToDest = rc.getLocation().distanceTo(dest);
-        if(distToDest < Lumberjack.limit)
+        if(distToDest < Lumberjack.limit) {
             Lumberjack.pickDest(true);  //update upon reaching
+            lastMinUpdate=rc.getRoundNum();
+        }
 
         //debug
         int value = 0;
@@ -170,7 +174,6 @@ class Nav {
         }
 
         if(distToDest < 0.75f && rc.canMove(dest)) {
-            Lumberjack.pickDest(true);  //update upon reaching
             return dest;
         }
 
@@ -183,7 +186,6 @@ class Nav {
         if (rc.getRoundNum()-lastMinUpdate>50) {    //stuck (can't get closer for 50 turns)
             Lumberjack.pickDest(false);
             lastMinUpdate=rc.getRoundNum();
-            bugging = false;
         }
         for (int tries=5; tries>=0; tries--){
 
@@ -205,6 +207,7 @@ class Nav {
                     if(target != null){
                         if(!hasStruck)
                             rc.chop(target.ID); //chopping trees in my way
+                        lastMinUpdate=rc.getRoundNum();
                         return null;
                     }
                     else{
@@ -234,7 +237,6 @@ class Nav {
                         if (closest == 999f) {  //blocked by something unknown (probably won't happen)
                             Lumberjack.pickDest(false);
                             lastMinUpdate = rc.getRoundNum();
-                            bugging = false;
                         }
                         if (bugging)
                             left = toDest.degreesBetween(rc.getLocation().directionTo(prevLoc)) > 0;
@@ -263,7 +265,6 @@ class Nav {
                                 //System.out.println("YAYY!");
                                 Lumberjack.pickDest(false);
                                 lastMinUpdate=rc.getRoundNum();
-                                bugging = false;
                             } else {
                                 hitWall=true;
                                 left=!left;
@@ -285,6 +286,7 @@ class Nav {
                             if(target != null){
                                 if(!hasStruck)
                                     rc.chop(target.ID); //chopping trees in my way
+                                lastMinUpdate=rc.getRoundNum();
                                 return null;
                             }
                             bugging = true;

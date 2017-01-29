@@ -21,43 +21,9 @@ public class Soldier {
         initialFriendLocs = rc.getInitialArchonLocations(rc.getTeam());
         Soldier.rc = rc;
         pickDest();
-        int oldLoc = 31;
         boolean oneArchon = initialEnemyLocs.length == 1;
+        int oldLoc = 31;
         while (true) {
-            int newLoc = rc.readBroadcast(30);
-            if (newLoc != oldLoc) {
-                float minDist = rc.getLocation().distanceTo(Nav.dest);
-                MapLocation bestDest = null;
-                int chan = -1;
-                int archonDest = 0;
-                for (int i = oldLoc; i <= newLoc; i++) {
-                    int m = rc.readBroadcast(i);
-                    if (m != 0) {
-                        MapLocation map = getLocation(m);
-                        float dist = map.distanceTo(rc.getLocation());
-                        if (dist < minDist && dist > 8) {
-                            minDist = dist;
-                            bestDest = map;
-                            chan = i;
-                            archonDest = m & 0b10000000;
-                        }
-                    }
-                    if (i == 45) i = 30;
-                }
-                if (bestDest != null) {
-                    if (bestDest != Nav.dest) {
-                        importantDest = true;
-                        Nav.setDest(bestDest);
-                        whichDest = chan;
-                        if (archonDest != 0) {
-                            reportCombatLocation(bestDest, 0b10000000 | roundToTime(rc.getRoundNum()), chan);
-                        }
-                    }
-                    //rc.setIndicatorDot(bestDest,255,0,0);
-                }
-            }
-            //System.out.println("pickDest " + Clock.getBytecodeNum());
-            oldLoc = newLoc;
             //System.out.println(bugging);
             TreeInfo[] trees = rc.senseNearbyTrees();
             RobotInfo[] robots = rc.senseNearbyRobots();
@@ -81,7 +47,7 @@ public class Soldier {
                 microCreeping = false;
             }
             //int bcode = Clock.getBytecodeNum();
-            if (enemies > 0 || bullets.length != 0 || (enemies == 0 && ((oneArchon && !importantDest) || enemy[0].type != RobotType.ARCHON))) {
+            if (enemies > 0 || bullets.length != 0 || (enemies == 0 && (oneArchon && !importantDest && enemy[0].type == RobotType.ARCHON))) {
                 //if (enemies==-1 || enemy[0].location.distanceTo(rc.getLocation())>10) {
                 //    toMove=twoMovetwoDistMicro(rc, trees, friend, friends, enemy, enemies, bullets);
                 //} else {
@@ -96,7 +62,7 @@ public class Soldier {
                     //        //break gotoHack;
                     //    }
                     //}
-                    toMove = Nav.soldierNav(rc, trees, robots);
+                    toMove = Nav.soldierNav(rc, rc.senseNearbyTrees(1.81f), robots);
                 }
             }
             //System.out.println("Moving: " + (Clock.getBytecodeNum() - bcode));
@@ -105,26 +71,63 @@ public class Soldier {
             //System.out.println("Shooting: " + (Clock.getBytecodeNum() - bcode));
             //bcode = Clock.getBytecodeNum();
             shakeATree(rc);
-            if (Clock.getBytecodeNum() < 8000 && enemies >= 0) {
+            if (Clock.getBytecodeNum() < 12000) {
 
-                MapLocation loc = enemy[0].location;
-                gotoHacks:
-                {
-                    for (int i = 31; i <= 45; i++) {
+                int newLoc = rc.readBroadcast(30);
+                if (newLoc != oldLoc) {
+                    float minDist = rc.getLocation().distanceTo(Nav.dest);
+                    MapLocation bestDest = null;
+                    int chan = -1;
+                    int archonDest = 0;
+                    for (int i = oldLoc; i <= newLoc; i++) {
                         int m = rc.readBroadcast(i);
                         if (m != 0) {
                             MapLocation map = getLocation(m);
-                            if (map.distanceTo(loc) < 8) {
-                                break gotoHacks;
+                            float dist = map.distanceTo(rc.getLocation());
+                            if (dist < minDist && dist > 8) {
+                                minDist = dist;
+                                bestDest = map;
+                                chan = i;
+                                archonDest = m & 0b10000000;
                             }
                         }
+                        if (i == 45) i = 30;
                     }
-                    //System.out.println("I signaled");
-                    //rc.setIndicatorDot(loc,0,0,255);
-                    if (enemies == 0 && enemy[0].type == RobotType.ARCHON) {
-                        reportCombatLocation(loc, 0b10000000 | roundToTime(rc.getRoundNum()));
-                    } else {
-                        reportCombatLocation(loc, 0);
+                    if (bestDest != null) {
+                        if (bestDest != Nav.dest) {
+                            importantDest = true;
+                            Nav.setDest(bestDest);
+                            whichDest = chan;
+                            if (archonDest != 0) {
+                                reportCombatLocation(bestDest, 0b10000000 | roundToTime(rc.getRoundNum()), chan);
+                            }
+                        }
+                        //rc.setIndicatorDot(bestDest,255,0,0);
+                    }
+                }
+                //System.out.println("pickDest " + Clock.getBytecodeNum());
+                oldLoc = newLoc;
+                if (enemies >= 0) {
+
+                    MapLocation loc = enemy[0].location;
+                    gotoHacks:
+                    {
+                        for (int i = 31; i <= 45; i++) {
+                            int m = rc.readBroadcast(i);
+                            if (m != 0) {
+                                MapLocation map = getLocation(m);
+                                if (map.distanceTo(loc) < 8) {
+                                    break gotoHacks;
+                                }
+                            }
+                        }
+                        //System.out.println("I signaled");
+                        //rc.setIndicatorDot(loc,0,0,255);
+                        if (enemies == 0 && enemy[0].type == RobotType.ARCHON) {
+                            reportCombatLocation(loc, 0b10000000 | roundToTime(rc.getRoundNum()));
+                        } else {
+                            reportCombatLocation(loc, 0);
+                        }
                     }
                 }
             }
@@ -185,7 +188,7 @@ public class Soldier {
         for (int i = allBullets.length - 1; i >= 0; i--) {
             MapLocation oloc = allBullets[i].location;
             float dist = loc.distanceTo(oloc);
-            if (dist < 1.95 || Math.asin(1.8 / dist) >= Math.abs(loc.directionTo(oloc).radiansBetween(allBullets[i].dir))) {
+            if (dist < 1.8 || Math.asin(1.8 / dist) >= Math.abs(loc.directionTo(oloc).radiansBetween(allBullets[i].dir))) {
                 bullets[nbullets++] = allBullets[i];
             }
         }
@@ -226,7 +229,7 @@ public class Soldier {
         int jacks = -1;
         int enemySoldiersNTanks = 0;
         for (int i = enemies; i >= 0; i--) {
-            if (enemy[i].health>30 || enemy[i].moveCount!=0 || enemy[i].attackCount!=0)
+            if (enemy[i].health > 30 || enemy[i].moveCount != 0 || enemy[i].attackCount != 0)
                 switch (enemy[i].type) {
                     case LUMBERJACK:
                         if (enemy[i].location.distanceTo(loc) < 4.75) jack[++jacks] = enemy[i].location;
@@ -237,7 +240,7 @@ public class Soldier {
                     case TANK:
                         enemySoldiersNTanks += 3;
                 }
-            }
+        }
         //int newByte=Clock.getBytecodeNum();
         //System.out.println("Precomputation: "+(newByte-prebyte));
         int minDamage = 0;
@@ -567,7 +570,8 @@ public class Soldier {
                     }
                 }
             }
-            if (pastTarget!=null && bestShot==null && rc.canSensePartOfCircle(pastTarget.location,pastTarget.getRadius())) pastTarget=null;
+            if (pastTarget != null && bestShot == null && rc.canSensePartOfCircle(pastTarget.location, pastTarget.getRadius()))
+                pastTarget = null;
             if (bestShot == null && pastTarget != null && rc.getRoundNum() - pastTargetSet < 10) {
                 RobotInfo target = pastTarget;
                 float d = toMove.distanceTo(target.location);

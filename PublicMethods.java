@@ -1,11 +1,10 @@
 package airforcezero;
 
-import battlecode.common.GameActionException;
-import battlecode.common.RobotController;
+import battlecode.common.*;
 
 //stick your public methods in here
 public class PublicMethods {
-    static void donateBullets(RobotController rc) throws GameActionException{
+    static void donateBullets(RobotController rc) throws GameActionException{ //call this every turn
         float b = rc.getTeamBullets();
         int v = rc.getTeamVictoryPoints();
 
@@ -23,14 +22,7 @@ public class PublicMethods {
     }
     
     static boolean isAboutToDie(RobotController rc, float lastTurnHealth) {
-    	float currentHealth = rc.getHealth();
-    	float deltaHealth = lastTurnHealth - currentHealth;
-    	
-    	if(deltaHealth == 0)
-    		return false;
-    	else if(deltaHealth > currentHealth / 2f)
-    		return true;
-    	
-    	return false;
+    	float deltaHealth = lastTurnHealth - rc.getHealth();
+    	return deltaHealth>rc.getHealth()/2f;
     }
 }

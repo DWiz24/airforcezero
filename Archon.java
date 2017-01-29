@@ -227,7 +227,6 @@ public class Archon {
     		r.broadcast(myIndex, myStat);
     		return;
     	}
-    	r.broadcast(myIndex, myStat);
     }
     public static boolean moveToEmptyArea(RobotController myR) throws GameActionException
     {

@@ -188,13 +188,13 @@ public class Gardener {
     				safe = false;
     		}
     		
-	   		if(directionsICanPlant > 1 && safe) { // && planted < soldiers*2 && soldiers >= 1)
+	   		if(directionsICanPlant > 1 && safe && planted < soldiers*2 && soldiers >= 1) {
 	   			buildtree = true;
 	   		} else {
 	   			buildtree = false;
 	   		}
-	   		
-	   		
+	   		if(soldiers+lumbers+planted == 0)
+	   			safe = false;
 			for (Direction place : dirs) {
 				//if(sad!=null && rc.isLocationOccupied(sad.add(place)))
 				if (rc.canPlantTree(place) && buildtree) { 

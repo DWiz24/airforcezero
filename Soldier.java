@@ -19,7 +19,6 @@ public class Soldier {
     public static void run(RobotController rc) throws GameActionException {
         initialEnemyLocs = rc.getInitialArchonLocations(rc.getTeam().opponent());
         initialFriendLocs = rc.getInitialArchonLocations(rc.getTeam());
-        Soldier.rc = rc;
         pickDest();
         boolean oneArchon = initialEnemyLocs.length == 1;
         int oldLoc = 31;
@@ -47,7 +46,7 @@ public class Soldier {
                 microCreeping = false;
             }
             //int bcode = Clock.getBytecodeNum();
-            if (enemies > 0 || bullets.length != 0 || (enemies == 0 && (oneArchon && !importantDest && enemy[0].type == RobotType.ARCHON))) {
+            if (enemies > 0 || bullets.length != 0 || (enemies == 0 && (enemy[0].type!=RobotType.ARCHON || (oneArchon && !importantDest)))) {
                 //if (enemies==-1 || enemy[0].location.distanceTo(rc.getLocation())>10) {
                 //    toMove=twoMovetwoDistMicro(rc, trees, friend, friends, enemy, enemies, bullets);
                 //} else {

@@ -3,6 +3,7 @@ import battlecode.common.*;
 
 public class RobotPlayer {
     public static void run(RobotController rc) throws GameActionException {
+        Soldier.rc=rc;
         while (true) {
             try {
                 switch (rc.getType()) {

@@ -88,12 +88,17 @@ class Nav {
                 } else {
                     BodyInfo following = treeOrNot ? (rc.canSenseTree(bugTree) ? rc.senseTree(bugTree) : null) : (rc.canSenseRobot(bugTree) ? rc.senseRobot(bugTree) : null);
 
-                    if (following == null || following.getLocation() != prevLoc) {
+                    if (following==null) {
+                        bugging=false;
+                        continue;
+                    }
+                    float distBtw = rc.getLocation().distanceTo(following.getLocation());
+                    if (following.getLocation() != prevLoc || distBtw-following.getRadius()>1.8) {
                         bugging = false;
                     } else {
                         rc.setIndicatorLine(dest,dest.add(toDest.opposite(),bugMinDist),0,0,0);
                         rc.setIndicatorDot(following.getLocation(),0,255,0);
-                        float distBtw = rc.getLocation().distanceTo(following.getLocation());
+
                         //if (distBtw>following.getRadius()+1.8) {
                         //    bugging=false;
                         //    continue;

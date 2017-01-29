@@ -193,8 +193,8 @@ public class Archon {
     	for (int i=80; i<=82; i++)
     	{
     		int mes = r.readBroadcast(i);
-    		System.out.println("mes" + (mes>>8) + " " + (mes&0b11111111));
-    		System.out.println("stat" + (stat>>8) + " " + (stat&0b11111111));
+    		//System.out.println("mes" + (mes>>8) + " " + (mes&0b11111111));
+    		//System.out.println("stat" + (stat>>8) + " " + (stat&0b11111111));
     		if( mes == 0 )	//ded
     			continue;
     		if( (mes&0b11111111) == 4 )

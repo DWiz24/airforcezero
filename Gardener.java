@@ -69,7 +69,7 @@ public class Gardener {
    					directionsICantPlant++;
    					RobotInfo inWay = rc.senseRobotAtLocation(myLocation.add(dirs[i], 2.01f));
    					if(inWay != null && inWay.type == RobotType.ARCHON) {
-   						System.out.println("I have functional code");
+   						//System.out.println("I have functional code");
    						archonInWay = true;
    					}
    				} else {

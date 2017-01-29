@@ -7,16 +7,18 @@ import java.lang.Math;
 public class Lumberjack {
     //global stuff
 
-    static final boolean DEBUG1 = true, DEBUG2 = true;  //set to false to make them shut up
+    static final boolean DEBUG1 = false, DEBUG2 = false;  //set to false to make them shut up
 
     //general
     private static RobotController rc;
     private static Random rng;
 
     //variables related to my robot's behavior
-    private static boolean traveling, locationsNear, printedThisTurn;
+    static boolean traveling;
+    private static boolean locationsNear, printedThisTurn;
     private static int travelingChannel;
     private static MapLocation prevGardenerPos;
+    static float limit;
 
     //channels
     private static int prevNext, next = -1; //previous and current turn next tree channel to write to
@@ -57,6 +59,7 @@ public class Lumberjack {
         travelingChannel = -1;
         locationsNear = false;
         prevGardenerPos = rc.getInitialArchonLocations(rc.getTeam())[0];    //in case gardener runs away
+        limit = 0f;
 
         //channels
         next = rc.readBroadcast(15);
@@ -79,12 +82,21 @@ public class Lumberjack {
             if(!traveling){
                 chooseBestLocation();
             }
-            else
+            else {
                 //make a call to get whether locations are around, since chooseBestLocation was never called
-                areLocationsNear();
-            if(!locationsNear && bestTreeStatic != null && rc.getLocation().distanceTo(bestTreeStatic.location) < 7 && bestPriorityStatic * 66.66666667f + dynamicPriorityFromBase(bestTreeStatic) > shrinkingPriority())
+                if(bestTreeStatic != null)
+                    areLocationsNear();
+            }
+            if(!locationsNear && bestTreeStatic != null && bestPriorityStatic * 66.66666667f + dynamicPriorityFromBase(bestTreeStatic) > shrinkingPriority()) {
                 //if not locations in range and found locations worth reporting
-                lumberajckNeeded(bestTreeStatic.location, bestPriorityStatic, 1);
+                if(!traveling){ //prioritize location if not already traveling
+                    traveling = true;
+                    travelingChannel = next;
+                    Nav.setDest(bestTreeStatic.location);
+                    setLimit(bestTreeStatic.radius);
+                }
+                lumberjackNeeded(bestTreeStatic.location, bestPriorityStatic, 1, bestTreeStatic.radius);
+            }
 
             //striking
             boolean hasStruck = false;
@@ -281,11 +293,24 @@ public class Lumberjack {
             if(value == 0)
                 continue;
 
-            if(!locationsNear && valueLoc.distanceTo(rc.getLocation()) <= 7f) {
+            if(DEBUG2){
+                if(rc.getTeam() == Team.A)
+                    rc.setIndicatorDot(valueLoc, 200, 255, 0);
+                else
+                    rc.setIndicatorDot(valueLoc, 0, 255, 200);
+            }
+
+            if(!locationsNear && valueLoc.distanceTo(bestTreeStatic.location) <= 7f) {
                 locationsNear = true;
-                return;
+                //return;   uncomment in the final release
             }
         }
+    }
+    private static void setLimit(float l){
+        if(l == 0f)
+            limit = 0f;
+        else
+            limit = l + 1f;
     }
 
     //movement stuff
@@ -295,28 +320,30 @@ public class Lumberjack {
         //TODO: make gardeners leave room for others.
         MapLocation nearTreeLoc = tree.location.add(tree.location.directionTo(rc.getLocation()), tree.radius + RobotType.LUMBERJACK.bodyRadius + 0.001f);
         Nav.setDest(nearTreeLoc);
+        limit = 0f;
         return nearTreeLoc;
     }
 
     //tree handling stuff
-    public static void lumberajckNeeded(MapLocation location, int priority, int number) throws GameActionException{
+    public static void lumberjackNeeded(MapLocation location, int priority, int number, float radius) throws GameActionException{
         //PLEASE USE
         //priority can be in range [0, 15] (use something greater than 10)
         //number can be in range [0, 7], and this number of lumberjacks will arrive
+        //ALSO, if requesting location is the center of a tree, specify its radius, otherwise pass 0
 
         if(Lumberjack.DEBUG1){
             System.out.print("\nRequested " + number + " lumberjack(s) at " + location.x + ", " + location.y + " with priority " + priority + ".");
             printedThisTurn = true;
             if(rc.getTeam() == Team.A)
-                rc.setIndicatorDot(location, 200, 255, 0);
+                rc.setIndicatorDot(location, 255, 255, 0);
             else
-                rc.setIndicatorDot(location, 0, 255, 200);
+                rc.setIndicatorDot(location, 0, 255, 255);
         }
 
         if(rc.getType() != RobotType.LUMBERJACK)
             next = rc.readBroadcast(15);
 
-        rc.broadcast(next, priorityToInt(priority) | neededToInt(number) | locationToInt(location));
+        rc.broadcast(next, radiusToInt(radius) | priorityToInt(priority) | neededToInt(number) | locationToInt(location));
         next++;
 
         if(next == 30)
@@ -328,7 +355,7 @@ public class Lumberjack {
         chooseBestLocation(null);
     }
     private static void chooseBestLocation(MapLocation exclude) throws GameActionException{
-        float bestP = bestPriority + 100; //additional 100 for preferring to stay where I am
+        float bestP = bestPriority;
         int bestValue = -1;
         int bestChannel = -1;
         MapLocation bestLocation = null;
@@ -341,7 +368,14 @@ public class Lumberjack {
             if(value == 0)
                 continue;
 
-            if(!locationsNear && valueLoc.distanceTo(rc.getLocation()) <= 7f)
+            if(DEBUG2){
+                if(rc.getTeam() == Team.A)
+                    rc.setIndicatorDot(valueLoc, 200, 255, 0);
+                else
+                    rc.setIndicatorDot(valueLoc, 0, 255, 200);
+            }
+
+            if(!locationsNear && bestTreeStatic != null && valueLoc.distanceTo(bestTreeStatic.location) <= 7f)
                 locationsNear = true;
 
             //check for exclusion
@@ -365,16 +399,23 @@ public class Lumberjack {
         }
 
         if(bestLocation != null){
-            rc.broadcast(bestChannel, isolatePriority(bestValue) | neededToInt((bestValue)-1) | isolateLocation(bestValue));
+            rc.broadcast(bestChannel, isolateRadius(bestValue) | isolatePriority(bestValue) | neededToInt((bestValue)-1) | isolateLocation(bestValue));
             traveling = true;
             travelingChannel = bestChannel;
             Nav.setDest(bestLocation);
+            setLimit(intToRadius(bestValue));
             if(DEBUG2){
-                System.out.print("Priority " + bestP + " exceeds current priority " + bestPriority + ".");
+                System.out.print("\nPriority " + bestP + " exceeds current priority " + bestPriority + ".");
                 printedThisTurn = true;
             }
             if(DEBUG1){
                 System.out.print("\nTraveling to " + bestLocation.x + ", " + bestLocation.y + ".");
+                printedThisTurn = true;
+            }
+        }
+        else{
+            if(DEBUG2){
+                System.out.print("\nPriority " + bestPriority + " is too large to travel.");
                 printedThisTurn = true;
             }
         }
@@ -468,14 +509,39 @@ public class Lumberjack {
         return 7.071067812f * (141.4213562f - rc.getLocation().distanceTo(treeLoc) + 0.5f);
     }
     //conversions
+    //radius is 3-bit
     //priority is integer [0, 15], 4-bit
     //needed is integer [0, 7], 3-bit
     //locations are float [0, 600] turned 10-bit
+    private static int isolateRadius(int i){
+        return i & 0b111000000000000000000000000000;
+    }
     private static int isolatePriority(int i){
         return i & 0b111100000000000000000000000;
     }
     private static int isolateLocation(int i){
         return i & 0b11111111111111111111;
+    }
+    private static int radiusToInt(float r){
+        int value = -1;
+        if(r >= 10f)
+            value = 7;
+        else if(r >= 8f)
+            value = 6;
+        else if(r >= 6f)
+            value = 5;
+        else if(r >= 4f)
+            value = 4;
+        else if(r >= 2f)
+            value = 3;
+        else if(r >= 1f)
+            value = 2;
+        else if(r >= .5f)
+            value = 1;
+        else if(r >= 0f)
+            value = 0;
+
+        return value << 27;
     }
     private static int priorityToInt(int p){
         return p << 23;
@@ -487,8 +553,30 @@ public class Lumberjack {
         //1.705 = 1023/600
         return (round(loc.x * 1.705f) << 10) | round(loc.y * 1.705f);
     }
+    private static float intToRadius(int i){
+        int value = i >>> 27;
+        switch(value){
+            case 0:
+                return 0f;
+            case 1:
+                return .5f;
+            case 2:
+                return 1f;
+            case 3:
+                return 2f;
+            case 4:
+                return 4f;
+            case 5:
+                return 6f;
+            case 6:
+                return 8f;
+            case 7:
+                return 10f;
+        }
+        return -1f;
+    }
     private static int intToPriority(int i){
-        return i >>> 23;
+        return (i >>> 23) & 0b1111;
     }
     private static int intToNeeded(int i){
         return (i >>> 20) & 0b111;
@@ -515,9 +603,11 @@ public class Lumberjack {
         }
         if(bestTree == null) {
             Nav.setDest(rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float) Math.PI), 20));   //explorer code
+            limit = 0f;
         }
         else{
             Nav.setDest(bestTree.location);
+            limit = bestTree.radius + 1f;
             if(DEBUG2) {
                 System.out.print("\nGoing after tree at " + bestTree.location.x + ", " + bestTree.location.y + ".");
                 printedThisTurn = true;

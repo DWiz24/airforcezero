@@ -148,20 +148,27 @@ class Nav {
         if (dest == null || dest.equals(rc.getLocation()))  //base case
             Lumberjack.pickDest(true);  //update upon reaching
 
+        float distToDest = rc.getLocation().distanceTo(dest);
+        if(distToDest < Lumberjack.limit)
+            Lumberjack.pickDest(true);  //update upon reaching
+
+        //debug
+        int value = 0;
+        if(Lumberjack.traveling)
+            value = 100;
         if(Lumberjack.DEBUG2){
             if(rc.getTeam() == Team.A)
-                rc.setIndicatorLine(rc.getLocation(), dest, 255, 0, 0);
+                rc.setIndicatorLine(rc.getLocation(), dest, 255, value, 0);
             else
-                rc.setIndicatorLine(rc.getLocation(), dest, 0, 0, 255);
+                rc.setIndicatorLine(rc.getLocation(), dest, 0, value, 255);
         }
         else if(Lumberjack.DEBUG1){
             if(rc.getTeam() == Team.A)
-                rc.setIndicatorDot(dest, 255, 0, 0);
+                rc.setIndicatorDot(dest, 255, value, 0);
             else
-                rc.setIndicatorDot(dest, 0, 0, 255);
+                rc.setIndicatorDot(dest, 0, value, 255);
         }
 
-        float distToDest = rc.getLocation().distanceTo(dest);
         if(distToDest < 0.75f && rc.canMove(dest)) {
             Lumberjack.pickDest(true);  //update upon reaching
             return dest;
@@ -176,6 +183,7 @@ class Nav {
         if (rc.getRoundNum()-lastMinUpdate>50) {    //stuck (can't get closer for 50 turns)
             Lumberjack.pickDest(false);
             lastMinUpdate=rc.getRoundNum();
+            bugging = false;
         }
         for (int tries=5; tries>=0; tries--){
 
@@ -200,10 +208,6 @@ class Nav {
                         return null;
                     }
                     else{
-                        if(distToDest <= 3.75f) {
-                            Lumberjack.pickDest(true);
-                            return null;
-                        }
                         bugging = true;
                         hitWall = false;
                         bugstart = rc.getLocation();
@@ -230,6 +234,7 @@ class Nav {
                         if (closest == 999f) {  //blocked by something unknown (probably won't happen)
                             Lumberjack.pickDest(false);
                             lastMinUpdate = rc.getRoundNum();
+                            bugging = false;
                         }
                         if (bugging)
                             left = toDest.degreesBetween(rc.getLocation().directionTo(prevLoc)) > 0;
@@ -258,6 +263,7 @@ class Nav {
                                 //System.out.println("YAYY!");
                                 Lumberjack.pickDest(false);
                                 lastMinUpdate=rc.getRoundNum();
+                                bugging = false;
                             } else {
                                 hitWall=true;
                                 left=!left;

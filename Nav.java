@@ -209,7 +209,7 @@ class Nav {
                             break;
                         }
                     }
-                    if(target != null){
+                    if(target != null && rc.getLocation().distanceTo(target.location) > target.radius + 1 && rc.senseNearbyRobots(target.location, target.radius, rc.getTeam()).length == 0){ //possibly fix later
                         if(!hasStruck)
                             rc.chop(target.ID); //chopping trees in my way
                         lastMinUpdate=rc.getRoundNum();
@@ -288,7 +288,7 @@ class Nav {
                                     break;
                                 }
                             }
-                            if(target != null){
+                            if(target != null && rc.getLocation().distanceTo(target.location) > target.radius + 1 && rc.senseNearbyRobots(target.location, target.radius, rc.getTeam()).length == 0){  //possibly fix later
                                 if(!hasStruck)
                                     rc.chop(target.ID); //chopping trees in my way
                                 lastMinUpdate=rc.getRoundNum();

@@ -285,7 +285,7 @@ public class Lumberjack {
         //950 - 800
         return 950f - (rc.getRoundNum())/20f;
     }
-    private static void areLocationsNear() throws GameActionException{
+    static void areLocationsNear() throws GameActionException{
         locationsNear = false;
 
         for(int i = 16; i < 30; i++){
@@ -506,7 +506,7 @@ public class Lumberjack {
     private static float dynamicPriorityFromMe(MapLocation treeLoc){
         return 7.071067812f * (141.4213562f - rc.getLocation().distanceTo(treeLoc) + 0.5f);
     }
-    private static int numberNeeded(TreeInfo tree){
+    static int numberNeeded(TreeInfo tree){
         //determines how many lumberjacks needed on tree
         //for trees with robots: 1 at size 1.0, 7 at size 10.0
         if(rc.getTeam() == Team.A){

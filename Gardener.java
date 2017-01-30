@@ -207,7 +207,7 @@ public class Gardener {
     			//Soldier.reportCombatLocation(myLocation, 0);
     			safe = false;
     		}
-    			
+    		
     		lastTurnHealth = rc.getHealth(); 
     		RobotInfo[] allRobots = rc.senseNearbyRobots(10f);
     		for(RobotInfo thisRobot : allRobots) {
@@ -216,15 +216,21 @@ public class Gardener {
                     Soldier.reportCombatLocation(thisRobot.location, 0);
                 }
     		}
+
+	   		if(soldiers+lumbers+planted == 0)
+	   			safe = false;
     		
-	   		if(directionsICanPlant > 1 && safe && planted < soldiers*2 && soldiers >= 1) {
+    		boolean longTimeSinceCombat = false;
+    		if(rc.getRoundNum() - rc.readBroadcast(50) > 150)
+    			longTimeSinceCombat = true;
+    		
+	   		if((directionsICanPlant > 1 && safe && planted < soldiers*2 && soldiers >= 1) || longTimeSinceCombat) {
 	   			buildtree = true;
 	   		} else {
 	   			buildtree = false;
 	   		}
-	   		if(soldiers+lumbers+planted == 0)
-	   			safe = false;
-			for (Direction place : dirs) {
+			
+	   		for (Direction place : dirs) {
 				//if(sad!=null && rc.isLocationOccupied(sad.add(place)))
 				if (rc.canPlantTree(place) && buildtree) { 
 					rc.plantTree(place);

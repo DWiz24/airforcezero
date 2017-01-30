@@ -45,7 +45,7 @@ public class Tank {
                 microCreeping = false;
             }
             //int bcode = Clock.getBytecodeNum();
-            if (enemies > 0 || bullets.length != 0 || (enemies == 0 && (oneArchon && !importantDest && enemy[0].type == RobotType.ARCHON))) {
+            if (enemies > 0 || bullets.length != 0 || (enemies == 0 && (enemy[0].type!=RobotType.ARCHON || (oneArchon && !importantDest)))) {
                 //if (enemies==-1 || enemy[0].location.distanceTo(rc.getLocation())>10) {
                 //    toMove=twoMovetwoDistMicro(rc, trees, friend, friends, enemy, enemies, bullets);
                 //} else {
@@ -68,9 +68,9 @@ public class Tank {
             shootOrMove(rc, toMove, trees, enemy, enemies, friend, friends, bullets, robots);
             //System.out.println("Shooting: " + (Clock.getBytecodeNum() - bcode));
             //bcode = Clock.getBytecodeNum();
-            Soldier.shakeATree(rc);
-            if (Clock.getBytecodeNum() < 12000) {
 
+            if (Clock.getBytecodeNum() < 12000) {
+                shakeATree(rc);
                 int newLoc = rc.readBroadcast(30);
                 if (newLoc != oldLoc) {
                     float minDist = rc.getLocation().distanceTo(Nav.dest);

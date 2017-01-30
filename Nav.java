@@ -107,6 +107,7 @@ class Nav {
                         float f = (float) Math.acos(cosp);
                         Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.00004f:f + 0.00004f));
                         MapLocation theMove=rc.getLocation().add(ndir, 0.8f);
+                        //if ((rc.onTheMap(theMove,1)&&!rc.isCircleOccupiedExceptByThisRobot(theMove,1))!=rc.canMove(theMove)) System.out.println("DARN");
                         //rc.setIndicatorDot(theMove,255,255,255);
                         if (!(rc.canSenseAllOfCircle(theMove,1) && rc.onTheMap(theMove,1))) {
                             if (hitWall) {
@@ -257,10 +258,14 @@ class Nav {
                 } else {
                     BodyInfo following = treeOrNot ? (rc.canSenseTree(bugTree) ? rc.senseTree(bugTree) : null) : (rc.canSenseRobot(bugTree) ? rc.senseRobot(bugTree) : null);
 
-                    if (following == null || following.getLocation() != prevLoc) {
+                    if (following==null) {
+                        bugging=false;
+                        continue;
+                    }
+                    float distBtw = rc.getLocation().distanceTo(following.getLocation());
+                    if (following.getLocation() != prevLoc || distBtw-following.getRadius()>1.75) {
                         bugging = false;
                     } else {
-                        float distBtw = rc.getLocation().distanceTo(following.getLocation());
                         float cosp = ((following.getRadius() + 1) * (following.getRadius() + 1) - 0.5625f - distBtw * distBtw) / (-1.5f * distBtw);
                         float f = (float) Math.acos(cosp);
                         Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.00004f:f + 0.00004f));
@@ -434,11 +439,12 @@ class Nav {
         return rc.getLocation();
     }
     static MapLocation tankNav(RobotController rc, TreeInfo[] trees, RobotInfo[] robots) throws GameActionException {
-        if (dest==null||rc.getLocation().distanceTo(dest)<=5) {
+        MapLocation loc=rc.getLocation();
+        if (dest==null||loc.distanceTo(dest)<=5) {
             Tank.pickDest();
         }
-        Direction toDest = rc.getLocation().directionTo(dest);
-        float distToDest = rc.getLocation().distanceTo(dest);
+        Direction toDest = loc.directionTo(dest);
+        float distToDest = loc.distanceTo(dest);
         if (distToDest<bugMinDist) {
             bugMinDist=distToDest;
             lastMinUpdate=rc.getRoundNum();
@@ -447,20 +453,35 @@ class Nav {
         if (rc.getRoundNum()-lastMinUpdate>60) {
             Tank.pickDest();
         }
+        MapLocation toTheDest=loc.add(toDest,0.5f);
+        if (rc.canMove(toTheDest)) {
+            gotoFun:
+            {
+                for (int i = trees.length - 1; i >= 0; i--) {
+                    TreeInfo t = trees[i];
+                    if (loc.distanceTo(t.location) < 1 + t.radius) {
+                        if (t.team == rc.getTeam() || t.containedRobot != null) {
+                            break gotoFun;
+                        }
+                    }
+                }
+                return toTheDest;
+            }
+        }
         for (int tries=5; tries>=0; tries--){
 
             if (!bugging) {
-                if (rc.canMove(toDest)) {
-                    return rc.getLocation().add(toDest, 0.5f);
+                if (rc.onTheMap(toTheDest,2)&&!rc.isCircleOccupiedExceptByThisRobot(toTheDest,2)) {
+                    return toTheDest;
                 } else {
                     bugging = true;
-                    MapLocation move = rc.getLocation().add(toDest, 0.5f);
+                    MapLocation move = loc.add(toDest, 0.5f);
                     hitWall = false;
-                    bugstart = rc.getLocation();
+                    bugstart = loc;
                     float closest = 999f;
                     for (int i = trees.length - 1; i >= 0; i--) {
                         TreeInfo thisTree = trees[i];
-                        float dist = thisTree.location.distanceTo(rc.getLocation());
+                        float dist = thisTree.location.distanceTo(loc);
                         if (dist < closest && thisTree.location.distanceTo(move) <= 2 + thisTree.radius) {
                             bugTree = thisTree.ID;
                             closest = dist;
@@ -470,7 +491,7 @@ class Nav {
                     }
                     for (int i = robots.length - 1; i >= 0; i--) {
                         RobotInfo thisTree = robots[i];
-                        float dist = thisTree.location.distanceTo(rc.getLocation());
+                        float dist = thisTree.location.distanceTo(loc);
                         if (dist < closest && thisTree.location.distanceTo(move) <= 2 + thisTree.type.bodyRadius) {
                             bugTree = thisTree.ID;
                             closest = dist;
@@ -483,26 +504,30 @@ class Nav {
                         Tank.pickDest();
                     }
                     if (bugging)
-                        left=toDest.degreesBetween(rc.getLocation().directionTo(prevLoc))>0;
+                        left=toDest.degreesBetween(loc.directionTo(prevLoc))>0;
                 }
             }
 
             if (bugging) {
                 float destdist = rc.getLocation().add(toDest, 0.5f).distanceTo(dest);
-                if (rc.canMove(toDest) && destdist < bugMinDist) {
+                if (destdist < bugMinDist && rc.onTheMap(toTheDest,2)&&!rc.isCircleOccupiedExceptByThisRobot(toTheDest,2)) {
                     bugging = false;
-                    return rc.getLocation().add(toDest, 0.5f);
+                    return toTheDest;
                 } else {
                     BodyInfo following = treeOrNot ? (rc.canSenseTree(bugTree) ? rc.senseTree(bugTree) : null) : (rc.canSenseRobot(bugTree) ? rc.senseRobot(bugTree) : null);
 
-                    if (following == null || following.getLocation() != prevLoc) {
+                    if (following==null) {
+                        bugging=false;
+                        continue;
+                    }
+                    float distBtw = rc.getLocation().distanceTo(following.getLocation());
+                    if (following.getLocation() != prevLoc || distBtw-following.getRadius()>2.5) {
                         bugging = false;
                     } else {
-                        float distBtw = rc.getLocation().distanceTo(following.getLocation());
                         float cosp = ((following.getRadius() + 2) * (following.getRadius() + 2) - 0.25f - distBtw * distBtw) / (-distBtw);
                         //System.out.println(cosp);
                         float f = (float) Math.acos(cosp);
-                        Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.00004f:f + 0.00004f));
+                        Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.00005f:f + 0.00005f));
                         MapLocation theMove=rc.getLocation().add(ndir, 0.5f);
                         if (rc.canSenseAllOfCircle(theMove, 1) && !rc.onTheMap(theMove,2)) {
                             if (hitWall) {
@@ -513,15 +538,15 @@ class Nav {
                                 left=!left;
                                 //bugging=false;
                             }
-                        } else if (rc.canMove(theMove)) {
+                        } else if (rc.onTheMap(theMove,2)&&!rc.isCircleOccupiedExceptByThisRobot(theMove,2)) {
                             return theMove;
                         } else {
                             bugging = true;
-                            MapLocation move = rc.getLocation().add(ndir, 0.5f);
+                            MapLocation move = loc.add(ndir, 0.5f);
                             float closest = 999;
                             for (int i = trees.length - 1; i >= 0; i--) {
                                 TreeInfo thisTree = trees[i];
-                                float dist = thisTree.location.distanceTo(rc.getLocation());
+                                float dist = thisTree.location.distanceTo(loc);
                                 if (dist < closest && thisTree.location.distanceTo(move) <= 2 + thisTree.radius) {
                                     bugTree = thisTree.ID;
                                     closest = dist;
@@ -531,7 +556,7 @@ class Nav {
                             }
                             for (int i = robots.length - 1; i >= 0; i--) {
                                 RobotInfo thisTree = robots[i];
-                                float dist = thisTree.location.distanceTo(rc.getLocation());
+                                float dist = thisTree.location.distanceTo(loc);
                                 if (dist < closest && thisTree.location.distanceTo(move) <= 2 + thisTree.type.bodyRadius) {
                                     bugTree = thisTree.ID;
                                     closest = dist;
@@ -544,7 +569,7 @@ class Nav {
                 }
             }
         }
-        return rc.getLocation();
+        return loc;
     }
     static MapLocation archonNav(RobotController rc, TreeInfo[] trees, RobotInfo[] robots) throws GameActionException {
         if (dest==null||rc.getLocation().distanceTo(dest)<=4) {
@@ -608,10 +633,14 @@ class Nav {
                 } else {
                     BodyInfo following = treeOrNot ? (rc.canSenseTree(bugTree) ? rc.senseTree(bugTree) : null) : (rc.canSenseRobot(bugTree) ? rc.senseRobot(bugTree) : null);
 
-                    if (following == null || following.getLocation() != prevLoc) {
+                    if (following==null) {
+                        bugging=false;
+                        continue;
+                    }
+                    float distBtw = rc.getLocation().distanceTo(following.getLocation());
+                    if (following.getLocation() != prevLoc || distBtw-following.getRadius()>2.5) {
                         bugging = false;
                     } else {
-                        float distBtw = rc.getLocation().distanceTo(following.getLocation());
                         float cosp = ((following.getRadius() + 2) * (following.getRadius() + 2) - 0.25f - distBtw * distBtw) / (-distBtw);
                         //System.out.println(cosp);
                         float f = (float) Math.acos(cosp);

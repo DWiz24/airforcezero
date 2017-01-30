@@ -5,6 +5,7 @@ public class Scout {
 	static boolean harass = false;
 	static int deadArchons = 0;
 	static int index = 0;
+	static int lastBroadcast = 0;
 	static MapLocation[] archons = null;
     public static void run(RobotController rc) throws GameActionException 
     {
@@ -23,18 +24,40 @@ public class Scout {
         	if( target == null )
         	{
         		TreeInfo[] trees = rc.senseNearbyTrees();
+        		boolean robotTree = false;
+        		MapLocation robotTreeLoc = null;
+        		float robotRadius = 0;
         		for( int i = 0; i < trees.length; i++ )
             	{
-        			if( trees[i].containedBullets > 0 )
+        			if( trees[i].containedBullets > 0 || trees[i].containedRobot != null )
         			{
         				MapLocation temp = trees[i].getLocation();
         				float tempDist = temp.distanceTo(me);
         				if( tempDist <= trees[i].radius )
         					continue;
-        				target = temp;
+        				if( tempDist <= trees[i].radius + 2F )
+        				{
+        					if( trees[i].containedRobot != null )
+        					{
+        						robotTree = true;
+        						robotTreeLoc = temp;
+        						robotRadius = trees[i].radius;
+        					}
+        				}
+        				if( trees[i].containedBullets > 0 )
+        					target = temp;
         				break;
         			}
             	}
+        		if( ((lastBroadcast == 0 || rc.getRoundNum()-lastBroadcast > 15) && trees.length>11) || robotTree )
+        		{
+        			rc.broadcast(200, rc.readBroadcast(200)+1);
+        			if( robotTree )
+        			{
+        				//System.out.println("Found robot");
+        				Lumberjack.lumberjackNeeded(rc, robotTreeLoc, 15, 1, robotRadius);
+        			}
+        		}
         	}
         	//find archon or gardener in range
         	if( target == null )

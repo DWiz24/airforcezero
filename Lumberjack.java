@@ -7,7 +7,7 @@ import java.lang.Math;
 public class Lumberjack {
     //global stuff
 
-    static final boolean DEBUG1 = false, DEBUG2 = false;  //set to false to make them shut up
+    static final boolean DEBUG1 = true, DEBUG2 = true;  //set to false to make them shut up
 
     //general
     private static RobotController rc;
@@ -326,7 +326,7 @@ public class Lumberjack {
     }
 
     //tree handling stuff
-    public static void lumberjackNeeded(RobotController rc, MapLocation location, int priority, int number, float radius) throws GameActionException{
+    static void lumberjackNeeded(RobotController rc, MapLocation location, int priority, int number, float radius) throws GameActionException{
         //PLEASE USE
         //priority can be in range [0, 15] (use something greater than 10)
         //number can be in range [0, 7], and this number of lumberjacks will arrive
@@ -418,7 +418,7 @@ public class Lumberjack {
             }
         }
     }
-    private static int staticPriorityOfTree(TreeInfo tree){
+    static int staticPriorityOfTree(TreeInfo tree){
         //-1 for our trees (later ignored)
         //0 for neutral
         //5 for enemy

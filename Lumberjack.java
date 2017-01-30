@@ -311,7 +311,7 @@ public class Lumberjack {
         if(l == 0f)
             limit = 0f;
         else
-            limit = l + 1f;
+            limit = l + .7f;
     }
 
     //movement stuff

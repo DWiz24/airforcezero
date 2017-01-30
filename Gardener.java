@@ -207,25 +207,46 @@ public class Gardener {
     			//Soldier.reportCombatLocation(myLocation, 0);
     			safe = false;
     		}
-    			
+    		
     		lastTurnHealth = rc.getHealth(); 
     		RobotInfo[] allRobots = rc.senseNearbyRobots(10f);
     		for(RobotInfo thisRobot : allRobots) {
     			if(thisRobot.team == enemyTeam) {
     				safe = false;
-                    Soldier.reportCombatLocation(thisRobot.location,0);
+					MapLocation loc = thisRobot.location;
+					gotoHacks:
+					{
+						for (int i = 31; i <= 45; i++) {
+							int m = rc.readBroadcast(i);
+							if (m != 0) {
+								MapLocation map = Soldier.getLocation(m);
+								if (map.distanceTo(loc) < 8) {
+									break gotoHacks;
+								}
+							}
+						}
+						//System.out.println("I signaled");
+						//rc.setIndicatorDot(loc,0,0,255);
+						Soldier.reportCombatLocation(loc, 0);
+					}
                     break;
                 }
     		}
+
+	   		if(soldiers+lumbers+planted == 0)
+	   			safe = false;
     		
-	   		if(directionsICanPlant > 1 && safe && planted < soldiers*2 && soldiers >= 1) {
+    		boolean longTimeSinceCombat = false;
+    		if(rc.getRoundNum() - rc.readBroadcast(50) > 150)
+    			longTimeSinceCombat = true;
+    		
+	   		if((directionsICanPlant > 1 && safe && planted < soldiers*2 && soldiers >= 1) || longTimeSinceCombat) {
 	   			buildtree = true;
 	   		} else {
 	   			buildtree = false;
 	   		}
-	   		if(soldiers+lumbers+planted == 0)
-	   			safe = false;
-			for (Direction place : dirs) {
+			
+	   		for (Direction place : dirs) {
 				//if(sad!=null && rc.isLocationOccupied(sad.add(place)))
 				if (rc.canPlantTree(place) && buildtree) { 
 					rc.plantTree(place);

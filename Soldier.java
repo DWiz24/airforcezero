@@ -79,12 +79,12 @@ public class Soldier {
                     MapLocation bestDest = null;
                     int chan = -1;
                     int archonDest = 0;
-                    for (int i = oldLoc; i <= newLoc; i++) {
+                    for (int i = oldLoc; i != newLoc; i++) {
                         int m = rc.readBroadcast(i);
                         if (m != 0) {
                             MapLocation map = getLocation(m);
                             float dist = map.distanceTo(rc.getLocation());
-                            if (dist < minDist && dist > 8) {
+                            if (dist < minDist && dist > 5) {
                                 minDist = dist;
                                 bestDest = map;
                                 chan = i;
@@ -680,11 +680,6 @@ public class Soldier {
                         if (pri < bestPri) {
                             bestShot = a1.rotateRightDegrees(degs);
                             penta = rc.canFireTriadShot() && (degs > 61 || !(leftFriend && rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 600);
-                            if (penta) {
-                                rc.fireTriadShot(bestShot);
-                            } else {
-                              rc.fireSingleShot(bestShot);
-                            }
                         }
                     }
                 }

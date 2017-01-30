@@ -85,12 +85,12 @@ public class Archon {
             s = (s<<8)+0b00000001; //same as 0 but 0 = dead or non existant
             reportBuildStatus(rc, s);
             //System.out.println("makeG"+makeG);
-           // System.out.println("roomForG"+roomForGardeners);
-            //System.out.println("Index"+(myIndex-80+2));
+            //System.out.println("roomForG"+roomForGardeners);
+            //System.out.println("Index"+(myIndex-80+3));
             boolean hired = false;
-        	if( round >= (myIndex-80+3) && makeG && roomForGardeners && (nearRobotEnemies.length == 0 || rc.getTeamBullets() >= 184) )
+        	if( (round == (myIndex-80)*2+3 || round > 20) && makeG && roomForGardeners && (nearRobotEnemies.length == 0 || rc.getTeamBullets() >= 184) )
         	{
-        		//System.out.println("Index"+(myIndex-80+2));
+        		//System.out.println("Index"+((myIndex-80)*2+3));
         		//System.out.println("MAKING");
         		if( pickArchon(rc, robots.length) )
         		{	
@@ -171,7 +171,7 @@ public class Archon {
         				{
         					if( rc.onTheMap(myLoc.add(t, 8F)) && !rc.isLocationOccupiedByTree(myLoc.add(t, 6F)))
         					{
-        						System.out.println("Runaway");
+        						//System.out.println("Runaway");
         						destination = myLoc.add(t, 6F);	//runaway
         						reset = true;
         						rc.move(Nav.archonNav(rc, trees, robots));

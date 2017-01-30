@@ -71,6 +71,7 @@ public class Tank {
 
             if (Clock.getBytecodeNum() < 12000) {
                 shakeATree(rc);
+                if (enemies>=3 || bullets.length!=0) rc.broadcast(50,rc.getRoundNum());
                 int newLoc = rc.readBroadcast(30);
                 if (newLoc != oldLoc) {
                     float minDist = rc.getLocation().distanceTo(Nav.dest);

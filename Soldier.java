@@ -42,6 +42,7 @@ public class Soldier {
                     enemy[++enemies] = r;
                 }
             }
+            if (enemies>=3 || bullets.length!=0) rc.broadcast(50,rc.getRoundNum());
             if (enemies == -1 && rc.getRoundNum() - stoppedCreeping > 50) {
                 microCreeping = false;
             }
@@ -561,7 +562,7 @@ public class Soldier {
                             pastTarget = target;
                             pastTargetSet = rc.getRoundNum();
                             bestShot = a1.rotateRightDegrees(degs);
-                            penta = rc.canFirePentadShot() && (degs > 61 || !(leftFriend && rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 400);
+                            penta = rc.canFirePentadShot() && (degs > 61 || !(leftFriend && rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 600);
                         }
                     }
                     if (bestShot != null && d <= 2 + target.getRadius()) {
@@ -641,7 +642,12 @@ public class Soldier {
                         }
                         if (pri < bestPri) {
                             bestShot = a1.rotateRightDegrees(degs);
-                            penta = rc.canFirePentadShot() && (degs > 61 || !(leftFriend && rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 400);
+                            penta = rc.canFireTriadShot() && (degs > 61 || !(leftFriend && rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 600);
+                            if (penta) {
+                                rc.fireTriadShot(bestShot);
+                            } else {
+                              rc.fireSingleShot(bestShot);
+                            }
                         }
                     }
                 }

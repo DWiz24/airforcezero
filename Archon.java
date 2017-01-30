@@ -76,6 +76,8 @@ public class Archon {
   				}
   				gardeners[tc] = new MapLocation(garX, garY);
         	}
+        	//make Fail check
+        	//if( makeG == false && (round - roundSpawn > 100) )
         	if( needToDodgeAndMove(rc, rc.senseNearbyBullets()) )
         		moved = true;
         	int s = rc.senseNearbyTrees(6.5F).length+robots.length;
@@ -110,19 +112,20 @@ public class Archon {
         					lastHired = build;
         					rc.hireGardener(build);
         					hired = true;
-        					Direction[] test = {build.opposite(), build.rotateLeftDegrees(90F), build.rotateLeftDegrees(90F), build.rotateRightDegrees(90F)};
+        					Direction[] test = {build.opposite(), build.rotateLeftDegrees(45F), build.rotateLeftDegrees(90F), build.rotateRightDegrees(45F), build.rotateRightDegrees(90F), build.rotateLeftDegrees(120F), build.rotateRightDegrees(120F)};
         					for(Direction t:test)
         					{
-        						int count = 0;
+        						/*int count = 0;
         						for( float i = 5F; i > 0; i-- )
         						{
         							if( rc.canMove(myLoc.add(t, i)) )
         								count++;
         						}
         						if( count < 3 )
-        							continue;
-        						if( rc.onTheMap(myLoc.add(t, 8F)) && !rc.isLocationOccupiedByTree(myLoc.add(t, 6F)) )
+        							continue;*/
+        						if( rc.onTheMap(myLoc.add(t, 6F)) && !rc.isLocationOccupiedByTree(myLoc.add(t, 6F)) )
         						{
+        							//System.out.println("set dest");
         							destination = myLoc.add(t, 6F);	//runaway
         							break;
         						}
@@ -141,12 +144,14 @@ public class Archon {
         	}
         	//System.out.println("here");
         	//try to move away from gardener
+
         	if( !moved && destination != null && myLoc.distanceTo(destination) > 4F )
         	{
         			//System.out.println("Still gard??");
         			//System.out.println("" + destination.x + " "+destination.y);
         			
         			rc.move(Nav.archonNav(rc, trees, robots));
+        			//System.out.println("Nav");
         			moved = true;
         	}
         	//away from soldier or no destination
@@ -165,7 +170,7 @@ public class Archon {
         				{
         					if( rc.onTheMap(myLoc.add(t, 8F)) && !rc.isLocationOccupiedByTree(myLoc.add(t, 6F)))
         					{
-        						//System.out.println("Runaway");
+        						System.out.println("Runaway");
         						destination = myLoc.add(t, 6F);	//runaway
         						reset = true;
         						rc.move(Nav.archonNav(rc, trees, robots));
@@ -350,17 +355,17 @@ public class Archon {
     }
     //Daniel's shakeTree 
     static void shakeATree(RobotController rc) throws GameActionException {
-        TreeInfo[] trees = rc.senseNearbyTrees(3);	//move radius is changed that's all
-        if (trees.length == 0) return;
-        int maxBullets = trees[0].containedBullets;
+        TreeInfo[] tre = rc.senseNearbyTrees(3);	//move radius is changed that's all
+        if (tre.length == 0) return;
+        int maxBullets = tre[0].containedBullets;
         int bestTree = 0;
-        for (int i = trees.length - 1; i != 0; i--) {
-            if (trees[i].containedBullets > maxBullets) {
-                maxBullets = trees[i].containedBullets;
+        for (int i = tre.length - 1; i != 0; i--) {
+            if (tre[i].containedBullets > maxBullets) {
+                maxBullets = tre[i].containedBullets;
                 bestTree = i;
             }
         }
-        rc.shake(trees[bestTree].ID);
+        rc.shake(tre[bestTree].ID);
     }
     public static void pickDest()
     {

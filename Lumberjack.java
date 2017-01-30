@@ -15,7 +15,8 @@ public class Lumberjack {
 
     //variables related to my robot's behavior
     static boolean traveling;
-    private static boolean locationsNear, printedThisTurn;
+    static boolean locationsNear;
+    private static boolean printedThisTurn;
     private static int travelingChannel;
     private static MapLocation prevGardenerPos;
     static float limit;
@@ -86,7 +87,7 @@ public class Lumberjack {
             else {
                 //make a call to get whether locations are around, since chooseBestLocation was never called
                 if(bestTreeStatic != null)
-                    areLocationsNear();
+                    areLocationsNear(rc, bestTreeStatic.location);
             }
             if(!locationsNear && bestTreeStatic != null && bestPriorityStatic * 66.66666667f + dynamicPriorityFromBase(bestTreeStatic) > shrinkingPriority()) {
                 //if not locations in range and found locations worth reporting
@@ -96,7 +97,7 @@ public class Lumberjack {
                     Nav.setDest(bestTreeStatic.location);
                     setLimit(bestTreeStatic.radius);
                 }
-                lumberjackNeeded(rc, bestTreeStatic.location, bestPriorityStatic, numberNeeded(bestTreeStatic), bestTreeStatic.radius);
+                lumberjackNeeded(rc, bestTreeStatic.location, bestPriorityStatic, numberNeeded(rc, bestTreeStatic), bestTreeStatic.radius);
             }
 
             //striking
@@ -198,7 +199,7 @@ public class Lumberjack {
                         neutralTreeDists[neutralTreeCount] = dist;
                         neutralTreeCount++;
                 }
-                int staticPriority = staticPriorityOfTree(info);
+                int staticPriority = staticPriorityOfTree(rc, info);
                 float priority = staticPriority * 66.66666667f + dynamicPriorityOfTree(info);
                 if(staticPriority > -1 && priority > bestPriority){
                     bestPriority = priority;
@@ -253,7 +254,7 @@ public class Lumberjack {
                         neutralTreeDists[neutralTreeCount] = dist;
                         neutralTreeCount++;
                 }
-                int staticPriority = staticPriorityOfTree(info);
+                int staticPriority = staticPriorityOfTree(rc, info);
                 float priority = staticPriority * 66.66666667f + dynamicPriorityOfTree(info);
                 if(staticPriority > -1 && priority > bestPriority){
                     bestPriority = priority;
@@ -285,7 +286,7 @@ public class Lumberjack {
         //950 - 800
         return 950f - (rc.getRoundNum())/20f;
     }
-    static void areLocationsNear() throws GameActionException{
+    static void areLocationsNear(RobotController rc, MapLocation treeLocation) throws GameActionException{
         locationsNear = false;
 
         for(int i = 16; i < 30; i++){
@@ -301,7 +302,7 @@ public class Lumberjack {
                     rc.setIndicatorDot(valueLoc, 0, 255, 200);
             }
 
-            if(!locationsNear && valueLoc.distanceTo(bestTreeStatic.location) <= 7f) {
+            if(!locationsNear && valueLoc.distanceTo(treeLocation) <= 7f) {
                 locationsNear = true;
                 //return;   uncomment in the final release
             }
@@ -418,7 +419,7 @@ public class Lumberjack {
             }
         }
     }
-    static int staticPriorityOfTree(TreeInfo tree){
+    static int staticPriorityOfTree(RobotController rc, TreeInfo tree){
         //-1 for our trees (later ignored)
         //0 for neutral
         //5 for enemy
@@ -506,7 +507,7 @@ public class Lumberjack {
     private static float dynamicPriorityFromMe(MapLocation treeLoc){
         return 7.071067812f * (141.4213562f - rc.getLocation().distanceTo(treeLoc) + 0.5f);
     }
-    static int numberNeeded(TreeInfo tree){
+    static int numberNeeded(RobotController rc, TreeInfo tree){
         //determines how many lumberjacks needed on tree
         //for trees with robots: 1 at size 1.0, 7 at size 10.0
         if(rc.getTeam() == Team.A){

@@ -26,6 +26,7 @@ public class Scout {
         		TreeInfo[] trees = rc.senseNearbyTrees();
         		boolean robotTree = false;
         		MapLocation robotTreeLoc = null;
+			    TreeInfo robotTreeInfo = null;
         		float robotRadius = 0;
         		for( int i = 0; i < trees.length; i++ )
             	{
@@ -40,6 +41,7 @@ public class Scout {
         					if( trees[i].containedRobot != null )
         					{
         						robotTree = true;
+        						robotTreeInfo = trees[i];
         						robotTreeLoc = temp;
         						robotRadius = trees[i].radius;
         					}
@@ -56,7 +58,9 @@ public class Scout {
         			if( robotTree )
         			{
         				//System.out.println("Found robot");
-        				Lumberjack.lumberjackNeeded(rc, robotTreeLoc, 15, 1, robotRadius);
+						Lumberjack.areLocationsNear(rc, robotTreeLoc);
+						if(!Lumberjack.locationsNear)
+        					Lumberjack.lumberjackNeeded(rc, robotTreeLoc, Lumberjack.staticPriorityOfTree(rc, robotTreeInfo), Lumberjack.numberNeeded(rc, robotTreeInfo), robotRadius);
         			}
         		}
         	}

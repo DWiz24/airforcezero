@@ -96,8 +96,8 @@ class Nav {
                     if (following.getLocation() != prevLoc || distBtw-following.getRadius()>1.8) {
                         bugging = false;
                     } else {
-                        rc.setIndicatorLine(dest,dest.add(toDest.opposite(),bugMinDist),0,0,0);
-                        rc.setIndicatorDot(following.getLocation(),0,255,0);
+                        //rc.setIndicatorLine(dest,dest.add(toDest.opposite(),bugMinDist),0,0,0);
+                        //rc.setIndicatorDot(following.getLocation(),0,255,0);
 
                         //if (distBtw>following.getRadius()+1.8) {
                         //    bugging=false;

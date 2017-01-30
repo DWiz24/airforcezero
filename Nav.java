@@ -156,7 +156,7 @@ class Nav {
         }
 
         float distToDest = rc.getLocation().distanceTo(dest);
-        if(distToDest < Lumberjack.limit) {
+        if(distToDest < Lumberjack.limit || (bugging && distToDest < Lumberjack.limit + 0.301f)) {
             Lumberjack.pickDest(true);  //update upon reaching
             lastMinUpdate=rc.getRoundNum();
         }

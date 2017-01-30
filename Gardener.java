@@ -213,7 +213,8 @@ public class Gardener {
     		for(RobotInfo thisRobot : allRobots) {
     			if(thisRobot.team == enemyTeam) {
     				safe = false;
-                    Soldier.reportCombatLocation(thisRobot.location);
+                    Soldier.reportCombatLocation(thisRobot.location,0);
+                    break;
                 }
     		}
     		

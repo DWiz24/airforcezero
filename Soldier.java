@@ -219,9 +219,12 @@ public class Soldier {
                         }
                     }
                 }
-                dists[nbullets]=minDist;
-                rc.setIndicatorLine(b.location,b.location.add(b.dir,minDist),100,100,100);
-                bullets[nbullets++] = b;
+                double sintheta=Math.sin(radsBetween);
+                if (Math.asin(0.2 / dist) <= radsBetween || 0.2*Math.sin(Math.PI-Math.asin(dist*sintheta/0.2)-radsBetween)/sintheta>b.speed) {
+                    dists[nbullets] = minDist;
+                    rc.setIndicatorLine(b.location, b.location.add(b.dir, minDist), 100, 100, 100);
+                    bullets[nbullets++] = b;
+                }
             }
         }
         nbullets--;
@@ -468,6 +471,7 @@ public class Soldier {
         int ypart = ((int) (loc.y * 4)) << 8;
         int message = xpart | ypart | info;
         int chan = rc.readBroadcast(30);
+        System.out.println(chan);
         int prevChan = chan;
         //MapLocation transmitted=getLocation(message);
         //if (transmitted.distanceTo(loc)>1) {
@@ -685,9 +689,9 @@ public class Soldier {
                     }
                 }
             }
-            if (bestShot != null) {
+            if (bestShot != null && !rc.hasAttacked()) {
                 if (penta) {
-                    rc.firePentadShot(bestShot);
+                    rc.fireTriadShot(bestShot);
                 } else {
                     rc.fireSingleShot(bestShot);
                 }

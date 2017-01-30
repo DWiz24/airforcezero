@@ -58,6 +58,7 @@ public class Gardener {
     		}
     		if(PublicMethods.isAboutToDie(rc, lastTurnHealth) && !dead) {
     			rc.broadcast(censusChannel, rc.readBroadcast(censusChannel) - 1);
+    			
     			dead = true;
     		}
     		
@@ -108,10 +109,10 @@ public class Gardener {
     		int x = (int)myLocation.x;
     		int y = (int)myLocation.y;
     		int planting = 0b0000_0001;
-    		if((directionsICanPlant < 2 || rc.getRoundNum() - lastRoundPlanted > 200) && ((lumbers + soldiers > 0) || directionsICanPlant == 0))
+    		if(dead || (((directionsICanPlant < 2 || rc.getRoundNum() - lastRoundPlanted > 200) && ((lumbers + soldiers > 0) || directionsICanPlant == 0)) && !archonInWay))
     			planting = 0b0000_0000;
-    		if(archonInWay)
-    			planting = 0b0000_0001;
+    		
+    		
     		int message = (((x << 12) + y) << 12) + planting;
     		rc.broadcast(channel, message);
     		

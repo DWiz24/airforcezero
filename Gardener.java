@@ -204,15 +204,17 @@ public class Gardener {
     		}
     		
     		if(rc.getHealth() < lastTurnHealth) {
-    			Soldier.reportCombatLocation(myLocation, 0);
+    			//Soldier.reportCombatLocation(myLocation, 0);
     			safe = false;
     		}
     			
     		lastTurnHealth = rc.getHealth(); 
-    		RobotInfo[] allRobots = rc.senseNearbyRobots(5f);
+    		RobotInfo[] allRobots = rc.senseNearbyRobots(10f);
     		for(RobotInfo thisRobot : allRobots) {
-    			if(thisRobot.team == enemyTeam)
+    			if(thisRobot.team == enemyTeam) {
     				safe = false;
+                    Soldier.reportCombatLocation(thisRobot.location);
+                }
     		}
     		
 	   		if(directionsICanPlant > 1 && safe && planted < soldiers*2 && soldiers >= 1) {

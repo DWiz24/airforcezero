@@ -52,6 +52,7 @@ public class Scout {
         		if( ((lastBroadcast == 0 || rc.getRoundNum()-lastBroadcast > 15) && trees.length>11) || robotTree )
         		{
         			rc.broadcast(200, rc.readBroadcast(200)+1);
+        			lastBroadcast = rc.getRoundNum();
         			if( robotTree )
         			{
         				//System.out.println("Found robot");
@@ -65,7 +66,7 @@ public class Scout {
         		for( int i = 0; i < robots.length; i++ )
         		{
         			if( robots[i].getTeam().equals(rc.getTeam().opponent()) && (robots[i].getType().equals(RobotType.ARCHON) 
-        					|| robots[i].getType().equals(RobotType.GARDENER)) )
+        					       					|| robots[i].getType().equals(RobotType.GARDENER)) )
         			{
         				MapLocation temp = robots[i].getLocation();
         				float tempDist = temp.distanceTo(me);

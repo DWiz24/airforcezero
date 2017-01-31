@@ -3,6 +3,7 @@ import battlecode.common.*;
 
 public class Gardener {
     public static void run(RobotController rc) throws GameActionException {
+    	
     	Direction[] dirs={new Direction(0f), new Direction((float)(Math.PI/3.0)), new Direction((float)(2.0*Math.PI/3.0)), new Direction((float)(3.0*Math.PI/3.0)), new Direction((float)(4.0*Math.PI/3.0)), new Direction((float)(5.0*Math.PI/3.0))};
     	final int roundSpawned = rc.getRoundNum();
     	int soldiers = 0, lumbers = 0, planted = 0, lastRoundPlanted = rc.getRoundNum();
@@ -10,7 +11,6 @@ public class Gardener {
     	int channel = -1;
     	int censusChannel = 1;
     	int myLumbers = 0;
-    	int id = rc.readBroadcast(censusChannel);
     	float theta = -1.0f;
     	float lastTurnHealth = rc.getHealth();
     	boolean onSpawn = true, dead = false;
@@ -33,6 +33,8 @@ public class Gardener {
 				}
 			}
 		}
+		
+		
     	while(true){
     		
     		MapLocation sad = null; //Find lowest health tree, water it
@@ -252,14 +254,18 @@ public class Gardener {
 	   		}
 	   		
 	   		int threshold = 10;
+	   		int secondThreshold = 20;
+	   		
 	   		TreeInfo[] nearbyTrees = rc.senseNearbyTrees(10f, Team.NEUTRAL);
 	   		int lumbersNeeded = -1;
-	   		if(nearbyTrees.length == 0 && distance > 40f) {
+	   		if((nearbyTrees.length == 0 && distance > 40f) || (rc.getRoundNum() < 100 && nearbyTrees.length < threshold)) {
 	   			lumbersNeeded = 0;
 	   		} else if (nearbyTrees.length < threshold || rc.readBroadcast(200) > 1) {
 	   			lumbersNeeded = 1;
-	   		} else {
+	   		} else if (nearbyTrees.length < secondThreshold){
 	   			lumbersNeeded = 2;
+	   		} else {
+	   			lumbersNeeded = 3;
 	   		}
 	   		
 			//boolean needLumber = true;

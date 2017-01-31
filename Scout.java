@@ -248,7 +248,7 @@ public class Scout {
         for (int i = 8; i > 0; i--) {
             //MapLocation move = rc.getLocation().add(dir, 1.9f);
             //if (!rc.isCircleOccupied(move,1))
-            MapLocation move =loc.add(dir, .8f);
+            MapLocation move =loc.add(dir, 1.25f);
             if (rc.canMove(move)) {
                 int damage = 0;
                 for (int k = nbullets; k >= 0; k--) {
@@ -285,12 +285,12 @@ public class Scout {
                         }
                     }
 
-                    /*if (enemies == -1) theDist = -(pastTarget!=null && rc.getRoundNum()-pastTargetSet<20?move.distanceTo(pastTarget.location):move.distanceTo(Nav.dest));
+                    //if (enemies == -1) theDist = -(pastTarget!=null && rc.getRoundNum()-pastTargetSet<20?move.distanceTo(pastTarget.location):move.distanceTo(Nav.dest));
                     if (damage < minDamage || damage == minDamage && theDist > minDist) {
                         minDamage = damage;
                         best = move;
                         minDist = theDist;
-                    }*/
+                    }
 
                 }
             }

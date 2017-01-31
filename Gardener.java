@@ -10,7 +10,7 @@ public class Gardener {
     	int spotsINeed = 1;
     	int channel = -1;
     	int censusChannel = 1;
-    	int myLumbers = 0, mySoldiers = 0;
+    	int myLumbers = 0, mySoldiers = 0, myScouts = 0;
     	float theta = -1.0f;
     	float lastTurnHealth = rc.getHealth();
     	boolean onSpawn = true, dead = false;
@@ -247,7 +247,7 @@ public class Gardener {
 	   		boolean startEconomy = false;
 	   		if(planted == 0 && mySoldiers > 0)
 	   			startEconomy = true;
-	   		//System.out.println("start economy" + startEconomy);
+
 	   		if(directionsICanPlant > spotsINeed && ((safe && soldiers > 0)) || startEconomy) {
 	   			buildtree = true;
 	   		} else {
@@ -281,9 +281,10 @@ public class Gardener {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
 							myLumbers++;
 						}
-					} else if(safe && soldiers > 1 && rc.readBroadcast(5) < 1 && rc.getRoundNum() < 500) {
+					} else if(safe && soldiers > 1 && rc.readBroadcast(5) < 1 && myScouts < 1 && rc.getRoundNum() < 500) {
 						if(rc.canBuildRobot(RobotType.SCOUT, place)) {
 							rc.buildRobot(RobotType.SCOUT, place);
+							myScouts++;
 						}
 					} else {
 						if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {

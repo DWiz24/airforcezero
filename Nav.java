@@ -105,7 +105,7 @@ class Nav {
                         //}
                         float cosp = ((following.getRadius() + 1) * (following.getRadius() + 1) - 0.64f - distBtw * distBtw) / (-1.6f * distBtw);
                         float f = (float) Math.acos(cosp);
-                        Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.00004f:f + 0.00004f));
+                        Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.00005f:f + 0.00005f));
                         MapLocation theMove=rc.getLocation().add(ndir, 0.8f);
                         //if ((rc.onTheMap(theMove,1)&&!rc.isCircleOccupiedExceptByThisRobot(theMove,1))!=rc.canMove(theMove)) System.out.println("DARN");
                         //rc.setIndicatorDot(theMove,255,255,255);
@@ -289,7 +289,7 @@ class Nav {
                     } else {
                         float cosp = ((following.getRadius() + 1) * (following.getRadius() + 1) - 0.5625f - distBtw * distBtw) / (-1.5f * distBtw);
                         float f = (float) Math.acos(cosp);
-                        Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.00006f:f + 0.00006f));
+                        Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.00007f:f + 0.00007f));
                         MapLocation theMove=rc.getLocation().add(ndir, 0.75f);
                         if (!(rc.canSenseAllOfCircle(theMove,1) && rc.onTheMap(theMove,1))) {
                             if (hitWall) {  //hit edge of map

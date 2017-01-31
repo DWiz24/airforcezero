@@ -122,7 +122,7 @@ public class Lumberjack {
 
             //striking
             boolean hasStruck = false;
-            if(bodiesWithinDistance(enemyRobots, enemyRobotDists, 2) > 0 && bodiesWithinDistance(friendlyRobots, friendlyRobotDists, 2) == 0) {
+            if(bodiesWithinDistance(enemyRobots, enemyRobotDists, 2, true) > bodiesWithinDistance(friendlyRobots, friendlyRobotDists, 2, false)) {
                 rc.strike();
                 hasStruck = true;
             }
@@ -316,15 +316,18 @@ public class Lumberjack {
             }
         }
     }
-    private static int bodiesWithinDistance(BodyInfo[] bodies, float[] dists, float dmax){
+    private static int bodiesWithinDistance(BodyInfo[] bodies, float[] dists, float dmax, boolean countScouts){
         //gives the amount of bodies from given sorted array (represented by dists) that are closer than distance
         int count = 0;
         for(int i = 0; i < dists.length; i++){
             //0.0 is default for float arrays
             if(dists[i] == 0.0f)
                 break;
-            else if(dists[i] - bodies[i].getRadius() <= dmax)
+            else if(dists[i] - bodies[i].getRadius() <= dmax){
                 count++;
+                if(countScouts && bodies[i].isRobot() && ((RobotInfo)bodies[i]).type == RobotType.SCOUT)
+                    count++;
+            } 
             else if(dists[i] - 2 > dmax)
                 break;
         }

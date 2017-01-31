@@ -7,7 +7,7 @@ import java.lang.Math;
 public class Lumberjack {
     //global stuff
 
-    static final boolean DEBUG1 = false, DEBUG2 = false;  //set to false to make them shut up
+    static final boolean DEBUG1 = true, DEBUG2 = true;  //set to false to make them shut up
 
     //general
     private static RobotController rc;
@@ -18,7 +18,8 @@ public class Lumberjack {
     private static int excludeLocationsSize, excludeTreesSize;
     static boolean traveling;
     static boolean locationsNear;
-    private static boolean printedThisTurn, exploring;
+    private static boolean exploring;
+    static boolean printedThisTurn;
     private static int travelingChannel;
     static MapLocation prevGardenerPos;
     private static float prevHealth, health;

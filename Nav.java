@@ -151,6 +151,7 @@ class Nav {
         return rc.getLocation();
     }
     static MapLocation lumberjackNav(RobotController rc, TreeInfo[] trees, RobotInfo[] robots, float[] treeDists, float[] robotDists, boolean hasStruck) throws GameActionException {
+        Lumberjack.printedThisTurn = true;
         if (dest == null || dest.equals(rc.getLocation())) {  //base case
             Lumberjack.pickDest(true);  //update upon reaching
             lastMinUpdate=rc.getRoundNum();
@@ -218,6 +219,7 @@ class Nav {
                     }
                     else{
                         bugging = true;
+                        bugMinDist=9999;
                         hitWall = false;
                         bugstart = rc.getLocation();
                         float closest = 999f;

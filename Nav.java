@@ -217,8 +217,22 @@ class Nav {
                         }
                     }
                     if(target != null){
-                        if(!hasStruck)
+                        if(!hasStruck){
+                            if(target.health <= 5f){
+                                //check if tree cut down was marked
+                                for(int i = 16; i < 30; i++){
+                                    if(Lumberjack.intToLocation(rc.readBroadcast(i)).distanceTo(target.location) < 0.5f){
+                                        rc.broadcast(i, 0);
+                                        if(Lumberjack.DEBUG2){
+                                            System.out.print("\nRemoved existing location.");
+                                            Lumberjack.printedThisTurn = true;
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
                             rc.chop(target.ID); //chopping trees in my way
+                        }
                         lastMinUpdate=rc.getRoundNum();
                         return null;
                     }
@@ -307,8 +321,22 @@ class Nav {
                                 }
                             }
                             if(target != null){
-                                if(!hasStruck)
+                                if(!hasStruck) {
+                                    if (target.health <= 5f) {
+                                        //check if tree cut down was marked
+                                        for (int i = 16; i < 30; i++) {
+                                            if (Lumberjack.intToLocation(rc.readBroadcast(i)).distanceTo(target.location) < 0.5f) {
+                                                rc.broadcast(i, 0);
+                                                if (Lumberjack.DEBUG2) {
+                                                    System.out.print("\nRemoved existing location.");
+                                                    Lumberjack.printedThisTurn = true;
+                                                }
+                                                break;
+                                            }
+                                        }
+                                    }
                                     rc.chop(target.ID); //chopping trees in my way
+                                }
                                 lastMinUpdate=rc.getRoundNum();
                                 return null;
                             }

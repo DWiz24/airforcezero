@@ -7,7 +7,7 @@ import java.lang.Math;
 public class Lumberjack {
     //global stuff
 
-    static final boolean DEBUG1 = true, DEBUG2 = true;  //set to false to make them shut up
+    static final boolean DEBUG1 = false, DEBUG2 = false;  //set to false to make them shut up
 
     //general
     private static RobotController rc;
@@ -90,6 +90,11 @@ public class Lumberjack {
                 dead = true;
                 rc.broadcast(2, rc.readBroadcast(2) - 1); //decrement census
             }
+            int lumbers = rc.readBroadcast(2);
+            int soldiers = rc.readBroadcast(3);
+            agressive = false;
+            if(lumbers > 20 || (lumbers > 10 && lumbers > soldiers))
+                agressive = true;
             //others
             next = rc.readBroadcast(15);
             //System.out.print(next);
@@ -109,7 +114,7 @@ public class Lumberjack {
                 if(bestTreeStatic != null)
                     areLocationsNear(rc, bestTreeStatic.location);
             }
-            if(!locationsNear && bestTreeStatic != null && bestPriorityStatic * 66.66666667f + dynamicPriorityFromBase(bestTreeStatic) > shrinkingPriority(rc)) {
+            if(!locationsNear && bestTreeStatic != null && (agressive || bestPriorityStatic * 66.66666667f + dynamicPriorityFromBase(bestTreeStatic) > shrinkingPriority(rc))) {
                 //if not locations in range and found locations worth reporting
                 lumberjackNeeded(rc, bestTreeStatic.location, bestPriorityStatic, numberNeeded(rc, bestTreeStatic), bestTreeStatic.radius);
             }
@@ -222,12 +227,16 @@ public class Lumberjack {
                 }
                 int staticPriority = staticPriorityOfTree(rc, info);
                 float staticPriority2 = staticPriority * 66.66666667f + dynamicPriorityFromBase(info);
-                float priority = staticPriority * 66.66666667f + dynamicPriorityOfTree(info);
+                float priority;
+                if(agressive)
+                    priority = staticPriority * 66.66666667f + dynamicPriorityFromMe(info);
+                else
+                    priority = staticPriority * 66.66666667f + dynamicPriorityOfTree(info);
                 if(staticPriority > -1 && priority > bestPriority){
                     bestPriority = priority;
                     bestTree = info;
                 }
-                if(staticPriority2 > bestPriorityStatic2){
+                if(staticPriority > -1 && staticPriority2 > bestPriorityStatic2){
                     bestPriorityStatic = staticPriority;
                     bestPriorityStatic2 = staticPriority2;
                     bestTreeStatic = info;
@@ -285,12 +294,16 @@ public class Lumberjack {
                 }
                 int staticPriority = staticPriorityOfTree(rc, info);
                 float staticPriority2 = staticPriority * 66.66666667f + dynamicPriorityFromBase(info);
-                float priority = staticPriority * 66.66666667f + dynamicPriorityOfTree(info);
+                float priority;
+                if(agressive)
+                    priority = staticPriority * 66.66666667f + dynamicPriorityFromMe(info);
+                else
+                    priority = staticPriority * 66.66666667f + dynamicPriorityOfTree(info);
                 if(staticPriority > -1 && priority > bestPriority){
                     bestPriority = priority;
                     bestTree = info;
                 }
-                if(staticPriority2 > bestPriorityStatic2){
+                if(staticPriority > -1 && staticPriority2 > bestPriorityStatic2){
                     bestPriorityStatic = staticPriority;
                     bestPriorityStatic2 = staticPriority2;
                     bestTreeStatic = info;
@@ -423,7 +436,11 @@ public class Lumberjack {
             if(intToNeeded(value) == 0)
                 continue;
 
-            float priority = intToPriority(value) * 66.66666667f + dynamicPriorityOfTree(valueLoc);
+            float priority;
+            if(agressive)
+                priority = intToPriority(value) * 66.66666667f + dynamicPriorityFromMe(valueLoc);
+            else
+                priority = intToPriority(value) * 66.66666667f + dynamicPriorityOfTree(valueLoc);
 
             if(priority > bestP){
                 bestP = priority;
@@ -434,7 +451,8 @@ public class Lumberjack {
         }
 
         if(bestLocation != null){
-            rc.broadcast(bestChannel, isolateRadius(bestValue) | isolatePriority(bestValue) | neededToInt(intToNeeded(bestValue)-1) | isolateLocation(bestValue));
+            if(!agressive)
+                rc.broadcast(bestChannel, isolateRadius(bestValue) | isolatePriority(bestValue) | neededToInt(intToNeeded(bestValue)-1) | isolateLocation(bestValue));
             traveling = true;
             travelingChannel = bestChannel;
             Nav.setDest(bestLocation);
@@ -447,6 +465,12 @@ public class Lumberjack {
             }
             if(DEBUG1){
                 System.out.print("\nTraveling to " + bestLocation.x + ", " + bestLocation.y + ".");
+                printedThisTurn = true;
+            }
+        }
+        else{
+            if(DEBUG2){
+                System.out.print("\nPriority " + bestP + " too large to travel.");
                 printedThisTurn = true;
             }
         }
@@ -643,7 +667,7 @@ public class Lumberjack {
     private static int intToNeeded(int i){
         return (i >>> 20) & 0b111;
     }
-    private static MapLocation intToLocation(int i){
+    static MapLocation intToLocation(int i){
         //0.5865102639 = 600/1023
         return new MapLocation(0.5865102639f * ((i >>> 10) & 0b1111111111), 0.5865102639f * (i & 0b1111111111));
     }
@@ -664,6 +688,10 @@ public class Lumberjack {
             excludeTrees = new MapLocation[25];
             excludeLocationsSize = 0;
             excludeTreesSize = 0;
+            if(traveling){
+                rc.broadcast(travelingChannel, 0);
+                travelingChannel = -1;
+            }
         }
         else if (!exploring){
             //add to exclusions
@@ -686,11 +714,9 @@ public class Lumberjack {
                 }
             }
         }
-        if(traveling && reached){
+        if(traveling)
             traveling = false;
-            rc.broadcast(travelingChannel, 0);
-            travelingChannel = -1;
-        }
+
         if(bestTree == null) {
             Nav.setDest(rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float) Math.PI), 20));   //explorer code
             limit = 0f;

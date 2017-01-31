@@ -331,9 +331,9 @@ public class Lumberjack {
         return count;
     }
     static float shrinkingPriority(RobotController rc){
-        //975 - 925
-        //~3.54 to ~10.61
-        return 975f - (rc.getRoundNum())/60f;
+        //950 - 900
+        //~7.07 to ~14.14
+        return 950f - (rc.getRoundNum())/60f;
     }
     static void areLocationsNear(RobotController rc, MapLocation treeLocation) throws GameActionException{
         locationsNear = false;

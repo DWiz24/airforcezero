@@ -7,7 +7,7 @@ import java.lang.Math;
 public class Lumberjack {
     //global stuff
 
-    static final boolean DEBUG1 = false, DEBUG2 = false;  //set to false to make them shut up
+    static final boolean DEBUG1 = true, DEBUG2 = true;  //set to false to make them shut up
 
     //general
     private static RobotController rc;
@@ -93,7 +93,7 @@ public class Lumberjack {
             int lumbers = rc.readBroadcast(2);
             int soldiers = rc.readBroadcast(3);
             agressive = false;
-            if(lumbers > 20 || (lumbers > 10 && lumbers > soldiers))
+            if(lumbers > 30 || (lumbers > 15 && lumbers > soldiers))
                 agressive = true;
             //others
             next = rc.readBroadcast(15);
@@ -232,6 +232,8 @@ public class Lumberjack {
                     priority = staticPriority * 66.66666667f + dynamicPriorityFromMe(info);
                 else
                     priority = staticPriority * 66.66666667f + dynamicPriorityOfTree(info);
+                if(rc.getRoundNum() < 500 && staticPriority == 0)  //clearing base
+                    priority += 1000;
                 if(staticPriority > -1 && priority > bestPriority){
                     bestPriority = priority;
                     bestTree = info;
@@ -299,6 +301,8 @@ public class Lumberjack {
                     priority = staticPriority * 66.66666667f + dynamicPriorityFromMe(info);
                 else
                     priority = staticPriority * 66.66666667f + dynamicPriorityOfTree(info);
+                if(rc.getRoundNum() < 500 && staticPriority == 0)  //clearing base
+                    priority += 1000;
                 if(staticPriority > -1 && priority > bestPriority){
                     bestPriority = priority;
                     bestTree = info;

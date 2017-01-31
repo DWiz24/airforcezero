@@ -9,12 +9,13 @@ public class Gardener {
     	int scounts = 1;
     	int channel = -1;
     	int censusChannel = 1;
+    	int id = rc.readBroadcast(censusChannel);
     	float theta = -1.0f;
     	float lastTurnHealth = rc.getHealth();
     	boolean onSpawn = true, dead = false;
     	Team myTeam = rc.getTeam();
         Team enemyTeam = myTeam.opponent();
-    	
+    	System.out.println("I AM THE" + id);
     	//Finds the shortest distance between our archons vs their archons
     	MapLocation[] theirArchons = rc.getInitialArchonLocations(enemyTeam);
 		MapLocation[] myArchons = rc.getInitialArchonLocations(myTeam);
@@ -209,7 +210,7 @@ public class Gardener {
     		}
     		
     		lastTurnHealth = rc.getHealth(); 
-    		RobotInfo[] allRobots = rc.senseNearbyRobots(10f);
+    		RobotInfo[] allRobots = rc.senseNearbyRobots(); 
     		for(RobotInfo thisRobot : allRobots) {
     			if(thisRobot.team == enemyTeam) {
     				safe = false;
@@ -240,12 +241,14 @@ public class Gardener {
     		if(rc.getRoundNum() - rc.readBroadcast(50) > 150)
     			longTimeSinceCombat = true;
     		
-	   		if((directionsICanPlant > 1 && safe && planted < soldiers*2 && soldiers >= 1) || longTimeSinceCombat) {
+	   		if((directionsICanPlant > 1 && safe && planted < soldiers*2 && soldiers >= 1) || longTimeSinceCombat || id%3==0) {
 	   			buildtree = true;
 	   		} else {
 	   			buildtree = false;
 	   		}
-			
+	   		
+			boolean needLumber = false;
+			rc.setIndicatorDot(myLocation.add(new Direction((float) (Math.PI/-2.0)), 10f), 0, 255, 100);
 	   		for (Direction place : dirs) {
 				//if(sad!=null && rc.isLocationOccupied(sad.add(place)))
 				if (rc.canPlantTree(place) && buildtree) { 
@@ -255,7 +258,7 @@ public class Gardener {
 					planted++;
 				}
 					//if(((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 1 && directionsICantPlant > 1) && (directionsICantPlant >= 4 || planted < 3)) && ((float)lumbers < (float)soldiers/(2f + rc.getRoundNum()/300f))) {
-					if((rc.senseNearbyTrees(7f, Team.NEUTRAL).length > 0) && lumbers < 1 && safe) {
+					if((((rc.senseNearbyTrees(10f, Team.NEUTRAL).length > 0) && lumbers < 1) || needLumber)) {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							lastRoundCreated = rc.getRoundNum();
 							rc.buildRobot(RobotType.LUMBERJACK, place);

@@ -35,7 +35,9 @@ public class Lumberjack {
     private static float bestPriority, bestPriorityStatic2;
     private static int bestPriorityStatic;
     private static TreeInfo bestTree, bestTreeStatic;
-    
+
+    private static boolean dead;
+
     /*
     -If nothing better to do, lumberjacks wander off to search for trees
     -Make own decisions
@@ -76,6 +78,7 @@ public class Lumberjack {
             next = 16;
         }
 
+        dead = false;
         //code below repeats every turn
         while (true) {
             //updating info about robots and trees around me
@@ -83,8 +86,10 @@ public class Lumberjack {
             //health and census
             prevHealth = health;
             health = rc.getHealth();
-            if(PublicMethods.isAboutToDie(rc, prevHealth))
-                rc.broadcast(2, rc.readBroadcast(2)-1); //decrement census
+            if(!dead && PublicMethods.isAboutToDie(rc, prevHealth)) {
+                dead = true;
+                rc.broadcast(2, rc.readBroadcast(2) - 1); //decrement census
+            }
             //others
             next = rc.readBroadcast(15);
             //System.out.print(next);

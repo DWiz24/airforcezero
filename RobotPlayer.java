@@ -16,11 +16,9 @@ public class RobotPlayer {
                         Gardener.run(rc);
                         break;
                     case SOLDIER:
-                    	rc.broadcast(2, rc.readBroadcast(2) + 1);
                         Soldier.run(rc);
                         break;
                     case LUMBERJACK:
-                    	rc.broadcast(3, rc.readBroadcast(3) + 1);
                         Lumberjack.run(rc);
                         break;
                     case TANK:

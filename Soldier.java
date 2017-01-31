@@ -16,6 +16,8 @@ public class Soldier {
     static RobotInfo pastTarget = null;
     static int pastTargetSet = 0;
     static int underFire=-1;
+    static float prevHealth, health;
+    private static boolean dead;
 
     public static void run(RobotController rc) throws GameActionException {
         initialEnemyLocs = rc.getInitialArchonLocations(rc.getTeam().opponent());
@@ -24,7 +26,16 @@ public class Soldier {
         pickDest();
         boolean oneArchon = initialEnemyLocs.length == 1;
         int oldLoc = 31;
+        dead = false;
+        prevHealth = health = rc.getHealth();
         while (true) {
+            //health and census
+            prevHealth = health;
+            health = rc.getHealth();
+            if(!dead && PublicMethods.isAboutToDie(rc, prevHealth)) {
+                dead = true;
+                rc.broadcast(3, rc.readBroadcast(3) - 1); //decrement census
+            }
             //System.out.println(bugging);
             TreeInfo[] trees = rc.senseNearbyTrees();
             RobotInfo[] robots = rc.senseNearbyRobots();

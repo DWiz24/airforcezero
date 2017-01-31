@@ -10,7 +10,7 @@ public class Gardener {
     	int spotsINeed = 1;
     	int channel = -1;
     	int censusChannel = 1;
-    	int myLumbers = 0;
+    	int myLumbers = 0, mySoldiers = 0;
     	float theta = -1.0f;
     	float lastTurnHealth = rc.getHealth();
     	boolean onSpawn = true, dead = false;
@@ -192,14 +192,18 @@ public class Gardener {
    			}
     		//End trying to move code
     		
-   			//Check scouts code
-   			
+   			//Check scouts and soldiers close code
+   			boolean gettingShotAt = false;
    			RobotInfo[] nearbyRobots = rc.senseNearbyRobots(3f, enemyTeam);
    			for(RobotInfo badguy : nearbyRobots) {
    				if(badguy.type == RobotType.SCOUT) {
    					if(lumbers == 0)
    						rc.broadcast(200, rc.readBroadcast(200) + 1);
    					Lumberjack.lumberjackNeeded(rc, badguy.location, 15, 1, 0);
+   				}
+   				
+   				if(badguy.type == RobotType.SOLDIER) {
+   					gettingShotAt = true;
    				}
    			}
    			
@@ -208,7 +212,7 @@ public class Gardener {
     		
     		boolean safe = true;
     		if((distance < 20f && rc.getRoundNum() < 50)) {
-    			System.out.println("too close");
+    			//System.out.println("too close");
     			safe = false;
     		}
     		
@@ -240,7 +244,11 @@ public class Gardener {
 	   		if(soldiers+lumbers+planted == 0)
 	   			safe = false;
     		
-	   		if(directionsICanPlant > spotsINeed && ((safe && soldiers > 0))) {
+	   		boolean startEconomy = false;
+	   		if(planted == 0 && mySoldiers > 1)
+	   			startEconomy = true;
+	   		System.out.println("start economy" + startEconomy);
+	   		if(directionsICanPlant > spotsINeed && ((safe && soldiers > 0)) || startEconomy) {
 	   			buildtree = true;
 	   		} else {
 	   			buildtree = false;
@@ -268,7 +276,7 @@ public class Gardener {
 					planted++;
 				}
 					//if(((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 1 && directionsICantPlant > 1) && (directionsICantPlant >= 4 || planted < 3)) && ((float)lumbers < (float)soldiers/(2f + rc.getRoundNum()/300f))) {
-					if((((rc.senseNearbyTrees(10f, Team.NEUTRAL).length > 0) && myLumbers < lumbersNeeded) && lumbers < 10)) {
+					if((((rc.senseNearbyTrees(10f, Team.NEUTRAL).length > 0) && myLumbers < lumbersNeeded) && lumbers < 10 && !gettingShotAt)) {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
 							myLumbers++;
@@ -280,6 +288,7 @@ public class Gardener {
 					} else {
 						if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.SOLDIER, place);
+							mySoldiers++;
 						}
 					}
 					

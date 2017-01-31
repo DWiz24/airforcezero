@@ -15,7 +15,7 @@ public class Gardener {
     	boolean onSpawn = true, dead = false;
     	Team myTeam = rc.getTeam();
         Team enemyTeam = myTeam.opponent();
-    	System.out.println("I AM THE" + id);
+    	//System.out.println("I AM THE " + id);
     	//Finds the shortest distance between our archons vs their archons
     	MapLocation[] theirArchons = rc.getInitialArchonLocations(enemyTeam);
 		MapLocation[] myArchons = rc.getInitialArchonLocations(myTeam);
@@ -97,7 +97,7 @@ public class Gardener {
    	   			}
    			}
    			
-   			System.out.println("I can plant in this many directions: " + directionsICanPlant);
+   			//System.out.println("I can plant in this many directions: " + directionsICanPlant);
     		if(channel == -1) {
     			int tempchannel = 100;
     			while(rc.readBroadcast(tempchannel) != 0)
@@ -240,10 +240,10 @@ public class Gardener {
     		
 	   		if(directionsICanPlant > spotsINeed && ((safe && planted < soldiers*2 && soldiers >= 1) || longTimeSinceCombat)) {
 	   			buildtree = true;
-	   			System.out.println("setting buildtree true");
+	   			//System.out.println("setting buildtree true");
 	   		} else {
 	   			buildtree = false;
-	   			System.out.println("setting buildtree false");
+	   			//System.out.println("setting buildtree false");
 	   		}
 	   		
 			//boolean needLumber = true;

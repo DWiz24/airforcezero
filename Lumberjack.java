@@ -20,7 +20,7 @@ public class Lumberjack {
     static boolean locationsNear;
     private static boolean printedThisTurn, exploring;
     private static int travelingChannel;
-    private static MapLocation prevGardenerPos;
+    static MapLocation prevGardenerPos;
     private static float prevHealth, health;
     static float limit;
 
@@ -28,11 +28,13 @@ public class Lumberjack {
     private static int next = -1; //previous and current turn next tree channel to write to
 
     //info about my surroundings, updates every turn
-    private static RobotInfo[] allRobots, friendlyRobots, enemyRobots, friendlyGardeners;
+    private static RobotInfo[] allRobots, friendlyRobots, enemyRobots;
+    static RobotInfo[] friendlyGardeners;
     private static TreeInfo[] allTrees, friendlyTrees, neutralTrees, enemyTrees;
     private static float[] allRobotDists, friendlyRobotDists, enemyRobotDists, allTreeDists, friendlyTreeDists, neutralTreeDists, enemyTreeDists;
-    private static int friendlyRobotCount, enemyRobotCount, friendlyTreeCount, neutralTreeCount, enemyTreeCount, friendlyGardenerCount;
-    private static float bestPriority;
+    private static int friendlyRobotCount, enemyRobotCount, friendlyTreeCount, neutralTreeCount, enemyTreeCount;
+    static int friendlyGardenerCount;
+    private static float bestPriority, bestPriorityStatic2;
     private static int bestPriorityStatic;
     private static TreeInfo bestTree, bestTreeStatic;
     
@@ -104,15 +106,8 @@ public class Lumberjack {
                 if(bestTreeStatic != null)
                     areLocationsNear(rc, bestTreeStatic.location);
             }
-            if(!locationsNear && bestTreeStatic != null && bestPriorityStatic * 66.66666667f + dynamicPriorityFromBase(bestTreeStatic) > shrinkingPriority()) {
+            if(!locationsNear && bestTreeStatic != null && bestPriorityStatic * 66.66666667f + dynamicPriorityFromBase(bestTreeStatic) > shrinkingPriority(rc)) {
                 //if not locations in range and found locations worth reporting
-                if(!traveling){ //prioritize location if not already traveling
-                    traveling = true;
-                    travelingChannel = next;
-                    Nav.setDest(bestTreeStatic.location);
-                    setLimit(bestTreeStatic.radius);
-                    exploring = false;
-                }
                 lumberjackNeeded(rc, bestTreeStatic.location, bestPriorityStatic, numberNeeded(rc, bestTreeStatic), bestTreeStatic.radius);
             }
 
@@ -223,13 +218,15 @@ public class Lumberjack {
                         continue treeLoop;
                 }
                 int staticPriority = staticPriorityOfTree(rc, info);
+                float staticPriority2 = staticPriority * 66.66666667f + dynamicPriorityFromBase(info);
                 float priority = staticPriority * 66.66666667f + dynamicPriorityOfTree(info);
                 if(staticPriority > -1 && priority > bestPriority){
                     bestPriority = priority;
                     bestTree = info;
                 }
-                if(staticPriority > bestPriorityStatic){
+                if(staticPriority2 > bestPriorityStatic2){
                     bestPriorityStatic = staticPriority;
+                    bestPriorityStatic2 = staticPriority2;
                     bestTreeStatic = info;
                 }
             }
@@ -284,13 +281,15 @@ public class Lumberjack {
                         continue treeLoop;
                 }
                 int staticPriority = staticPriorityOfTree(rc, info);
+                float staticPriority2 = staticPriority * 66.66666667f + dynamicPriorityFromBase(info);
                 float priority = staticPriority * 66.66666667f + dynamicPriorityOfTree(info);
                 if(staticPriority > -1 && priority > bestPriority){
                     bestPriority = priority;
                     bestTree = info;
                 }
-                if(staticPriority > bestPriorityStatic){
+                if(staticPriority2 > bestPriorityStatic2){
                     bestPriorityStatic = staticPriority;
+                    bestPriorityStatic2 = staticPriority2;
                     bestTreeStatic = info;
                 }
             }
@@ -310,7 +309,7 @@ public class Lumberjack {
         }
         return count;
     }
-    private static float shrinkingPriority(){
+    static float shrinkingPriority(RobotController rc){
         //960 - 910
         //~5.65 to ~12.73
         return 960f - (rc.getRoundNum())/60f;
@@ -333,7 +332,8 @@ public class Lumberjack {
 
             if(!locationsNear && valueLoc.distanceTo(treeLocation) <= 7f) {
                 locationsNear = true;
-                //return;   uncomment in the final release
+                if(!DEBUG2)
+                    return;
             }
         }
     }
@@ -386,7 +386,7 @@ public class Lumberjack {
         rc.broadcast(15, next);
     }
     private static void chooseBestLocation(MapLocation[] exclude) throws GameActionException{
-        float bestP = bestPriority;
+        float bestP = bestPriority; //modify to make prioritize current loc less
         int bestValue = -1;
         int bestChannel = -1;
         MapLocation bestLocation = null;
@@ -506,7 +506,7 @@ public class Lumberjack {
         }
         return -1;  //never reached
     }
-    private static int dynamicPriorityOfTree(TreeInfo treeInfo){
+    static int dynamicPriorityOfTree(TreeInfo treeInfo){
         //expanding circle goes from ~7 to ~28 distance
         int priority = 0;
 
@@ -515,7 +515,7 @@ public class Lumberjack {
 
         return priority;
     }
-    private static int dynamicPriorityOfTree(MapLocation treeLoc){
+    static int dynamicPriorityOfTree(MapLocation treeLoc){
         //expanding circle goes from ~7 to ~28 distance
         int priority = 0;
 
@@ -524,13 +524,13 @@ public class Lumberjack {
 
         return priority;
     }
-    private static float dynamicPriorityFromBase(TreeInfo treeInfo){
+    static float dynamicPriorityFromBase(TreeInfo treeInfo){
         return 7.071067812f * (141.4213562f - prevGardenerPos.distanceTo(treeInfo.location) + treeInfo.radius);
     }
     private static float dynamicPriorityFromMe(TreeInfo treeInfo){
         return 7.071067812f * (141.4213562f - rc.getLocation().distanceTo(treeInfo.location) + treeInfo.radius);
     }
-    private static float dynamicPriorityFromBase(MapLocation treeLoc){
+    static float dynamicPriorityFromBase(MapLocation treeLoc){
         return 7.071067812f * (141.4213562f - prevGardenerPos.distanceTo(treeLoc) + 0.5f);
     }
     private static float dynamicPriorityFromMe(MapLocation treeLoc){

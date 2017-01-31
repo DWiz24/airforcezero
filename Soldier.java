@@ -19,6 +19,7 @@ public class Soldier {
     public static void run(RobotController rc) throws GameActionException {
         initialEnemyLocs = rc.getInitialArchonLocations(rc.getTeam().opponent());
         initialFriendLocs = rc.getInitialArchonLocations(rc.getTeam());
+        Lumberjack.prevGardenerPos = initialFriendLocs[0];    //in case gardener runs away
         pickDest();
         boolean oneArchon = initialEnemyLocs.length == 1;
         int oldLoc = 31;
@@ -32,15 +33,24 @@ public class Soldier {
             int friends = -1;
             RobotInfo[] enemy = new RobotInfo[robots.length];
             int enemies = -1;
+            Lumberjack.friendlyGardenerCount = 0;
+            Lumberjack.friendlyGardeners = new RobotInfo[robots.length];
             int len = robots.length;
             for (int i = 0; i < len; i++) {
                 RobotInfo r = robots[i];
                 //if (r.team==Team.NEUTRAL) System.out.println("NEUTRAL DETECTED");
                 if (r.team == rc.getTeam()) {
+                    if(r.type == RobotType.GARDENER){
+                        Lumberjack.friendlyGardeners[Lumberjack.friendlyGardenerCount] = r;
+                        Lumberjack.friendlyGardenerCount++;
+                    }
                     friend[++friends] = r;
                 } else {
                     enemy[++enemies] = r;
                 }
+            }
+            if (Lumberjack.friendlyGardenerCount > 0) {
+                Lumberjack.prevGardenerPos = Lumberjack.friendlyGardeners[0].location;
             }
             if (enemies >= 3 || bullets.length != 0) rc.broadcast(50, rc.getRoundNum());
             if (enemies == -1 && rc.getRoundNum() - stoppedCreeping > 50) {
@@ -129,6 +139,30 @@ public class Soldier {
                             reportCombatLocation(loc, 0);
                         }
                     }
+                }
+
+                //reporting trees
+                //1. find best tree
+                int len2 = trees.length;
+                TreeInfo bestTree = null;
+                int bestPriorityStatic = -1;
+                float bestPriorityStatic2 = -1f;
+                for (int i = 0; i < len2; i++) {
+                    TreeInfo info = trees[i];
+                    int staticPriority = Lumberjack.staticPriorityOfTree(rc, info);
+                    float staticPriority2 = staticPriority * 66.66666667f + Lumberjack.dynamicPriorityFromBase(info);
+                    if(staticPriority2 > bestPriorityStatic2){
+                        bestPriorityStatic = staticPriority;
+                        bestPriorityStatic2 = staticPriority2;
+                        bestTree = info;
+                    }
+                }
+                if(bestTree != null) {
+                    //2. check if other reported trees near
+                    Lumberjack.areLocationsNear(rc, bestTree.location);
+                    //3. report
+                    if (!Lumberjack.locationsNear && bestPriorityStatic * 66.66666667f + Lumberjack.dynamicPriorityFromBase(bestTree) > Lumberjack.shrinkingPriority(rc))
+                        Lumberjack.lumberjackNeeded(rc, bestTree.location, Lumberjack.staticPriorityOfTree(rc, bestTree), Lumberjack.numberNeeded(rc, bestTree), bestTree.radius);
                 }
             }
             //System.out.println("Signaling: " + (Clock.getBytecodeNum() - bcode));

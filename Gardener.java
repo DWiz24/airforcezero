@@ -245,9 +245,9 @@ public class Gardener {
 	   			safe = false;
     		
 	   		boolean startEconomy = false;
-	   		if(planted == 0 && mySoldiers > 1)
+	   		if(planted == 0 && mySoldiers > 0)
 	   			startEconomy = true;
-	   		System.out.println("start economy" + startEconomy);
+
 	   		if(directionsICanPlant > spotsINeed && ((safe && soldiers > 0)) || startEconomy) {
 	   			buildtree = true;
 	   		} else {

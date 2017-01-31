@@ -208,7 +208,7 @@ public class Gardener {
     		lastTurnHealth = rc.getHealth(); 
     		RobotInfo[] allRobots = rc.senseNearbyRobots(); 
     		for(RobotInfo thisRobot : allRobots) {
-    			if(thisRobot.team == enemyTeam) {
+    			if(thisRobot.team == enemyTeam && thisRobot.type!=RobotType.SCOUT) {
     				safe = false;
 					MapLocation loc = thisRobot.location;
 					gotoHacks:

@@ -107,9 +107,9 @@ public class Soldier {
                 }
                 //System.out.println("pickDest " + Clock.getBytecodeNum());
                 oldLoc = newLoc;
-                if (enemies >= 0) {
-
+                if (enemies >= 0 && enemy[0].type!=RobotType.SCOUT) {
                     MapLocation loc = enemy[0].location;
+
                     gotoHacks:
                     {
                         for (int i = 31; i <= 45; i++) {

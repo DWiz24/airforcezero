@@ -9,6 +9,7 @@ public class Gardener {
     	int spotsINeed = 1;
     	int channel = -1;
     	int censusChannel = 1;
+    	int myLumbers = 0;
     	int id = rc.readBroadcast(censusChannel);
     	float theta = -1.0f;
     	float lastTurnHealth = rc.getHealth();
@@ -189,6 +190,16 @@ public class Gardener {
    			}
     		//End trying to move code
     		
+   			//Check scouts code
+   			
+   			RobotInfo[] nearbyRobots = rc.senseNearbyRobots(3f, enemyTeam);
+   			for(RobotInfo badguy : nearbyRobots) {
+   				if(badguy.type == RobotType.SCOUT) {
+   					if(lumbers == 0)
+   						rc.broadcast(200, rc.readBroadcast(200) + 1);
+   					Lumberjack.lumberjackNeeded(rc, badguy.location, 15, 1, 0);
+   				}
+   			}
    			
     		//What do I build code
     		boolean buildtree = false;
@@ -240,6 +251,17 @@ public class Gardener {
 	   			buildtree = false;
 	   		}
 	   		
+	   		int threshold = 10;
+	   		TreeInfo[] nearbyTrees = rc.senseNearbyTrees(10f, Team.NEUTRAL);
+	   		int lumbersNeeded = -1;
+	   		if(nearbyTrees.length == 0 && distance > 40f) {
+	   			lumbersNeeded = 0;
+	   		} else if (nearbyTrees.length < threshold || rc.readBroadcast(200) > 1) {
+	   			lumbersNeeded = 1;
+	   		} else {
+	   			lumbersNeeded = 2;
+	   		}
+	   		
 			//boolean needLumber = true;
 			//if(!safe && directionsICanPlant > 1)
 			//	needLumber = false;
@@ -252,11 +274,12 @@ public class Gardener {
 					planted++;
 				}
 					//if(((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 1 && directionsICantPlant > 1) && (directionsICantPlant >= 4 || planted < 3)) && ((float)lumbers < (float)soldiers/(2f + rc.getRoundNum()/300f))) {
-					if((((rc.senseNearbyTrees(10f, Team.NEUTRAL).length > 0) && lumbers < 1) || rc.readBroadcast(200) > 1)) {
+					if((((rc.senseNearbyTrees(10f, Team.NEUTRAL).length > 0) && myLumbers < lumbersNeeded) && lumbers < 10)) {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
+							myLumbers++;
 						}
-					} else if(safe && soldiers > 1 && rc.readBroadcast(5) < 2 && rc.getRoundNum() < 1500) {
+					} else if(safe && soldiers > 1 && rc.readBroadcast(5) < 1 && rc.getRoundNum() < 1500) {
 						if(rc.canBuildRobot(RobotType.SCOUT, place)) {
 							rc.buildRobot(RobotType.SCOUT, place);
 						}

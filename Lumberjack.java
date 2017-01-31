@@ -7,7 +7,7 @@ import java.lang.Math;
 public class Lumberjack {
     //global stuff
 
-    static final boolean DEBUG1 = true, DEBUG2 = true;  //set to false to make them shut up
+    static final boolean DEBUG1 = false, DEBUG2 = false;  //set to false to make them shut up
 
     //general
     private static RobotController rc;
@@ -36,6 +36,7 @@ public class Lumberjack {
     private static int bestPriorityStatic;
     private static TreeInfo bestTree, bestTreeStatic;
 
+    //random stuff
     private static boolean dead;
 
     /*
@@ -330,9 +331,9 @@ public class Lumberjack {
         return count;
     }
     static float shrinkingPriority(RobotController rc){
-        //960 - 910
-        //~5.65 to ~12.73
-        return 960f - (rc.getRoundNum())/60f;
+        //975 - 925
+        //~3.54 to ~10.61
+        return 975f - (rc.getRoundNum())/60f;
     }
     static void areLocationsNear(RobotController rc, MapLocation treeLocation) throws GameActionException{
         locationsNear = false;
@@ -394,8 +395,13 @@ public class Lumberjack {
                 rc.setIndicatorDot(location, 0, 255, 255);
         }
 
-        if(rc.getType() != RobotType.LUMBERJACK)
+        if(rc.getType() != RobotType.LUMBERJACK) {
             next = rc.readBroadcast(15);
+            if(next == 0){
+                next = 16;
+                rc.broadcast(15, 16);
+            }
+        }
 
         rc.broadcast(next, radiusToInt(radius) | priorityToInt(priority) | neededToInt(number) | locationToInt(location));
         next++;
@@ -556,13 +562,13 @@ public class Lumberjack {
         return priority;
     }
     static float dynamicPriorityFromBase(TreeInfo treeInfo){
-        return 7.071067812f * (141.4213562f - prevGardenerPos.distanceTo(treeInfo.location) + treeInfo.radius);
+        return 7.071067812f * (141.4213562f - (prevGardenerPos.distanceTo(treeInfo.location) - treeInfo.radius));
     }
     private static float dynamicPriorityFromMe(TreeInfo treeInfo){
         return 7.071067812f * (141.4213562f - rc.getLocation().distanceTo(treeInfo.location) + treeInfo.radius);
     }
     static float dynamicPriorityFromBase(MapLocation treeLoc){
-        return 7.071067812f * (141.4213562f - prevGardenerPos.distanceTo(treeLoc) + 0.5f);
+        return 7.071067812f * (141.4213562f - (prevGardenerPos.distanceTo(treeLoc) - 0.5f));
     }
     private static float dynamicPriorityFromMe(MapLocation treeLoc){
         return 7.071067812f * (141.4213562f - rc.getLocation().distanceTo(treeLoc) + 0.5f);

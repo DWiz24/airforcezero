@@ -263,10 +263,8 @@ public class Gardener {
 	   			lumbersNeeded = 0;
 	   		} else if (nearbyTrees.length < threshold || rc.readBroadcast(200) > 1) {
 	   			lumbersNeeded = 1;
-	   		} else if (nearbyTrees.length < secondThreshold){
-	   			lumbersNeeded = 2;
 	   		} else {
-	   			lumbersNeeded = 3;
+	   			lumbersNeeded = 2;
 	   		}
 
 	   		for (Direction place : dirs) {

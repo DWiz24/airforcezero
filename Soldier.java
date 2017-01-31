@@ -341,7 +341,7 @@ public class Soldier {
                         double sintheta = Math.sin(radsBetween);
                         if (dist<=1 || Math.sin(Math.asin(dist * sintheta) - radsBetween) / sintheta < Math.min(dists[k], b.speed) || 0.2 * Math.sin(Math.asin(dist * sintheta / 0.2) - radsBetween) / sintheta < dists[k])
                             damage += b.damage;
-                            rc.setIndicatorDot(b.location,255,255,255);
+                            //rc.setIndicatorDot(b.location,255,255,255);
                     }
                 }
 
@@ -605,7 +605,7 @@ public class Soldier {
     }
 
     static void shootOrMove(RobotController rc, MapLocation toMove, TreeInfo[] trees, RobotInfo[] enemy, int enemies, RobotInfo[] friend, int friends, BulletInfo[] bullets, RobotInfo[] robots) throws GameActionException {
-
+        int totalTrees=rc.getTreeCount();
         if (toMove != rc.getLocation()) {
             rc.move(toMove);
             trees = rc.senseNearbyTrees();
@@ -693,7 +693,7 @@ public class Soldier {
                             bestPri = pri;
                             pastTarget = target;
                             pastTargetSet = rc.getRoundNum();
-                            if (d-target.getRadius()<5) {
+                            if (d-target.getRadius()<5 && (bullets.length>12 || d<4 || totalTrees>1)) {
                                 bestShot = a1.rotateRightDegrees(degs);
                             } else {
                                 bestShot = a1.rotateRightDegrees((float) (0.001 + (degs - 0.001) * Math.random()));
@@ -708,7 +708,7 @@ public class Soldier {
             }
             if (pastTarget != null && bestShot == null && rc.canSenseAllOfCircle(pastTarget.location, pastTarget.getRadius()+1))
                 pastTargetSet =Math.min(pastTargetSet,rc.getRoundNum()-11);
-            if (bestShot == null && pastTarget != null && rc.getRoundNum() - pastTargetSet < 10) {
+            if (bestShot == null && pastTarget != null && rc.getRoundNum() - pastTargetSet < 5) {
                 RobotInfo target = pastTarget;
                 float d = toMove.distanceTo(target.location);
                 float theta = (float) Math.asin(target.getRadius() / d);
@@ -722,7 +722,7 @@ public class Soldier {
                     boolean leftFriend = false;
                     boolean rightFriend = false;
                     for (int i = 0; i <= friends; i++) {
-                        float dist = cur.distanceTo(friend[i].getLocation());
+                        float dist = cur.distanceTo(friend[i].getLocation())-friend[i].getRadius();
                         if (d + 2 < dist) break;
                         //rc.setIndicatorDot(avoid[i].getLocation(),255,0,0);
                         float thetai = (float) Math.asin(friend[i].getRadius() / dist);
@@ -740,8 +740,8 @@ public class Soldier {
                         }
                     }
                     for (int i = 0; i < treen; i++) {
-                        float dist = cur.distanceTo(trees[i].location);
-                        if (d + 2 < dist) break;
+                        float dist = cur.distanceTo(trees[i].location)-trees[i].radius;
+                        if (d < dist) break;
                         //rc.setIndicatorDot(avoid[i].getLocation(),255,0,0);
                         float thetai = (float) Math.asin(trees[i].radius / dist);
                         Direction diri = cur.directionTo(trees[i].location);
@@ -776,7 +776,7 @@ public class Soldier {
                                 pri *= 4;
                                 break;
                         }
-                        if (pri < bestPri) {
+                        if (pri < bestPri && (bullets.length>12 || d<4 || totalTrees>1)) {
                             if (d-target.getRadius()<5) {
                                 bestShot = a1.rotateRightDegrees(degs);
                             } else {

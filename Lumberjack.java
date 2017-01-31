@@ -14,6 +14,8 @@ public class Lumberjack {
     private static Random rng;
 
     //variables related to my robot's behavior
+    private static MapLocation[] excludeLocations,  excludeTrees;
+    private static int excludeLocationsSize, excludeTreesSize;
     static boolean traveling;
     static boolean locationsNear;
     private static boolean printedThisTurn;
@@ -50,6 +52,10 @@ public class Lumberjack {
         rng = new Random(rc.getID());
 
         //variables related to my robot's behavior
+        excludeLocations = new MapLocation[10];
+        excludeTrees = new MapLocation[10];
+        excludeLocationsSize = 0;
+        excludeTreesSize = 0;
         printedThisTurn = false;
         if(DEBUG1){
             System.out.print("\nI am a lumberjack!");
@@ -90,7 +96,7 @@ public class Lumberjack {
 
             //check for better locations
             if(!traveling){
-                chooseBestLocation();
+                chooseBestLocation(excludeLocations);
             }
             else {
                 //make a call to get whether locations are around, since chooseBestLocation was never called
@@ -188,6 +194,7 @@ public class Lumberjack {
                 robotCount++;
             }
             int treeCount = 0;
+            treeLoop:
             for(TreeInfo info : allTrees){
                 float dist = rc.getLocation().distanceTo(info.location);
                 allTreeDists[treeCount] = dist;
@@ -207,6 +214,12 @@ public class Lumberjack {
                         neutralTreeDists[neutralTreeCount] = dist;
                         neutralTreeCount++;
                 }
+                treeCount++;
+                //check for exclusion
+                for(int i = 0; i < excludeTreesSize; i++) {
+                    if(excludeTrees[i].equals(info.location))
+                        continue treeLoop;
+                }
                 int staticPriority = staticPriorityOfTree(rc, info);
                 float priority = staticPriority * 66.66666667f + dynamicPriorityOfTree(info);
                 if(staticPriority > -1 && priority > bestPriority){
@@ -217,7 +230,6 @@ public class Lumberjack {
                     bestPriorityStatic = staticPriority;
                     bestTreeStatic = info;
                 }
-                treeCount++;
             }
         }
         else{
@@ -243,6 +255,7 @@ public class Lumberjack {
                 robotCount++;
             }
             int treeCount = 0;
+            treeLoop:
             for(TreeInfo info : allTrees){
                 float dist = rc.getLocation().distanceTo(info.location);
                 allTreeDists[treeCount] = dist;
@@ -262,6 +275,12 @@ public class Lumberjack {
                         neutralTreeDists[neutralTreeCount] = dist;
                         neutralTreeCount++;
                 }
+                treeCount++;
+                //check for exclusion
+                for(int i = 0; i < excludeTreesSize; i++) {
+                    if(excludeTrees[i].equals(info.location))
+                        continue treeLoop;
+                }
                 int staticPriority = staticPriorityOfTree(rc, info);
                 float priority = staticPriority * 66.66666667f + dynamicPriorityOfTree(info);
                 if(staticPriority > -1 && priority > bestPriority){
@@ -272,7 +291,6 @@ public class Lumberjack {
                     bestPriorityStatic = staticPriority;
                     bestTreeStatic = info;
                 }
-                treeCount++;
             }
         }
     }
@@ -364,10 +382,7 @@ public class Lumberjack {
 
         rc.broadcast(15, next);
     }
-    private static void chooseBestLocation() throws GameActionException{
-        chooseBestLocation(null);
-    }
-    private static void chooseBestLocation(MapLocation exclude) throws GameActionException{
+    private static void chooseBestLocation(MapLocation[] exclude) throws GameActionException{
         float bestP = bestPriority;
         int bestValue = -1;
         int bestChannel = -1;
@@ -392,8 +407,8 @@ public class Lumberjack {
                 locationsNear = true;
 
             //check for exclusion
-            if(exclude != null) {
-                if(exclude.equals(valueLoc))
+            for(int i2 = 0; i2 < excludeLocationsSize; i2++) {
+                if(exclude[i2].equals(valueLoc))
                     continue;
             }
 
@@ -635,6 +650,24 @@ public class Lumberjack {
             printedThisTurn = true;
         }
 
+        if(reached){
+            //reset
+            excludeLocations = new MapLocation[10];
+            excludeTrees = new MapLocation[10];
+            excludeLocationsSize = 0;
+            excludeTreesSize = 0;
+        }
+        else{
+            //add to exclusions
+            if(traveling){
+                excludeLocations[excludeLocationsSize] = Nav.dest;
+                excludeLocationsSize++;
+            }
+            else{
+                excludeTrees[excludeTreesSize] = Nav.dest;
+                excludeTreesSize++;
+            }
+        }
         if(traveling && reached){
             traveling = false;
             rc.broadcast(travelingChannel, 0);

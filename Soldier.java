@@ -260,8 +260,10 @@ public class Soldier {
         for (int k = jacks; k >= 0; k--) {
             if (loc.distanceTo(jack[k]) <= 3.8) minDamage += 2;
         }
-        boolean attackOrRun = (enemySoldiersNTanks >= friends + 2) || (enemySoldiersNTanks > 0 && friends <= 1 && rc.getHealth() < 20); //true means run
-        if (attackOrRun) rc.setIndicatorDot(rc.getLocation(), 0, 0, 0);
+        //boolean attackOrRun = (enemySoldiersNTanks >= friends + 2) || (enemySoldiersNTanks > 0 && friends <= 1 && rc.getHealth() < 20);
+        boolean attackOrRun=true;
+        // true means run
+        //if (attackOrRun) rc.setIndicatorDot(rc.getLocation(), 0, 0, 0);
         if (attackOrRun) {
             for (int i = enemies; i >= 0; i--) {
                 if (enemy[i].type == RobotType.SOLDIER || enemy[i].type == RobotType.TANK)
@@ -471,7 +473,7 @@ public class Soldier {
         int ypart = ((int) (loc.y * 4)) << 8;
         int message = xpart | ypart | info;
         int chan = rc.readBroadcast(30);
-        System.out.println(chan);
+        //System.out.println(chan);
         int prevChan = chan;
         //MapLocation transmitted=getLocation(message);
         //if (transmitted.distanceTo(loc)>1) {

@@ -5,7 +5,8 @@ public class Gardener {
     public static void run(RobotController rc) throws GameActionException {
     	Direction[] dirs={new Direction(0f), new Direction((float)(Math.PI/3.0)), new Direction((float)(2.0*Math.PI/3.0)), new Direction((float)(3.0*Math.PI/3.0)), new Direction((float)(4.0*Math.PI/3.0)), new Direction((float)(5.0*Math.PI/3.0))};
     	final int roundSpawned = rc.getRoundNum();
-    	int soldiers = 0, lumbers = 0, planted = 0, lastRoundPlanted = rc.getRoundNum(), lastRoundCreated = rc.getRoundNum();    	
+    	int soldiers = 0, lumbers = 0, planted = 0, lastRoundPlanted = rc.getRoundNum();
+    	int spotsINeed = 1;
     	int scounts = 1;
     	int channel = -1;
     	int censusChannel = 1;
@@ -32,7 +33,6 @@ public class Gardener {
 				}
 			}
 		}
-		
     	while(true){
     		
     		MapLocation sad = null; //Find lowest health tree, water it
@@ -90,7 +90,6 @@ public class Gardener {
    						foundGoodDirection = true;
    						break;
    					}
-   					//System.out.println(direction);
    				}
    				
    				if(foundGoodDirection) {
@@ -99,14 +98,13 @@ public class Gardener {
    	   			}
    			}
    			
-   			//System.out.println("I can plant in this many directions: " + directionsICanPlant);
+   			System.out.println("I can plant in this many directions: " + directionsICanPlant);
     		if(channel == -1) {
     			int tempchannel = 100;
     			while(rc.readBroadcast(tempchannel) != 0)
     				tempchannel++;
     			channel = tempchannel;
     		}
-    		//System.out.println("My channel is " + channel);
     		int x = (int)myLocation.x;
     		int y = (int)myLocation.y;
     		int planting = 0b0000_0001;
@@ -119,7 +117,6 @@ public class Gardener {
     		
     		if(rc.getHealth() < 5) //If I'm about to die, clear my spot
     			rc.broadcast(channel, 0);
-    		//System.out.println("msg " + message);
     		
     		//Before I've determined the best theta, I should figure out if it's even worth moving
 
@@ -205,7 +202,6 @@ public class Gardener {
     		}
     		
     		if(rc.getHealth() < lastTurnHealth) {
-    			//Soldier.reportCombatLocation(myLocation, 0);
     			safe = false;
     		}
     		
@@ -238,29 +234,33 @@ public class Gardener {
 	   			safe = false;
     		
     		boolean longTimeSinceCombat = false;
-    		if(rc.getRoundNum() - rc.readBroadcast(50) > 150)
+    		if(rc.getRoundNum() - rc.readBroadcast(50) > 150) {
     			longTimeSinceCombat = true;
+    			spotsINeed = 0;
+    		}
     		
-	   		if((directionsICanPlant > 1 && safe && planted < soldiers*2 && soldiers >= 1) || longTimeSinceCombat || id%3==0) {
+	   		if(directionsICanPlant > spotsINeed && ((safe && planted < soldiers*2 && soldiers >= 1) || longTimeSinceCombat)) {
 	   			buildtree = true;
+	   			System.out.println("setting buildtree true");
 	   		} else {
 	   			buildtree = false;
+	   			System.out.println("setting buildtree false");
 	   		}
 	   		
-			boolean needLumber = false;
-			rc.setIndicatorDot(myLocation.add(new Direction((float) (Math.PI/-2.0)), 10f), 0, 255, 100);
+			boolean needLumber = true;
+			if(!safe && directionsICanPlant > 1)
+				needLumber = false;
+			
 	   		for (Direction place : dirs) {
 				//if(sad!=null && rc.isLocationOccupied(sad.add(place)))
 				if (rc.canPlantTree(place) && buildtree) { 
 					rc.plantTree(place);
 					lastRoundPlanted = rc.getRoundNum();
-					lastRoundCreated = rc.getRoundNum();
 					planted++;
 				}
 					//if(((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 1 && directionsICantPlant > 1) && (directionsICantPlant >= 4 || planted < 3)) && ((float)lumbers < (float)soldiers/(2f + rc.getRoundNum()/300f))) {
-					if((((rc.senseNearbyTrees(10f, Team.NEUTRAL).length > 0) && lumbers < 1) || needLumber)) {
+					if((((rc.senseNearbyTrees(10f, Team.NEUTRAL).length > 0) && lumbers < 1) && needLumber)) {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
-							lastRoundCreated = rc.getRoundNum();
 							rc.buildRobot(RobotType.LUMBERJACK, place);
 							rc.broadcast(2, rc.readBroadcast(2) + 1);
 						}
@@ -272,7 +272,6 @@ public class Gardener {
 					} else {
 						if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.SOLDIER, place);
-							lastRoundCreated = rc.getRoundNum();
 							rc.broadcast(3, rc.readBroadcast(3) + 1);
 						}
 					}

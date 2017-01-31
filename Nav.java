@@ -157,7 +157,7 @@ class Nav {
         }
 
         float distToDest = rc.getLocation().distanceTo(dest);
-        if(distToDest < Lumberjack.limit || (bugging && distToDest < Lumberjack.limit + 0.301f)) {
+        if(distToDest < Lumberjack.limit || (bugging && distToDest < Lumberjack.limit + 0.31f)) {
             Lumberjack.pickDest(true);  //update upon reaching
             lastMinUpdate=rc.getRoundNum();
         }
@@ -210,7 +210,7 @@ class Nav {
                             break;
                         }
                     }
-                    if(target != null && rc.getLocation().distanceTo(target.location) > target.radius + 1 && rc.senseNearbyRobots(target.location, target.radius, rc.getTeam()).length == 0){ //possibly fix later
+                    if(target != null && (target.containedRobot == null || rc.senseNearbyRobots(target.location, target.radius, rc.getTeam()).length == 0)){ //possibly fix later
                         if(!hasStruck)
                             rc.chop(target.ID); //chopping trees in my way
                         lastMinUpdate=rc.getRoundNum();
@@ -268,7 +268,7 @@ class Nav {
                     } else {
                         float cosp = ((following.getRadius() + 1) * (following.getRadius() + 1) - 0.5625f - distBtw * distBtw) / (-1.5f * distBtw);
                         float f = (float) Math.acos(cosp);
-                        Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.00004f:f + 0.00004f));
+                        Direction ndir = new Direction(rc.getLocation().directionTo(following.getLocation()).radians  +(left? -f- 0.00006f:f + 0.00006f));
                         MapLocation theMove=rc.getLocation().add(ndir, 0.75f);
                         if (!(rc.canSenseAllOfCircle(theMove,1) && rc.onTheMap(theMove,1))) {
                             if (hitWall) {  //hit edge of map
@@ -293,7 +293,7 @@ class Nav {
                                     break;
                                 }
                             }
-                            if(target != null && rc.getLocation().distanceTo(target.location) > target.radius + 1 && rc.senseNearbyRobots(target.location, target.radius, rc.getTeam()).length == 0){  //possibly fix later
+                            if(target != null && (target.containedRobot == null || rc.senseNearbyRobots(target.location, target.radius, rc.getTeam()).length == 0)){  //possibly fix later
                                 if(!hasStruck)
                                     rc.chop(target.ID); //chopping trees in my way
                                 lastMinUpdate=rc.getRoundNum();
@@ -436,7 +436,7 @@ class Nav {
                 }
             }
         }
-        return rc.getLocation();
+        return null;
     }
     static MapLocation tankNav(RobotController rc, TreeInfo[] trees, RobotInfo[] robots) throws GameActionException {
         MapLocation loc=rc.getLocation();

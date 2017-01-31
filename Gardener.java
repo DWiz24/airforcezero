@@ -255,7 +255,6 @@ public class Gardener {
 	   		}
 	   		
 	   		int threshold = 10;
-	   		int secondThreshold = 20;
 	   		
 	   		TreeInfo[] nearbyTrees = rc.senseNearbyTrees(10f, Team.NEUTRAL);
 	   		int lumbersNeeded = -1;
@@ -266,7 +265,14 @@ public class Gardener {
 	   		} else {
 	   			lumbersNeeded = 2;
 	   		}
-
+	   		
+	   		for(TreeInfo tree:nearbyTrees) {
+	   			if(tree.containedRobot != null) {
+	   				lumbersNeeded++;
+	   				break;
+	   			}
+	   		}
+	   		
 	   		for (Direction place : dirs) {
 				if (rc.canPlantTree(place) && buildtree) { 
 					rc.plantTree(place);
@@ -279,9 +285,10 @@ public class Gardener {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
 							myLumbers++;
 						}
-					} else if(safe && soldiers > 1 && rc.readBroadcast(5) < 1 && myScouts < 1 && rc.getRoundNum() < 500) {
+					} else if(safe && soldiers > 1 && rc.readBroadcast(5) < 1 && rc.getRoundNum() < 500) {
 						if(rc.canBuildRobot(RobotType.SCOUT, place)) {
 							rc.buildRobot(RobotType.SCOUT, place);
+							rc.broadcast(5, rc.readBroadcast(5) + 1);
 							myScouts++;
 						}
 					} else {

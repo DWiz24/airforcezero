@@ -207,11 +207,8 @@ public class Gardener {
     		boolean buildtree = false;
     		
     		boolean safe = true;
-    		if((distance < 30f && rc.getRoundNum() < 100)) {
-    			safe = false;
-    		}
-    		
-    		if(rc.getHealth() < lastTurnHealth) {
+    		if((distance < 20f && rc.getRoundNum() < 50)) {
+    			System.out.println("too close");
     			safe = false;
     		}
     		
@@ -243,8 +240,7 @@ public class Gardener {
 	   		if(soldiers+lumbers+planted == 0)
 	   			safe = false;
     		
-    		
-	   		if(directionsICanPlant > spotsINeed && ((safe && planted < soldiers*2 && soldiers >= 1))) {
+	   		if(directionsICanPlant > spotsINeed && ((safe && soldiers > 0))) {
 	   			buildtree = true;
 	   		} else {
 	   			buildtree = false;

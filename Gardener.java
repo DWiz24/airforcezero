@@ -206,9 +206,6 @@ public class Gardener {
     		//What do I build code
     		boolean buildtree = false;
     		
-    		//int countedSoliders = get from team shared array
-    		//TreeInfo[] nearbyTrees = rc.senseNearbyTrees();
-    		
     		boolean safe = true;
     		if((distance < 30f && rc.getRoundNum() < 100)) {
     			safe = false;
@@ -267,13 +264,8 @@ public class Gardener {
 	   		} else {
 	   			lumbersNeeded = 3;
 	   		}
-	   		
-			//boolean needLumber = true;
-			//if(!safe && directionsICanPlant > 1)
-			//	needLumber = false;
 
 	   		for (Direction place : dirs) {
-				//if(sad!=null && rc.isLocationOccupied(sad.add(place)))
 				if (rc.canPlantTree(place) && buildtree) { 
 					rc.plantTree(place);
 					lastRoundPlanted = rc.getRoundNum();

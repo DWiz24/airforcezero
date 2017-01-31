@@ -277,7 +277,7 @@ public class Gardener {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
 							myLumbers++;
 						}
-					} else if(safe && soldiers > 1 && rc.readBroadcast(5) < 1 && rc.getRoundNum() < 1500) {
+					} else if(safe && soldiers > 1 && rc.readBroadcast(5) < 1 && rc.getRoundNum() < 500) {
 						if(rc.canBuildRobot(RobotType.SCOUT, place)) {
 							rc.buildRobot(RobotType.SCOUT, place);
 						}

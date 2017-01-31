@@ -196,7 +196,7 @@ public class Gardener {
     		//TreeInfo[] nearbyTrees = rc.senseNearbyTrees();
     		
     		boolean safe = true;
-    		if((distance < 20f && rc.getRoundNum() < 100)) {
+    		if((distance < 30f && rc.getRoundNum() < 100)) {
     			safe = false;
     		}
     		
@@ -232,24 +232,17 @@ public class Gardener {
 	   		if(soldiers+lumbers+planted == 0)
 	   			safe = false;
     		
-    		boolean longTimeSinceCombat = false;
-    		if(rc.getRoundNum() - rc.readBroadcast(50) > 150) {
-    			longTimeSinceCombat = true;
-    			spotsINeed = 0;
-    		}
     		
-	   		if(directionsICanPlant > spotsINeed && ((safe && planted < soldiers*2 && soldiers >= 1) || longTimeSinceCombat)) {
+	   		if(directionsICanPlant > spotsINeed && ((safe && planted < soldiers*2 && soldiers >= 1))) {
 	   			buildtree = true;
-	   			//System.out.println("setting buildtree true");
 	   		} else {
 	   			buildtree = false;
-	   			//System.out.println("setting buildtree false");
 	   		}
 	   		
 			//boolean needLumber = true;
 			//if(!safe && directionsICanPlant > 1)
 			//	needLumber = false;
-			
+
 	   		for (Direction place : dirs) {
 				//if(sad!=null && rc.isLocationOccupied(sad.add(place)))
 				if (rc.canPlantTree(place) && buildtree) { 
@@ -258,7 +251,7 @@ public class Gardener {
 					planted++;
 				}
 					//if(((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 1 && directionsICantPlant > 1) && (directionsICantPlant >= 4 || planted < 3)) && ((float)lumbers < (float)soldiers/(2f + rc.getRoundNum()/300f))) {
-					if((((rc.senseNearbyTrees(10f, Team.NEUTRAL).length > 0) && lumbers < 1))) {
+					if((((rc.senseNearbyTrees(10f, Team.NEUTRAL).length > 0) && lumbers < 1) || rc.readBroadcast(200) > 1)) {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
 							rc.broadcast(2, rc.readBroadcast(2) + 1);

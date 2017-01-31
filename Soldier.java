@@ -2,6 +2,8 @@ package airforcezero;
 
 import battlecode.common.*;
 
+import java.util.Map;
+
 
 public class Soldier {
     static RobotController rc;
@@ -15,8 +17,11 @@ public class Soldier {
     static int stoppedCreeping = 0;
     static RobotInfo pastTarget = null;
     static int pastTargetSet = 0;
-    static int underFire=-1;
+    static int underFire = -1;
     static float prevHealth, health;
+    static MapLocation[] targets=new MapLocation[10];
+    static int[] radii=new int[10];
+    static int offScreenTargets=-1;
     private static boolean dead;
 
     public static void run(RobotController rc) throws GameActionException {
@@ -32,7 +37,7 @@ public class Soldier {
             //health and census
             prevHealth = health;
             health = rc.getHealth();
-            if(!dead && PublicMethods.isAboutToDie(rc, prevHealth)) {
+            if (!dead && PublicMethods.isAboutToDie(rc, prevHealth)) {
                 dead = true;
                 rc.broadcast(3, rc.readBroadcast(3) - 1); //decrement census
             }
@@ -52,7 +57,7 @@ public class Soldier {
                 RobotInfo r = robots[i];
                 //if (r.team==Team.NEUTRAL) System.out.println("NEUTRAL DETECTED");
                 if (r.team == rc.getTeam()) {
-                    if(r.type == RobotType.GARDENER){
+                    if (r.type == RobotType.GARDENER) {
                         Lumberjack.friendlyGardeners[Lumberjack.friendlyGardenerCount] = r;
                         Lumberjack.friendlyGardenerCount++;
                     }
@@ -64,6 +69,18 @@ public class Soldier {
             if (Lumberjack.friendlyGardenerCount > 0) {
                 Lumberjack.prevGardenerPos = Lumberjack.friendlyGardeners[0].location;
             }
+            offScreenTargets=-1;
+            for (int i=202; i<220; i+=2) {
+                int message = rc.readBroadcast(i);
+                if (message!=0 && rc.getRoundNum()-rc.readBroadcast(i+1)<5) {
+                    MapLocation target = getShootLocation(message);
+                    if (rc.getLocation().distanceTo(target)<30) {
+                        targets[++offScreenTargets] = target;
+                        radii[offScreenTargets] = message & 0b111111;
+                    }
+                }
+            }
+            //System.out.println(offScreenTargets);
             if (enemies >= 3 || bullets.length != 0) rc.broadcast(50, rc.getRoundNum());
             if (enemies == -1 && rc.getRoundNum() - stoppedCreeping > 50) {
                 microCreeping = false;
@@ -129,7 +146,7 @@ public class Soldier {
                 }
                 //System.out.println("pickDest " + Clock.getBytecodeNum());
                 oldLoc = newLoc;
-                if (enemies >= 0 && enemy[0].type!=RobotType.SCOUT) {
+                if (enemies >= 0 && enemy[0].type != RobotType.SCOUT) {
                     MapLocation loc = enemy[0].location;
 
                     gotoHacks:
@@ -163,13 +180,13 @@ public class Soldier {
                     TreeInfo info = trees[i];
                     int staticPriority = Lumberjack.staticPriorityOfTree(rc, info);
                     float staticPriority2 = staticPriority * 66.66666667f + Lumberjack.dynamicPriorityFromBase(info);
-                    if(staticPriority2 > bestPriorityStatic2){
+                    if (staticPriority2 > bestPriorityStatic2) {
                         bestPriorityStatic = staticPriority;
                         bestPriorityStatic2 = staticPriority2;
                         bestTree = info;
                     }
                 }
-                if(bestTree != null) {
+                if (bestTree != null) {
                     //2. check if other reported trees near
                     Lumberjack.areLocationsNear(rc, bestTree.location);
                     //3. report
@@ -280,7 +297,7 @@ public class Soldier {
             }
         }
         nbullets--;
-        if (nbullets!=-1) underFire=rc.getRoundNum();
+        if (nbullets != -1) underFire = rc.getRoundNum();
         MapLocation[] jack = new MapLocation[enemies + 1];
         int jacks = -1;
         //int enemySoldiersNTanks = 0;
@@ -297,7 +314,7 @@ public class Soldier {
             float radsBetween = Math.abs(b.location.directionTo(loc).radiansBetween(b.dir));
             if (dist <= 1 || Math.asin(1 / dist) > radsBetween) {
                 double sintheta = Math.sin(radsBetween);
-                if (dist<=1 || Math.sin(Math.asin(dist * sintheta) - radsBetween) / sintheta < Math.min(dists[k], b.speed) || 0.2 * Math.sin(Math.asin(dist * sintheta / 0.2) - radsBetween) / sintheta < dists[k])
+                if (dist <= 1 || Math.sin(Math.asin(dist * sintheta) - radsBetween) / sintheta < Math.min(dists[k], b.speed) || 0.2 * Math.sin(Math.asin(dist * sintheta / 0.2) - radsBetween) / sintheta < dists[k])
                     minDamage += b.damage;
             }
         }
@@ -323,14 +340,27 @@ public class Soldier {
                     minDist = Math.max(minDist, -99 * loc.distanceTo(enemy[i].location));
             }
         }
-        if (enemies==-1) minDist=-(pastTarget!=null && rc.getRoundNum()-pastTargetSet<16?loc.distanceTo(pastTarget.location):loc.distanceTo(Nav.dest));
+        if (enemies == -1) {
+            if (pastTarget != null && rc.getRoundNum() - pastTargetSet < 10)
+                minDist = -loc.distanceTo(pastTarget.location);
+            else {
+                float closestDist = 999;
+                for (int p = offScreenTargets; p >= 0; p--) {
+                    if (closestDist > loc.distanceTo(targets[p])) {
+                        closestDist = loc.distanceTo(targets[p]);
+                    }
+                }
+                if (closestDist != 999f) minDist = -closestDist;
+                else minDist = -loc.distanceTo(Nav.dest);
+            }
+        }
         MapLocation best = rc.getLocation();
         Direction dir = Direction.getEast();
 
         for (int i = 8; i > 0; i--) {
             //MapLocation move = rc.getLocation().add(dir, 1.9f);
             //if (!rc.isCircleOccupied(move,1))
-            MapLocation move =loc.add(dir, 0.8f);
+            MapLocation move = loc.add(dir, 0.8f);
             if (rc.canMove(move)) {
                 int damage = 0;
                 for (int k = nbullets; k >= 0; k--) {
@@ -339,9 +369,9 @@ public class Soldier {
                     float radsBetween = Math.abs(b.location.directionTo(move).radiansBetween(b.dir));
                     if (dist <= 1 || Math.asin(1 / dist) > radsBetween) {
                         double sintheta = Math.sin(radsBetween);
-                        if (dist<=1 || Math.sin(Math.asin(dist * sintheta) - radsBetween) / sintheta < Math.min(dists[k], b.speed) || 0.2 * Math.sin(Math.asin(dist * sintheta / 0.2) - radsBetween) / sintheta < dists[k])
+                        if (dist <= 1 || Math.sin(Math.asin(dist * sintheta) - radsBetween) / sintheta < Math.min(dists[k], b.speed) || 0.2 * Math.sin(Math.asin(dist * sintheta / 0.2) - radsBetween) / sintheta < dists[k])
                             damage += b.damage;
-                            //rc.setIndicatorDot(b.location,255,255,255);
+                        //rc.setIndicatorDot(b.location,255,255,255);
                     }
                 }
 
@@ -367,7 +397,18 @@ public class Soldier {
                         }
                     }
 
-                    if (enemies == -1) theDist = -(pastTarget!=null && rc.getRoundNum()-pastTargetSet<16?move.distanceTo(pastTarget.location):move.distanceTo(Nav.dest));
+                    if (enemies == -1)
+                        if (pastTarget != null && rc.getRoundNum() - pastTargetSet < 16)theDist = - move.distanceTo(pastTarget.location);
+                        else {
+                            float closestDist = 999;
+                            for (int p = offScreenTargets; p >= 0; p--) {
+                                if (closestDist > move.distanceTo(targets[p])) {
+                                    closestDist = move.distanceTo(targets[p]);
+                                }
+                            }
+                            if (closestDist != 999f) theDist = -closestDist;
+                            else theDist = -move.distanceTo(Nav.dest);
+                        }
                     if (damage < minDamage || damage == minDamage && theDist > minDist) {
                         minDamage = damage;
                         best = move;
@@ -520,42 +561,51 @@ public class Soldier {
         return best;
     }
 
-    static void reportShootLocation(RobotInfo r,int rNum) throws GameActionException{
-        RobotController rc=Soldier.rc;
-        MapLocation loc=r.location;
+    static void reportShootLocation(RobotInfo r, int rNum) throws GameActionException {
+        RobotController rc = Soldier.rc;
+        MapLocation loc = r.location;
+        rc.setIndicatorDot(r.location,255,255,255);
         int xpart = ((int) (r.location.x * 8)) << 19;
         int ypart = ((int) (r.location.y * 8)) << 6;
-        int message = xpart | ypart | (int)(r.getRadius()+1);
-        daLoop:for (int i=202; i<220; i+=2) {
-            int mess=rc.readBroadcast(i);
-            int num=rc.readBroadcast(i+1);
-            gotoHacks: {
-                if (mess!=0 && rNum-num<6) {
-                    if (getShootLocation(mess).distanceTo(loc)<3) break gotoHacks;;
+        int message = xpart | ypart | (int) (r.getRadius() + 1);
+        //System.out.println(Integer.toBinaryString(message));
+        //System.out.println(r.location);
+        //System.out.println(getShootLocation(message));
+        //if (r.location.distanceTo(getShootLocation(message))>0.5) System.out.println("OOPS");
+        daLoop:
+        for (int i = 202; i < 220; i += 2) {
+            int mess = rc.readBroadcast(i);
+            int num = rc.readBroadcast(i + 1);
+            gotoHacks:
+            {
+                if (mess != 0 && rNum - num < 6) {
+                    if (getShootLocation(mess).distanceTo(loc) < 3) break gotoHacks;
                 }
-                rc.broadcast(i,message);
-                switch(r.type) {
+                rc.broadcast(i, message);
+                switch (r.type) {
                     case SOLDIER:
                     case LUMBERJACK:
-                        rc.broadcast(i+1,rNum);
+                        rc.broadcast(i + 1, rNum);
                         break;
                     case TANK:
                     case ARCHON:
-                        rc.broadcast(i+1,rNum-10);
+                        rc.broadcast(i + 1, rNum - 10);
                         break;
                     case SCOUT:
-                        rc.broadcast(i+1,rNum+3);
+                        rc.broadcast(i + 1, rNum + 3);
                         break;
                     case GARDENER:
-                        rc.broadcast(i+1,i-3);
+                        rc.broadcast(i + 1, i - 3);
                 }
                 break daLoop;
             }
         }
     }
+
     static MapLocation getShootLocation(int m) {
-        return new MapLocation((m&0b11111111111110000000000000000000)/8.0f,(m&0b1111111111111000000)/8.0f);
+        return new MapLocation(((m & 0b11111111111110000000000000000000)>>19) / 8.0f, ((m & 0b1111111111111000000)>>6) / 8.0f);
     }
+
     //we're using 30-45 for combat
     //30 holds the next location to update
     //info&(1<<7) tells whether this is an archon loc
@@ -605,7 +655,7 @@ public class Soldier {
     }
 
     static void shootOrMove(RobotController rc, MapLocation toMove, TreeInfo[] trees, RobotInfo[] enemy, int enemies, RobotInfo[] friend, int friends, BulletInfo[] bullets, RobotInfo[] robots) throws GameActionException {
-        int totalTrees=rc.getTreeCount();
+        int totalTrees = rc.getTreeCount();
         if (toMove != rc.getLocation()) {
             rc.move(toMove);
             trees = rc.senseNearbyTrees();
@@ -693,12 +743,13 @@ public class Soldier {
                             bestPri = pri;
                             pastTarget = target;
                             pastTargetSet = rc.getRoundNum();
-                            if (d-target.getRadius()<5 && (bullets.length>12 || d<4 || totalTrees>1)) {
+                            if (d - target.getRadius() < 5 && (bullets.length > 12 || d < 4 || totalTrees > 1)) {
                                 bestShot = a1.rotateRightDegrees(degs);
                             } else {
                                 bestShot = a1.rotateRightDegrees((float) (0.001 + (degs - 0.001) * Math.random()));
                             }
-                            penta = rc.canFirePentadShot() && (degs > 41 || !(leftFriend && rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 600)&& degs>0.05;
+                            reportShootLocation(target, rc.getRoundNum());
+                            penta = rc.canFirePentadShot() && (degs > 41 || !(leftFriend && rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 600) && degs > 0.05;
                         }
                     }
                     if (bestShot != null && d <= 2 + target.getRadius()) {
@@ -706,124 +757,194 @@ public class Soldier {
                     }
                 }
             }
-            if (pastTarget != null && bestShot == null && rc.canSenseAllOfCircle(pastTarget.location, pastTarget.getRadius()+1))
-                pastTargetSet =Math.min(pastTargetSet,rc.getRoundNum()-11);
-            if (bestShot == null && pastTarget != null && rc.getRoundNum() - pastTargetSet < 5) {
-                RobotInfo target = pastTarget;
-                float d = toMove.distanceTo(target.location);
-                float theta = (float) Math.asin(target.getRadius() / d);
-                Direction dir = toMove.directionTo(target.location);
-                Direction a1 = dir.rotateLeftRads(theta);
-                Direction a2 = dir.rotateRightRads(theta);
-                //rc.setIndicatorLine(toMove,toMove.add(a1,2),0,0,255);
-                //rc.setIndicatorLine(toMove,toMove.add(a2,2),0,0,255);
-                gotoHacks:
-                {
-                    boolean leftFriend = false;
-                    boolean rightFriend = false;
-                    for (int i = 0; i <= friends; i++) {
-                        float dist = cur.distanceTo(friend[i].getLocation())-friend[i].getRadius();
-                        if (d + 2 < dist) break;
-                        //rc.setIndicatorDot(avoid[i].getLocation(),255,0,0);
-                        float thetai = (float) Math.asin(friend[i].getRadius() / dist);
-                        Direction diri = cur.directionTo(friend[i].location);
-                        boolean a1contained = Math.abs(a1.radiansBetween(diri)) <= thetai;
-                        boolean a2contained = Math.abs(a2.radiansBetween(diri)) <= thetai;
-                        if (a1contained && a2contained || a1.radiansBetween(a2) >= 0) {
-                            break gotoHacks;
-                        } else if (a1contained) {
-                            a1 = diri.rotateRightRads(thetai + 0.0001f);
-                            leftFriend = true;
-                        } else if (a2contained) {
-                            a2 = diri.rotateLeftRads(thetai + 0.0001f);
-                            rightFriend = true;
+            if (pastTarget != null && bestShot == null && rc.canSenseAllOfCircle(pastTarget.location, pastTarget.getRadius() + 1))
+                pastTargetSet = Math.min(pastTargetSet, rc.getRoundNum() - 11);
+            if (bestShot == null) {
+                for (int p = offScreenTargets; p >=0; p--) {
+                    MapLocation target=targets[p];
+                    int rad=radii[p];
+                    float d = toMove.distanceTo(target);
+                    if (d > 11) continue;
+                    float theta = (float) Math.asin(rad / d);
+                    Direction dir = toMove.directionTo(target);
+                    Direction a1 = dir.rotateLeftRads(theta);
+                    Direction a2 = dir.rotateRightRads(theta);
+                    //rc.setIndicatorLine(toMove,toMove.add(a1,2),0,0,255);
+                    //rc.setIndicatorLine(toMove,toMove.add(a2,2),0,0,255);
+                    gotoHacks:
+                    {
+                        boolean leftFriend = false;
+                        boolean rightFriend = false;
+                        for (int i = 0; i <= friends; i++) {
+                            float dist = cur.distanceTo(friend[i].getLocation()) - friend[i].getRadius();
+                            if (d + 2 < dist) break;
+                            //rc.setIndicatorDot(avoid[i].getLocation(),255,0,0);
+                            float thetai = (float) Math.asin(friend[i].getRadius() / dist);
+                            Direction diri = cur.directionTo(friend[i].location);
+                            boolean a1contained = Math.abs(a1.radiansBetween(diri)) <= thetai;
+                            boolean a2contained = Math.abs(a2.radiansBetween(diri)) <= thetai;
+                            if (a1contained && a2contained || a1.radiansBetween(a2) >= 0) {
+                                break gotoHacks;
+                            } else if (a1contained) {
+                                a1 = diri.rotateRightRads(thetai + 0.0001f);
+                                leftFriend = true;
+                            } else if (a2contained) {
+                                a2 = diri.rotateLeftRads(thetai + 0.0001f);
+                                rightFriend = true;
+                            }
                         }
-                    }
-                    for (int i = 0; i < treen; i++) {
-                        float dist = cur.distanceTo(trees[i].location)-trees[i].radius;
-                        if (d < dist) break;
-                        //rc.setIndicatorDot(avoid[i].getLocation(),255,0,0);
-                        float thetai = (float) Math.asin(trees[i].radius / dist);
-                        Direction diri = cur.directionTo(trees[i].location);
-                        boolean a1contained = Math.abs(a1.radiansBetween(diri)) <= thetai;
-                        boolean a2contained = Math.abs(a2.radiansBetween(diri)) <= thetai;
-                        if (a1contained && a2contained || a1.radiansBetween(a2) >= 0) {
-                            break gotoHacks;
-                        } else if (a1contained) {
-                            a1 = diri.rotateRightRads(thetai + 0.0001f);
-                            leftFriend = false;
-                        } else if (a2contained) {
-                            rightFriend = false;
-                            a2 = diri.rotateLeftRads(thetai + 0.0001f);
+                        for (int i = 0; i < treen; i++) {
+                            float dist = cur.distanceTo(trees[i].location) - trees[i].radius;
+                            if (d < dist) break;
+                            //rc.setIndicatorDot(avoid[i].getLocation(),255,0,0);
+                            float thetai = (float) Math.asin(trees[i].radius / dist);
+                            Direction diri = cur.directionTo(trees[i].location);
+                            boolean a1contained = Math.abs(a1.radiansBetween(diri)) <= thetai;
+                            boolean a2contained = Math.abs(a2.radiansBetween(diri)) <= thetai;
+                            if (a1contained && a2contained || a1.radiansBetween(a2) >= 0) {
+                                break gotoHacks;
+                            } else if (a1contained) {
+                                a1 = diri.rotateRightRads(thetai + 0.0001f);
+                                leftFriend = false;
+                            } else if (a2contained) {
+                                rightFriend = false;
+                                a2 = diri.rotateLeftRads(thetai + 0.0001f);
+                            }
                         }
-                    }
-                    //rc.setIndicatorDot(target.location,0,255,0);
-                    //rc.setIndicatorLine(toMove,toMove.add(a1.rotateRightDegrees(a2.degreesBetween(a1)/2.0f),8),0,0,255);
-                    float degs = a2.degreesBetween(a1) / 2.0f;
-                    if (target.type != RobotType.ARCHON || rc.getRoundNum() > 500) {
-                        double pri = target.health;
-                        switch (target.type) {
-                            case ARCHON:
-                                pri *= 100;
-                                break;
-                            case GARDENER:
-                                pri *= 6;
-                                break;
-                            case LUMBERJACK:
-                                pri *= 8;
-                                break;
-                            case SCOUT:
-                                pri *= 4;
-                                break;
-                        }
-                        if (pri < bestPri && (bullets.length>12 || d<4 || totalTrees>1)) {
-                            if (d-target.getRadius()<5) {
+                        //rc.setIndicatorDot(target.location,0,255,0);
+                        //rc.setIndicatorLine(toMove,toMove.add(a1.rotateRightDegrees(a2.degreesBetween(a1)/2.0f),8),0,0,255);
+                        float degs = a2.degreesBetween(a1) / 2.0f;
+                        if (totalTrees > 3) {
+                            if (d - rad < 5) {
                                 bestShot = a1.rotateRightDegrees(degs);
                             } else {
                                 bestShot = a1.rotateRightDegrees((float) (0.001 + (degs - 0.001) * Math.random()));
                             }
-                            penta = rc.canFireTriadShot() && (degs > 61 || !(leftFriend && rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 600);
+                            penta = rc.canFireTriadShot() && !(leftFriend && rightFriend);
                         }
                     }
+
                 }
-            }
-            if (bestShot != null && !rc.hasAttacked()) {
-                if (penta) {
-                    rc.fireTriadShot(bestShot);
-                } else {
-                    rc.fireSingleShot(bestShot);
-                }
-            }
+
         }
-        if (rc.getRoundNum()!=underFire && !rc.hasMoved() && !rc.hasAttacked()) {
-            if (!microCreeping) {
-                creepStart = rc.getRoundNum();
-            }
-            microCreeping = true;
-            if (rc.getRoundNum() - creepStart > 20) {
-                rc.move(Nav.soldierNav(rc, trees, robots));
-                //microCreeping=false;
-            } else if (enemies != -1) {
-                stoppedCreeping = rc.getRoundNum();
-                float minDist = 99;
-                RobotInfo closest = null;
-                for (int i = enemies; i >= 0; i--) {
-                    float dist = enemy[i].location.distanceTo(rc.getLocation());
-                    if (dist < minDist) {
-                        closest = enemy[i];
-                        minDist = dist;
+        if (bestShot == null && pastTarget != null && rc.getRoundNum() - pastTargetSet < 5) {
+            RobotInfo target = pastTarget;
+            float d = toMove.distanceTo(target.location);
+            float theta = (float) Math.asin(target.getRadius() / d);
+            Direction dir = toMove.directionTo(target.location);
+            Direction a1 = dir.rotateLeftRads(theta);
+            Direction a2 = dir.rotateRightRads(theta);
+            //rc.setIndicatorLine(toMove,toMove.add(a1,2),0,0,255);
+            //rc.setIndicatorLine(toMove,toMove.add(a2,2),0,0,255);
+            gotoHacks:
+            {
+                boolean leftFriend = false;
+                boolean rightFriend = false;
+                for (int i = 0; i <= friends; i++) {
+                    float dist = cur.distanceTo(friend[i].getLocation()) - friend[i].getRadius();
+                    if (d + 2 < dist) break;
+                    //rc.setIndicatorDot(avoid[i].getLocation(),255,0,0);
+                    float thetai = (float) Math.asin(friend[i].getRadius() / dist);
+                    Direction diri = cur.directionTo(friend[i].location);
+                    boolean a1contained = Math.abs(a1.radiansBetween(diri)) <= thetai;
+                    boolean a2contained = Math.abs(a2.radiansBetween(diri)) <= thetai;
+                    if (a1contained && a2contained || a1.radiansBetween(a2) >= 0) {
+                        break gotoHacks;
+                    } else if (a1contained) {
+                        a1 = diri.rotateRightRads(thetai + 0.0001f);
+                        leftFriend = true;
+                    } else if (a2contained) {
+                        a2 = diri.rotateLeftRads(thetai + 0.0001f);
+                        rightFriend = true;
                     }
                 }
-                Direction theDir = closest.location.directionTo(rc.getLocation());
-                if (rc.canMove(theDir.rotateLeftDegrees(microCreepDir * 80), 0.2f)) {
-                    rc.move(theDir.rotateLeftDegrees(microCreepDir * 80), 0.2f);
-                } else {
-                    microCreepDir = -microCreepDir;
+                for (int i = 0; i < treen; i++) {
+                    float dist = cur.distanceTo(trees[i].location) - trees[i].radius;
+                    if (d < dist) break;
+                    //rc.setIndicatorDot(avoid[i].getLocation(),255,0,0);
+                    float thetai = (float) Math.asin(trees[i].radius / dist);
+                    Direction diri = cur.directionTo(trees[i].location);
+                    boolean a1contained = Math.abs(a1.radiansBetween(diri)) <= thetai;
+                    boolean a2contained = Math.abs(a2.radiansBetween(diri)) <= thetai;
+                    if (a1contained && a2contained || a1.radiansBetween(a2) >= 0) {
+                        break gotoHacks;
+                    } else if (a1contained) {
+                        a1 = diri.rotateRightRads(thetai + 0.0001f);
+                        leftFriend = false;
+                    } else if (a2contained) {
+                        rightFriend = false;
+                        a2 = diri.rotateLeftRads(thetai + 0.0001f);
+                    }
+                }
+                //rc.setIndicatorDot(target.location,0,255,0);
+                //rc.setIndicatorLine(toMove,toMove.add(a1.rotateRightDegrees(a2.degreesBetween(a1)/2.0f),8),0,0,255);
+                float degs = a2.degreesBetween(a1) / 2.0f;
+                if (target.type != RobotType.ARCHON || rc.getRoundNum() > 500) {
+                    double pri = target.health;
+                    switch (target.type) {
+                        case ARCHON:
+                            pri *= 100;
+                            break;
+                        case GARDENER:
+                            pri *= 6;
+                            break;
+                        case LUMBERJACK:
+                            pri *= 8;
+                            break;
+                        case SCOUT:
+                            pri *= 4;
+                            break;
+                    }
+                    if (pri < bestPri && (bullets.length > 12 || d < 4 || totalTrees > 1)) {
+                        if (d - target.getRadius() < 5) {
+                            bestShot = a1.rotateRightDegrees(degs);
+                        } else {
+                            bestShot = a1.rotateRightDegrees((float) (0.001 + (degs - 0.001) * Math.random()));
+                        }
+                        penta = rc.canFireTriadShot() && (degs > 61 || !(leftFriend && rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 600);
+                    }
                 }
             }
         }
-
+        if (bestShot != null && !rc.hasAttacked()) {
+            if (penta) {
+                rc.fireTriadShot(bestShot);
+            } else {
+                rc.fireSingleShot(bestShot);
+            }
+        }
     }
+        if(rc.getRoundNum()!=underFire &&!rc.hasMoved()&&!rc.hasAttacked())
+
+    {
+        if (!microCreeping) {
+            creepStart = rc.getRoundNum();
+        }
+        microCreeping = true;
+        if (rc.getRoundNum() - creepStart > 20) {
+            rc.move(Nav.soldierNav(rc, trees, robots));
+            //microCreeping=false;
+        } else if (enemies != -1) {
+            stoppedCreeping = rc.getRoundNum();
+            float minDist = 99;
+            RobotInfo closest = null;
+            for (int i = enemies; i >= 0; i--) {
+                float dist = enemy[i].location.distanceTo(rc.getLocation());
+                if (dist < minDist) {
+                    closest = enemy[i];
+                    minDist = dist;
+                }
+            }
+            Direction theDir = closest.location.directionTo(rc.getLocation());
+            if (rc.canMove(theDir.rotateLeftDegrees(microCreepDir * 80), 0.2f)) {
+                rc.move(theDir.rotateLeftDegrees(microCreepDir * 80), 0.2f);
+            } else {
+                microCreepDir = -microCreepDir;
+            }
+        }
+    }
+
+}
 
     static void shakeATree(RobotController rc) throws GameActionException {
         TreeInfo[] trees = rc.senseNearbyTrees(2);

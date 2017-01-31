@@ -7,7 +7,7 @@ import java.lang.Math;
 public class Lumberjack {
     //global stuff
 
-    static final boolean DEBUG1 = true, DEBUG2 = true;  //set to false to make them shut up
+    static final boolean DEBUG1 = false, DEBUG2 = false;  //set to false to make them shut up
 
     //general
     private static RobotController rc;
@@ -18,7 +18,7 @@ public class Lumberjack {
     private static int excludeLocationsSize, excludeTreesSize;
     static boolean traveling;
     static boolean locationsNear;
-    private static boolean printedThisTurn;
+    private static boolean printedThisTurn, exploring;
     private static int travelingChannel;
     private static MapLocation prevGardenerPos;
     private static float prevHealth, health;
@@ -64,6 +64,7 @@ public class Lumberjack {
         traveling = false;
         travelingChannel = -1;
         locationsNear = false;
+        exploring = false;
         prevGardenerPos = rc.getInitialArchonLocations(rc.getTeam())[0];    //in case gardener runs away
         limit = 0f;
         prevHealth = health = rc.getHealth();
@@ -110,6 +111,7 @@ public class Lumberjack {
                     travelingChannel = next;
                     Nav.setDest(bestTreeStatic.location);
                     setLimit(bestTreeStatic.radius);
+                    exploring = false;
                 }
                 lumberjackNeeded(rc, bestTreeStatic.location, bestPriorityStatic, numberNeeded(rc, bestTreeStatic), bestTreeStatic.radius);
             }
@@ -349,6 +351,7 @@ public class Lumberjack {
         //TODO: make gardeners leave room for others.
         MapLocation nearTreeLoc = tree.location.add(tree.location.directionTo(rc.getLocation()), tree.radius + RobotType.LUMBERJACK.bodyRadius + 0.001f);
         Nav.setDest(nearTreeLoc);
+        exploring = false;
         limit = 0f;
         return nearTreeLoc;
     }
@@ -390,6 +393,7 @@ public class Lumberjack {
 
         locationsNear = false;
 
+        locationLoop:
         for(int i = 16; i < 30; i++){
             int value = rc.readBroadcast(i);
             MapLocation valueLoc = intToLocation(value);
@@ -409,7 +413,7 @@ public class Lumberjack {
             //check for exclusion
             for(int i2 = 0; i2 < excludeLocationsSize; i2++) {
                 if(exclude[i2].equals(valueLoc))
-                    continue;
+                    continue locationLoop;
             }
 
             //check for 0 needed
@@ -432,6 +436,7 @@ public class Lumberjack {
             travelingChannel = bestChannel;
             Nav.setDest(bestLocation);
             setLimit(intToRadius(bestValue));
+            exploring = false;
             if(DEBUG2){
                 System.out.print("\nPriority " + bestP + " exceeds current priority " + bestPriority + ".");
                 System.out.print("\n" + (intToNeeded(bestValue)-1) + " remaining.");
@@ -657,15 +662,25 @@ public class Lumberjack {
             excludeLocationsSize = 0;
             excludeTreesSize = 0;
         }
-        else{
+        else if (!exploring){
             //add to exclusions
             if(traveling){
-                excludeLocations[excludeLocationsSize] = Nav.dest;
-                excludeLocationsSize++;
+                if(excludeLocationsSize != 10) {
+                    excludeLocations[excludeLocationsSize] = Nav.dest;
+                    excludeLocationsSize++;
+                }
+                else if(DEBUG1){
+                    System.out.print("\n Reached location array limit!");
+                }
             }
             else{
-                excludeTrees[excludeTreesSize] = Nav.dest;
-                excludeTreesSize++;
+                if(excludeTreesSize != 10) {
+                    excludeTrees[excludeTreesSize] = Nav.dest;
+                    excludeTreesSize++;
+                }
+                else if(DEBUG1){
+                    System.out.print("\n Reached tree array limit!");
+                }
             }
         }
         if(traveling && reached){
@@ -676,10 +691,12 @@ public class Lumberjack {
         if(bestTree == null) {
             Nav.setDest(rc.getLocation().add(new Direction(rng.nextFloat() * 2 * (float) Math.PI), 20));   //explorer code
             limit = 0f;
+            exploring = true;
         }
         else{
             Nav.setDest(bestTree.location);
             limit = bestTree.radius + 1f;
+            exploring = false;
             if(DEBUG2) {
                 System.out.print("\nGoing after tree at " + bestTree.location.x + ", " + bestTree.location.y + ".");
                 printedThisTurn = true;

@@ -42,12 +42,12 @@ public class Soldier {
                     enemy[++enemies] = r;
                 }
             }
-            if (enemies>=3 || bullets.length!=0) rc.broadcast(50,rc.getRoundNum());
+            if (enemies >= 3 || bullets.length != 0) rc.broadcast(50, rc.getRoundNum());
             if (enemies == -1 && rc.getRoundNum() - stoppedCreeping > 50) {
                 microCreeping = false;
             }
             //int bcode = Clock.getBytecodeNum();
-            if (enemies > 0 || bullets.length != 0 || (enemies == 0 && (enemy[0].type!=RobotType.ARCHON || (oneArchon && !importantDest)))) {
+            if (enemies > 0 || bullets.length != 0 || (enemies == 0 && (enemy[0].type != RobotType.ARCHON || (oneArchon && !importantDest)))) {
                 //if (enemies==-1 || enemy[0].location.distanceTo(rc.getLocation())>10) {
                 //    toMove=twoMovetwoDistMicro(rc, trees, friend, friends, enemy, enemies, bullets);
                 //} else {
@@ -187,11 +187,11 @@ public class Soldier {
         MapLocation loc = rc.getLocation();
         BulletInfo[] bullets = new BulletInfo[allBullets.length];
         for (int i = allBullets.length - 1; i >= 0; i--) {
-            BulletInfo b=allBullets[i];
+            BulletInfo b = allBullets[i];
             MapLocation oloc = b.location;
             float dist = loc.distanceTo(oloc);
-            float radsBetween=Math.abs(oloc.directionTo(loc).radiansBetween(allBullets[i].dir));
-            if (dist<=1.8 || Math.asin(1.8 / dist) >= radsBetween) {
+            float radsBetween = Math.abs(oloc.directionTo(loc).radiansBetween(b.dir));
+            if (dist <= 1.8 || Math.asin(1.8 / dist) >= radsBetween) {
                 float minDist = b.speed * 2;
                 for (int k = trees.length - 1; k >= 0; k--) {
                     MapLocation tree = trees[k].location;
@@ -219,11 +219,16 @@ public class Soldier {
                         }
                     }
                 }
-                double sintheta=Math.sin(radsBetween);
-                if (Math.asin(0.2 / dist) <= radsBetween || 0.2*Math.sin(Math.PI-Math.asin(dist*sintheta/0.2)-radsBetween)/sintheta>b.speed) {
-                    dists[nbullets] = minDist;
-                    rc.setIndicatorLine(b.location, b.location.add(b.dir, minDist), 100, 100, 100);
-                    bullets[nbullets++] = b;
+                double sintheta = Math.sin(radsBetween);
+                //boolean a=;
+                //double distB=; //1.570796+
+                //System.out.println(a+" "+ distB);
+                if (dist < 1.8 || 1.8 * Math.sin(Math.asin(dist * sintheta / 1.8) - radsBetween) / sintheta < minDist) {
+                    if (Math.asin(0.2 / dist) <= radsBetween || 0.2 * Math.sin(Math.asin(dist * sintheta / 0.2) - radsBetween) / sintheta > b.speed) {
+                        dists[nbullets] = minDist;
+                        //rc.setIndicatorLine(b.location, b.location.add(b.dir, minDist), 100, 100, 100);
+                        bullets[nbullets++] = b;
+                    }
                 }
             }
         }
@@ -231,19 +236,9 @@ public class Soldier {
 
         MapLocation[] jack = new MapLocation[enemies + 1];
         int jacks = -1;
-        int enemySoldiersNTanks = 0;
+        //int enemySoldiersNTanks = 0;
         for (int i = enemies; i >= 0; i--) {
-            if (enemy[i].health > 30 || enemy[i].moveCount != 0 || enemy[i].attackCount != 0)
-                switch (enemy[i].type) {
-                    case LUMBERJACK:
-                        if (enemy[i].location.distanceTo(loc) < 4.75) jack[++jacks] = enemy[i].location;
-                        break;
-                    case SOLDIER:
-                        enemySoldiersNTanks++;
-                        break;
-                    case TANK:
-                        enemySoldiersNTanks += 3;
-                }
+            if (enemy[i].location.distanceTo(loc) < 4.75) jack[++jacks] = enemy[i].location;
         }
         //int newByte=Clock.getBytecodeNum();
         //System.out.println("Precomputation: "+(newByte-prebyte));
@@ -251,31 +246,37 @@ public class Soldier {
         float minDist = 99999;
         for (int k = nbullets; k >= 0; k--) {
             BulletInfo b = bullets[k];
-            float dist = b.location.distanceTo(loc);
-            if (Math.asin(1 / dist) > Math.abs(b.location.directionTo(loc).radiansBetween(b.dir))) {
-                if (dist < dists[k]) minDamage += b.damage;
+            float dist = loc.distanceTo(b.location);
+            float radsBetween = Math.abs(b.location.directionTo(loc).radiansBetween(b.dir));
+            if (dist <= 1 || Math.asin(1 / dist) > radsBetween) {
+                double sintheta = Math.sin(radsBetween);
+                if (Math.sin(Math.asin(dist * sintheta) - radsBetween) / sintheta < Math.min(dists[k], b.speed) || 0.2 * Math.sin(Math.asin(dist * sintheta / 0.2) - radsBetween) / sintheta < dists[k])
+                    minDamage += b.damage;
             }
         }
 
         for (int k = jacks; k >= 0; k--) {
-            if (loc.distanceTo(jack[k]) <= 3.8) minDamage += 2;
+            if (loc.distanceTo(jack[k]) <= 3.75) minDamage += 2;
         }
         //boolean attackOrRun = (enemySoldiersNTanks >= friends + 2) || (enemySoldiersNTanks > 0 && friends <= 1 && rc.getHealth() < 20);
-        boolean attackOrRun=true;
         // true means run
         //if (attackOrRun) rc.setIndicatorDot(rc.getLocation(), 0, 0, 0);
-        if (attackOrRun) {
-            for (int i = enemies; i >= 0; i--) {
-                if (enemy[i].type == RobotType.SOLDIER || enemy[i].type == RobotType.TANK)
-                    minDist = Math.min(rc.getLocation().distanceTo(enemy[i].location), minDist);
+        for (int i = enemies; i >= 0; i--) {
+            switch (enemy[i].type) {
+                case SOLDIER:
+                case TANK:
+                    minDist = Math.max(loc.distanceTo(enemy[i].location), minDist);
+                    break;
+                case SCOUT:
+                case GARDENER:
+                case LUMBERJACK:
+                    minDist = Math.max(minDist, -loc.distanceTo(enemy[i].location));
+                    break;
+                case ARCHON:
+                    minDist = Math.max(minDist, -99 * loc.distanceTo(enemy[i].location));
             }
-            minDist = -minDist;
-        } else {
-            for (int i = enemies; i >= 0; i--) {
-                minDist = Math.min(enemy[i].type == RobotType.ARCHON ? rc.getLocation().distanceTo(enemy[i].location) * 99 : rc.getLocation().distanceTo(enemy[i].location), minDist);
-            }
-            if (enemies == -1) minDist = rc.getLocation().distanceTo(Nav.dest);
         }
+        if (enemies==-1) minDist=-(pastTarget!=null && rc.getRoundNum()-pastTargetSet<20?loc.distanceTo(pastTarget.location):loc.distanceTo(Nav.dest));
         MapLocation best = rc.getLocation();
         Direction dir = Direction.getEast();
 
@@ -288,29 +289,38 @@ public class Soldier {
                 for (int k = nbullets; k >= 0; k--) {
                     BulletInfo b = bullets[k];
                     float dist = b.location.distanceTo(move);
-                    if (dist <= 1 || Math.asin(1 / dist) > Math.abs(b.location.directionTo(move).radiansBetween(b.dir))) {
-                        if (dist < dists[k]) damage += b.damage;
+                    float radsBetween = Math.abs(b.location.directionTo(move).radiansBetween(b.dir));
+                    if (dist <= 1 || Math.asin(1 / dist) > radsBetween) {
+                        double sintheta = Math.sin(radsBetween);
+                        if (Math.sin(Math.asin(dist * sintheta) - radsBetween) / sintheta < Math.min(dists[k], b.speed) || 0.2 * Math.sin(Math.asin(dist * sintheta / 0.2) - radsBetween) / sintheta < dists[k])
+                            damage += b.damage;
                     }
                 }
 
                 for (int k = jacks; k >= 0; k--) {
-                    if (move.distanceTo(jack[k]) <= 3.8) damage += 2;
+                    if (move.distanceTo(jack[k]) <= 3.75) damage += 2;
                 }
                 if (damage <= minDamage) {
-                    float theDist = 9999999;
-                    if (attackOrRun) {
-                        for (int x = enemies; x >= 0; x--) {
-                            if (enemy[x].type == RobotType.SOLDIER || enemy[x].type == RobotType.TANK)
-                                theDist = Math.min(move.distanceTo(enemy[x].location), theDist);
-                        }
-                        theDist = -theDist;
-                    } else {
-                        for (int x = enemies; x >= 0; x--) {
-                            theDist = Math.min(enemy[x].type == RobotType.ARCHON ? move.distanceTo(enemy[x].location) * 99 : move.distanceTo(enemy[x].location), theDist);
+                    float theDist = -9999999;
+
+                    for (int x = enemies; x >= 0; x--) {
+                        switch (enemy[x].type) {
+                            case SOLDIER:
+                            case TANK:
+                                theDist = Math.max(move.distanceTo(enemy[x].location), theDist);
+                                break;
+                            case SCOUT:
+                            case GARDENER:
+                            case LUMBERJACK:
+                                theDist = Math.max(theDist, -move.distanceTo(enemy[x].location));
+                                break;
+                            case ARCHON:
+                                theDist = Math.max(theDist, -99 * move.distanceTo(enemy[x].location));
                         }
                     }
-                    if (enemies == -1) theDist = move.distanceTo(Nav.dest);
-                    if (damage < minDamage || damage == minDamage && theDist < minDist) {
+
+                    if (enemies == -1) theDist = -(pastTarget!=null && rc.getRoundNum()-pastTargetSet<20?move.distanceTo(pastTarget.location):move.distanceTo(Nav.dest));
+                    if (damage < minDamage || damage == minDamage && theDist > minDist) {
                         minDamage = damage;
                         best = move;
                         minDist = theDist;
@@ -323,6 +333,7 @@ public class Soldier {
         //System.out.println("Other: "+(Clock.getBytecodeNum()-newByte));
         return best;
     }
+
     static MapLocation oneMoveTwoDistMicro(RobotController rc, TreeInfo[] trees, RobotInfo[] friend, int friends, RobotInfo[] enemy, int enemies, BulletInfo[] allBullets) throws GameActionException {
         //int prebyte=Clock.getBytecodeNum();
         int nbullets = 0;
@@ -460,7 +471,6 @@ public class Soldier {
         //System.out.println("Other: "+(Clock.getBytecodeNum()-newByte));
         return best;
     }
-
 
 
     //we're using 30-45 for combat

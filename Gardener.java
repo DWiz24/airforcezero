@@ -64,7 +64,7 @@ public class Gardener {
     		
     		lumbers = rc.readBroadcast(2);
     		soldiers = rc.readBroadcast(3);
-    		System.out.println(lumbers + ", " + soldiers);
+    		//System.out.println(lumbers + ", " + soldiers);
     		
     		MapLocation myLocation = rc.getLocation();
     		int directionsICantPlant = 0, directionsICanPlant = 0;

@@ -7,7 +7,6 @@ public class Gardener {
     	final int roundSpawned = rc.getRoundNum();
     	int soldiers = 0, lumbers = 0, planted = 0, lastRoundPlanted = rc.getRoundNum();
     	int spotsINeed = 1;
-    	int scounts = 1;
     	int channel = -1;
     	int censusChannel = 1;
     	int id = rc.readBroadcast(censusChannel);
@@ -247,9 +246,9 @@ public class Gardener {
 	   			System.out.println("setting buildtree false");
 	   		}
 	   		
-			boolean needLumber = true;
-			if(!safe && directionsICanPlant > 1)
-				needLumber = false;
+			//boolean needLumber = true;
+			//if(!safe && directionsICanPlant > 1)
+			//	needLumber = false;
 			
 	   		for (Direction place : dirs) {
 				//if(sad!=null && rc.isLocationOccupied(sad.add(place)))
@@ -259,15 +258,14 @@ public class Gardener {
 					planted++;
 				}
 					//if(((rc.senseNearbyTrees(3f, Team.NEUTRAL).length > 1 && directionsICantPlant > 1) && (directionsICantPlant >= 4 || planted < 3)) && ((float)lumbers < (float)soldiers/(2f + rc.getRoundNum()/300f))) {
-					if((((rc.senseNearbyTrees(10f, Team.NEUTRAL).length > 0) && lumbers < 1) && needLumber)) {
+					if((((rc.senseNearbyTrees(10f, Team.NEUTRAL).length > 0) && lumbers < 1))) {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
 							rc.broadcast(2, rc.readBroadcast(2) + 1);
 						}
-					} else if(safe && soldiers > 1 && scounts > 0) {
+					} else if(safe && soldiers > 1 && rc.readBroadcast(5) < 2 && rc.getRoundNum() < 1500) {
 						if(rc.canBuildRobot(RobotType.SCOUT, place)) {
 							rc.buildRobot(RobotType.SCOUT, place);
-							scounts--;
 						}
 					} else {
 						if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {

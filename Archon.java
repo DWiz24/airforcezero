@@ -112,6 +112,8 @@ public class Archon {
         				{
         					lastHired = build;
         					rc.hireGardener(build);
+        					//MapLocation runFrom = myLoc.add(build, 3F);
+        					//build = build.opposite();
         					hired = true;
         					Direction[] test = {build.opposite(), build.rotateLeftDegrees(45F), build.rotateLeftDegrees(90F), build.rotateRightDegrees(45F), build.rotateRightDegrees(90F), build.rotateLeftDegrees(120F), build.rotateRightDegrees(120F)};
         					for(Direction t:test)
@@ -124,10 +126,11 @@ public class Archon {
         						}
         						if( count < 3 )
         							continue;*/
-        						if( rc.onTheMap(myLoc.add(t, 6F)) && !rc.isLocationOccupiedByTree(myLoc.add(t, 6F)) )
+        						if( rc.onTheMap(myLoc.add(t, 9.5F)) && !rc.isLocationOccupiedByTree(myLoc.add(t, 9.5F)) )
         						{
         							//System.out.println("set dest");
-        							destination = myLoc.add(t, 6F);	//runaway
+        							destination = myLoc.add(t, 9.5F);	//runaway
+        							//System.out.println("" + destination.x + " "+destination.y);
         							break;
         						}
         					}

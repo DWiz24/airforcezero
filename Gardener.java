@@ -7,7 +7,6 @@ public class Gardener {
     	final int roundSpawned = rc.getRoundNum();
     	int soldiers = 0, lumbers = 0, planted = 0, lastRoundPlanted = rc.getRoundNum();
     	int spotsINeed = 1;
-    	int scounts = 1;
     	int channel = -1;
     	int censusChannel = 1;
     	int id = rc.readBroadcast(censusChannel);
@@ -264,10 +263,9 @@ public class Gardener {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
 							rc.broadcast(2, rc.readBroadcast(2) + 1);
 						}
-					} else if(safe && soldiers > 1 && scounts > 0) {
+					} else if(safe && soldiers > 1 && rc.readBroadcast(5) < 2 && rc.getRoundNum() < 1500) {
 						if(rc.canBuildRobot(RobotType.SCOUT, place)) {
 							rc.buildRobot(RobotType.SCOUT, place);
-							scounts--;
 						}
 					} else {
 						if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {

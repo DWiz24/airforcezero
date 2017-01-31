@@ -7,12 +7,14 @@ public class Scout {
 	static int index = 0;
 	static int lastBroadcast = 0;
 	static MapLocation[] archons = null;
+	static boolean noSoldier = true;
     public static void run(RobotController rc) throws GameActionException 
     {
     	archons = rc.getInitialArchonLocations(rc.getTeam().opponent());
         while(true)
         {
-        	Soldier.shakeATree(rc);
+        	if( rc.canShake() )
+        		Soldier.shakeATree(rc);
         	
         	MapLocation me = rc.getLocation();
         	RobotInfo[] robots = rc.senseNearbyRobots();
@@ -65,6 +67,8 @@ public class Scout {
         		}
         	}
         	//find archon or gardener in range
+        	boolean foundTarget = false;
+        	int solCount = 0;
         	if( target == null )
         	{
         		for( int i = 0; i < robots.length; i++ )
@@ -72,14 +76,30 @@ public class Scout {
         			if( robots[i].getTeam().equals(rc.getTeam().opponent()) && (robots[i].getType().equals(RobotType.ARCHON) 
         					       					|| robots[i].getType().equals(RobotType.GARDENER)) )
         			{
+        				//System.out.println("Trying gardener and archon");
         				MapLocation temp = robots[i].getLocation();
         				float tempDist = temp.distanceTo(me);
-        				if( tempDist < 1F )
+        				//System.out.println("" + tempDist);
+        				if( tempDist < (robots[i].getRadius()+1.5F) && noSoldier && rc.canFireSingleShot() )
+        				{
+        					//System.out.println("Shooting");
+        					rc.fireSingleShot(me.directionTo(temp));
         					continue;
-        				target = temp;
-        				break;
+        				}
+        				if( !foundTarget )
+        				{
+        					target = temp;
+        					foundTarget = true;
+        				}
+        				
         			}
+        			else if( robots[i].getTeam().equals(rc.getTeam()) && robots[i].getType().equals(RobotType.SOLDIER) && robots[i].getLocation().distanceTo(me) < 7F)
+        				solCount++;
         		}
+        		if( solCount == 0 )
+            		noSoldier = true;
+            	else
+            		noSoldier = false;
         	}
         	//try initial archon locations
         	MapLocation[] archons = rc.getInitialArchonLocations(rc.getTeam().opponent());
@@ -94,20 +114,12 @@ public class Scout {
     				break;
         		}
         	}
-        	//System.out.println("" + target.x + "y: " + target.y);
+        	//Systemm.out.println("" + target.x + "y: " + target.y);
         	if( !ScoutNav.goToTarget(rc, target) )
         	{
-        		//if( target == null )
-        		//{
-        			//if( )
         			Direction rand = new Direction((float)Math.random() * 2 * (float)Math.PI);
         			if( rc.canMove(rand) )
         				rc.move(rand);
-        		//}
-        		//could not move - how to deal with this?
-        	    //move in a random direction between certain degrees depending on LR
-        		ScoutNav.compareLR(me, target);
-        		//no target
         	}
 			PublicMethods.donateBullets(rc);
             Clock.yield();

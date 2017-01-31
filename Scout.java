@@ -8,9 +8,6 @@ public class Scout {
 	static int lastBroadcast = 0;
 	static MapLocation[] archons = null;
 	static boolean noSoldier = true;
-	static boolean reflectTree = false;
-	static MapLocation startTree = null;
-	static boolean moved = false;
     public static void run(RobotController rc) throws GameActionException 
     {
     	archons = rc.getInitialArchonLocations(rc.getTeam().opponent());
@@ -52,8 +49,10 @@ public class Scout {
        					}
        				}
        				if( trees[i].containedBullets > 0 )
+       				{
        					target = temp;
-        			break;
+       					break;
+       				}
         		}
            	}
        		if( ((lastBroadcast == 0 || rc.getRoundNum()-lastBroadcast > 15) && trees.length>11) || robotTree )
@@ -118,13 +117,17 @@ public class Scout {
         	}
         	//try initial archon locations
         	MapLocation[] archons = rc.getInitialArchonLocations(rc.getTeam().opponent());
+        	int start = 0;
         	if( target == null && deadArchons != archons.length )
         	{
-        		for( int x = 0; x < archons.length; x++ )
+        		for( int x = start; x < archons.length; x++ )
         		{
         			float tempDist = archons[x].distanceTo(me);
-        			if( tempDist < 1F )
-    					continue;
+        			if( tempDist < 4F )
+        			{
+        				start = x;
+        				continue;
+        			}
     				target = archons[x];
     				break;
         		}

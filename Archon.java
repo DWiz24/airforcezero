@@ -166,7 +166,7 @@ public class Archon {
         		RobotInfo[] nearAll = rc.senseNearbyRobots(6F, rc.getTeam());
         		for( RobotInfo r: nearAll )
         		{
-        			if( r.type == RobotType.SOLDIER )
+        			if( r.type == RobotType.SOLDIER || r.type == RobotType.LUMBERJACK )
         			{
         				Direction goA = myLoc.directionTo(r.location);
         				Direction[] test = {goA.opposite(), goA.rotateRightDegrees(45F), goA.rotateLeftDegrees(90F), goA.rotateRightDegrees(90F)};

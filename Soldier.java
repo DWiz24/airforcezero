@@ -323,7 +323,7 @@ public class Soldier {
                     minDist = Math.max(minDist, -99 * loc.distanceTo(enemy[i].location));
             }
         }
-        if (enemies==-1) minDist=-(pastTarget!=null && rc.getRoundNum()-pastTargetSet<20?loc.distanceTo(pastTarget.location):loc.distanceTo(Nav.dest));
+        if (enemies==-1) minDist=-(pastTarget!=null && rc.getRoundNum()-pastTargetSet<16?loc.distanceTo(pastTarget.location):loc.distanceTo(Nav.dest));
         MapLocation best = rc.getLocation();
         Direction dir = Direction.getEast();
 
@@ -367,7 +367,7 @@ public class Soldier {
                         }
                     }
 
-                    if (enemies == -1) theDist = -(pastTarget!=null && rc.getRoundNum()-pastTargetSet<20?move.distanceTo(pastTarget.location):move.distanceTo(Nav.dest));
+                    if (enemies == -1) theDist = -(pastTarget!=null && rc.getRoundNum()-pastTargetSet<16?move.distanceTo(pastTarget.location):move.distanceTo(Nav.dest));
                     if (damage < minDamage || damage == minDamage && theDist > minDist) {
                         minDamage = damage;
                         best = move;
@@ -520,7 +520,42 @@ public class Soldier {
         return best;
     }
 
-
+    static void reportShootLocation(RobotInfo r,int rNum) throws GameActionException{
+        RobotController rc=Soldier.rc;
+        MapLocation loc=r.location;
+        int xpart = ((int) (r.location.x * 8)) << 19;
+        int ypart = ((int) (r.location.y * 8)) << 6;
+        int message = xpart | ypart | (int)(r.getRadius()+1);
+        daLoop:for (int i=202; i<220; i+=2) {
+            int mess=rc.readBroadcast(i);
+            int num=rc.readBroadcast(i+1);
+            gotoHacks: {
+                if (mess!=0 && rNum-num<6) {
+                    if (getShootLocation(mess).distanceTo(loc)<3) break gotoHacks;;
+                }
+                rc.broadcast(i,message);
+                switch(r.type) {
+                    case SOLDIER:
+                    case LUMBERJACK:
+                        rc.broadcast(i+1,rNum);
+                        break;
+                    case TANK:
+                    case ARCHON:
+                        rc.broadcast(i+1,rNum-10);
+                        break;
+                    case SCOUT:
+                        rc.broadcast(i+1,rNum+3);
+                        break;
+                    case GARDENER:
+                        rc.broadcast(i+1,i-3);
+                }
+                break daLoop;
+            }
+        }
+    }
+    static MapLocation getShootLocation(int m) {
+        return new MapLocation((m&0b11111111111110000000000000000000)/8.0f,(m&0b1111111111111000000)/8.0f);
+    }
     //we're using 30-45 for combat
     //30 holds the next location to update
     //info&(1<<7) tells whether this is an archon loc
@@ -663,7 +698,7 @@ public class Soldier {
                             } else {
                                 bestShot = a1.rotateRightDegrees((float) (0.001 + (degs - 0.001) * Math.random()));
                             }
-                            penta = rc.canFirePentadShot() && (degs > 61 || !(leftFriend && rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 600);
+                            penta = rc.canFirePentadShot() && (degs > 41 || !(leftFriend && rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 600)&& degs>0.05;
                         }
                     }
                     if (bestShot != null && d <= 2 + target.getRadius()) {
@@ -671,8 +706,8 @@ public class Soldier {
                     }
                 }
             }
-            if (pastTarget != null && bestShot == null && rc.canSensePartOfCircle(pastTarget.location, pastTarget.getRadius()))
-                pastTarget = null;
+            if (pastTarget != null && bestShot == null && rc.canSenseAllOfCircle(pastTarget.location, pastTarget.getRadius()+1))
+                pastTargetSet =Math.min(pastTargetSet,rc.getRoundNum()-11);
             if (bestShot == null && pastTarget != null && rc.getRoundNum() - pastTargetSet < 10) {
                 RobotInfo target = pastTarget;
                 float d = toMove.distanceTo(target.location);

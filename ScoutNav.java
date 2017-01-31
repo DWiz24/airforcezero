@@ -12,7 +12,6 @@ public class ScoutNav {
 			return false;
 		//direct path - best case
         Direction direct = me.directionTo(dest);
-        System.out.println("This works");
 		if (rc.canMove(direct)) 
 		{
 			rc.move(direct);
@@ -31,7 +30,6 @@ public class ScoutNav {
 			dirs = new Direction[] { direct, direct.rotateRightDegrees(45F), direct.rotateLeftDegrees(45F),
 					direct.rotateRightDegrees(90F), direct.rotateLeftDegrees(90F) };
 		}
-		System.out.println("asdkfasd");
 	    float currentDist = me.distanceTo(dest);
 	    for (Direction dir : dirs) 
 	    {

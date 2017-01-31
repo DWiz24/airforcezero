@@ -60,7 +60,7 @@ public class Tank {
                     //        //break gotoHack;
                     //    }
                     //}
-                    toMove = Nav.tankNav(rc, trees, robots);
+                    toMove = Nav.tankNav(rc, rc.senseNearbyTrees(2.51f), robots);
                 }
             }
             //System.out.println("Moving: " + (Clock.getBytecodeNum() - bcode));

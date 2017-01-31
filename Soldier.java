@@ -15,6 +15,7 @@ public class Soldier {
     static int stoppedCreeping = 0;
     static RobotInfo pastTarget = null;
     static int pastTargetSet = 0;
+    static int underFire=-1;
 
     public static void run(RobotController rc) throws GameActionException {
         initialEnemyLocs = rc.getInitialArchonLocations(rc.getTeam().opponent());
@@ -126,7 +127,7 @@ public class Soldier {
                             int m = rc.readBroadcast(i);
                             if (m != 0) {
                                 MapLocation map = getLocation(m);
-                                if (map.distanceTo(loc) < 8) {
+                                if (map.distanceTo(loc) < 6) {
                                     break gotoHacks;
                                 }
                             }
@@ -190,7 +191,7 @@ public class Soldier {
                 if ((m & 0b10000000) != 0) {
                     dist = 100 * (m & 0b1111111) + dist;
                 }
-                if (dist < minDist && dist > 7) {
+                if (dist < minDist && dist > 5) {
                     minDist = dist;
                     bestDest = map;
                     chan = i;
@@ -258,16 +259,17 @@ public class Soldier {
                 //double distB=; //1.570796+
                 //System.out.println(a+" "+ distB);
                 if (dist < 1.8 || 1.8 * Math.sin(Math.asin(dist * sintheta / 1.8) - radsBetween) / sintheta < minDist) {
-                    if (Math.asin(0.2 / dist) <= radsBetween || 0.2 * Math.sin(Math.asin(dist * sintheta / 0.2) - radsBetween) / sintheta > b.speed) {
+                    if (!(0.2 * Math.sin(Math.asin(dist * sintheta / 0.2) - radsBetween) / sintheta < b.speed)) {
                         dists[nbullets] = minDist;
                         //rc.setIndicatorLine(b.location, b.location.add(b.dir, minDist), 100, 100, 100);
+                        //rc.setIndicatorDot(b.location, 100, 100, 100);
                         bullets[nbullets++] = b;
                     }
                 }
             }
         }
         nbullets--;
-
+        if (nbullets!=-1) underFire=rc.getRoundNum();
         MapLocation[] jack = new MapLocation[enemies + 1];
         int jacks = -1;
         //int enemySoldiersNTanks = 0;
@@ -284,14 +286,14 @@ public class Soldier {
             float radsBetween = Math.abs(b.location.directionTo(loc).radiansBetween(b.dir));
             if (dist <= 1 || Math.asin(1 / dist) > radsBetween) {
                 double sintheta = Math.sin(radsBetween);
-                if (Math.sin(Math.asin(dist * sintheta) - radsBetween) / sintheta < Math.min(dists[k], b.speed) || 0.2 * Math.sin(Math.asin(dist * sintheta / 0.2) - radsBetween) / sintheta < dists[k])
+                if (dist<=1 || Math.sin(Math.asin(dist * sintheta) - radsBetween) / sintheta < Math.min(dists[k], b.speed) || 0.2 * Math.sin(Math.asin(dist * sintheta / 0.2) - radsBetween) / sintheta < dists[k])
                     minDamage += b.damage;
             }
         }
-
         for (int k = jacks; k >= 0; k--) {
             if (loc.distanceTo(jack[k]) <= 3.75) minDamage += 2;
         }
+        System.out.println(minDamage);
         //boolean attackOrRun = (enemySoldiersNTanks >= friends + 2) || (enemySoldiersNTanks > 0 && friends <= 1 && rc.getHealth() < 20);
         // true means run
         //if (attackOrRun) rc.setIndicatorDot(rc.getLocation(), 0, 0, 0);
@@ -317,7 +319,7 @@ public class Soldier {
         for (int i = 8; i > 0; i--) {
             //MapLocation move = rc.getLocation().add(dir, 1.9f);
             //if (!rc.isCircleOccupied(move,1))
-            MapLocation move = rc.getLocation().add(dir, 0.8f);
+            MapLocation move =loc.add(dir, 0.8f);
             if (rc.canMove(move)) {
                 int damage = 0;
                 for (int k = nbullets; k >= 0; k--) {
@@ -326,8 +328,9 @@ public class Soldier {
                     float radsBetween = Math.abs(b.location.directionTo(move).radiansBetween(b.dir));
                     if (dist <= 1 || Math.asin(1 / dist) > radsBetween) {
                         double sintheta = Math.sin(radsBetween);
-                        if (Math.sin(Math.asin(dist * sintheta) - radsBetween) / sintheta < Math.min(dists[k], b.speed) || 0.2 * Math.sin(Math.asin(dist * sintheta / 0.2) - radsBetween) / sintheta < dists[k])
+                        if (dist<=1 || Math.sin(Math.asin(dist * sintheta) - radsBetween) / sintheta < Math.min(dists[k], b.speed) || 0.2 * Math.sin(Math.asin(dist * sintheta / 0.2) - radsBetween) / sintheta < dists[k])
                             damage += b.damage;
+                            rc.setIndicatorDot(b.location,255,255,255);
                     }
                 }
 
@@ -644,7 +647,11 @@ public class Soldier {
                             bestPri = pri;
                             pastTarget = target;
                             pastTargetSet = rc.getRoundNum();
-                            bestShot = a1.rotateRightDegrees(degs);
+                            if (d-target.getRadius()<5) {
+                                bestShot = a1.rotateRightDegrees(degs);
+                            } else {
+                                bestShot = a1.rotateRightDegrees((float) (0.001 + (degs - 0.001) * Math.random()));
+                            }
                             penta = rc.canFirePentadShot() && (degs > 61 || !(leftFriend && rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 600);
                         }
                     }
@@ -724,7 +731,11 @@ public class Soldier {
                                 break;
                         }
                         if (pri < bestPri) {
-                            bestShot = a1.rotateRightDegrees(degs);
+                            if (d-target.getRadius()<5) {
+                                bestShot = a1.rotateRightDegrees(degs);
+                            } else {
+                                bestShot = a1.rotateRightDegrees((float) (0.001 + (degs - 0.001) * Math.random()));
+                            }
                             penta = rc.canFireTriadShot() && (degs > 61 || !(leftFriend && rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 600);
                         }
                     }
@@ -738,7 +749,7 @@ public class Soldier {
                 }
             }
         }
-        if (!rc.hasMoved() && !rc.hasAttacked()) {
+        if (rc.getRoundNum()!=underFire && !rc.hasMoved() && !rc.hasAttacked()) {
             if (!microCreeping) {
                 creepStart = rc.getRoundNum();
             }

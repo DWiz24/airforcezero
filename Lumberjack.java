@@ -19,6 +19,7 @@ public class Lumberjack {
     private static boolean printedThisTurn;
     private static int travelingChannel;
     private static MapLocation prevGardenerPos;
+    private static float prevHealth, health;
     static float limit;
 
     //channels
@@ -59,6 +60,7 @@ public class Lumberjack {
         locationsNear = false;
         prevGardenerPos = rc.getInitialArchonLocations(rc.getTeam())[0];    //in case gardener runs away
         limit = 0f;
+        prevHealth = health = rc.getHealth();
 
         //channels
         next = rc.readBroadcast(15);
@@ -71,8 +73,14 @@ public class Lumberjack {
         while (true) {
             //updating info about robots and trees around me
             updateInfo();
+            //health and census
+            prevHealth = health;
+            health = rc.getHealth();
+            if(PublicMethods.isAboutToDie(rc, prevHealth))
+                rc.broadcast(3, rc.readBroadcast(3)-1); //decrement census
+            //others
             next = rc.readBroadcast(15);
-            //System.out.print(next + ", " + prevNext);
+            //System.out.print(next);
             if (friendlyGardenerCount > 0) {
                 prevGardenerPos = friendlyGardeners[0].location;
             }

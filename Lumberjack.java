@@ -16,7 +16,7 @@ public class Lumberjack {
     //variables related to my robot's behavior
     private static MapLocation[] excludeLocations,  excludeTrees;
     private static int excludeLocationsSize, excludeTreesSize;
-    static boolean traveling, exploring, locationsNear, printedThisTurn;
+    static boolean traveling, exploring, locationsNear, printedThisTurn, agressive;
     private static int travelingChannel;
     static MapLocation prevGardenerPos;
     private static float prevHealth, health;
@@ -84,7 +84,7 @@ public class Lumberjack {
             prevHealth = health;
             health = rc.getHealth();
             if(PublicMethods.isAboutToDie(rc, prevHealth))
-                rc.broadcast(3, rc.readBroadcast(3)-1); //decrement census
+                rc.broadcast(2, rc.readBroadcast(2)-1); //decrement census
             //others
             next = rc.readBroadcast(15);
             //System.out.print(next);

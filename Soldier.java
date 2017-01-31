@@ -293,7 +293,7 @@ public class Soldier {
         for (int k = jacks; k >= 0; k--) {
             if (loc.distanceTo(jack[k]) <= 3.75) minDamage += 2;
         }
-        System.out.println(minDamage);
+        //System.out.println(minDamage);
         //boolean attackOrRun = (enemySoldiersNTanks >= friends + 2) || (enemySoldiersNTanks > 0 && friends <= 1 && rc.getHealth() < 20);
         // true means run
         //if (attackOrRun) rc.setIndicatorDot(rc.getLocation(), 0, 0, 0);

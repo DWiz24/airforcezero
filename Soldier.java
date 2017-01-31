@@ -23,10 +23,12 @@ public class Soldier {
     static int[] radii=new int[10];
     static int offScreenTargets=-1;
     private static boolean dead;
-
+    static MapLocation spawned=null;
+    //static boolean agressive=true;
     public static void run(RobotController rc) throws GameActionException {
         initialEnemyLocs = rc.getInitialArchonLocations(rc.getTeam().opponent());
         initialFriendLocs = rc.getInitialArchonLocations(rc.getTeam());
+        spawned=rc.getLocation();
         Lumberjack.prevGardenerPos = initialFriendLocs[0];    //in case gardener runs away
         pickDest();
         boolean oneArchon = initialEnemyLocs.length == 1;
@@ -36,12 +38,14 @@ public class Soldier {
         while (true) {
             //health and census
             prevHealth = health;
+            if (Nav.dest.distanceTo(rc.getLocation())<4) pickDest();
             health = rc.getHealth();
             if (!dead && PublicMethods.isAboutToDie(rc, prevHealth)) {
                 dead = true;
                 rc.broadcast(3, rc.readBroadcast(3) - 1); //decrement census
             }
             //System.out.println(bugging);
+            //agressive=rc.getLocation().distanceTo(Nav.dest)<rc.getLocation().distanceTo(spawned)+10;
             TreeInfo[] trees = rc.senseNearbyTrees();
             RobotInfo[] robots = rc.senseNearbyRobots();
             BulletInfo[] bullets = rc.senseNearbyBullets();
@@ -341,19 +345,22 @@ public class Soldier {
             }
         }
         if (enemies == -1) {
-            if (pastTarget != null && rc.getRoundNum() - pastTargetSet < 10)
-                minDist = -loc.distanceTo(pastTarget.location);
-            else {
-                float closestDist = 999;
-                for (int p = offScreenTargets; p >= 0; p--) {
-                    if (closestDist > loc.distanceTo(targets[p])) {
-                        closestDist = loc.distanceTo(targets[p]);
+
+                if (pastTarget != null && rc.getRoundNum() - pastTargetSet < 10)
+                    minDist = -loc.distanceTo(pastTarget.location);
+                else {
+                    float closestDist = 999;
+                    for (int p = offScreenTargets; p >= 0; p--) {
+                        if (closestDist > loc.distanceTo(targets[p])) {
+                            closestDist = loc.distanceTo(targets[p]);
+                        }
                     }
+                    if (closestDist != 999f) minDist = -closestDist;
+                    else minDist = -loc.distanceTo(Nav.dest);
                 }
-                if (closestDist != 999f) minDist = -closestDist;
-                else minDist = -loc.distanceTo(Nav.dest);
-            }
+
         }
+        if (friends!=-1) minDist+=loc.distanceTo(friend[0].location)/10.0f;
         MapLocation best = rc.getLocation();
         Direction dir = Direction.getEast();
 
@@ -397,8 +404,10 @@ public class Soldier {
                         }
                     }
 
-                    if (enemies == -1)
-                        if (pastTarget != null && rc.getRoundNum() - pastTargetSet < 16)theDist = - move.distanceTo(pastTarget.location);
+                    if (enemies == -1) {
+
+                        if (pastTarget != null && rc.getRoundNum() - pastTargetSet < 16)
+                            theDist = -move.distanceTo(pastTarget.location);
                         else {
                             float closestDist = 999;
                             for (int p = offScreenTargets; p >= 0; p--) {
@@ -409,6 +418,8 @@ public class Soldier {
                             if (closestDist != 999f) theDist = -closestDist;
                             else theDist = -move.distanceTo(Nav.dest);
                         }
+                    }
+                    if (friends!=-1) minDist+=move.distanceTo(friend[0].location)/10.0f;
                     if (damage < minDamage || damage == minDamage && theDist > minDist) {
                         minDamage = damage;
                         best = move;
@@ -895,11 +906,11 @@ public class Soldier {
                             pri *= 4;
                             break;
                     }
-                    if (pri < bestPri && (bullets.length > 12 || d < 4 || totalTrees > 1)) {
+                    if (pri < bestPri && (bullets.length > 20 || d < 4 || totalTrees > 3)) {
                         if (d - target.getRadius() < 5) {
                             bestShot = a1.rotateRightDegrees(degs);
                         } else {
-                            bestShot = a1.rotateRightDegrees((float) (0.001 + (degs - 0.001) * Math.random()));
+                            bestShot = a1.rotateRightDegrees((float) (0.01 + (degs - 0.01) * Math.random()));
                         }
                         penta = rc.canFireTriadShot() && (degs > 61 || !(leftFriend && rightFriend)) && (target.type == RobotType.SOLDIER || target.type == RobotType.TANK || d < 3.81f && target.type == RobotType.LUMBERJACK || rc.getRoundNum() > 600);
                     }
@@ -917,6 +928,15 @@ public class Soldier {
         if(rc.getRoundNum()!=underFire &&!rc.hasMoved()&&!rc.hasAttacked())
 
     {
+        for (int i=enemies; i>=0; i--) {
+            if (enemy[i].type==RobotType.GARDENER && rc.getLocation().distanceTo(enemy[i].location)<4.5) {
+                if (rc.getTeamBullets()>25) {
+                    rc.firePentadShot(rc.getLocation().directionTo(enemy[i].location));
+                    reportShootLocation(enemy[i],rc.getRoundNum());
+                    return;
+                }
+            }
+        }
         if (!microCreeping) {
             creepStart = rc.getRoundNum();
         }

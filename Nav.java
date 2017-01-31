@@ -203,7 +203,7 @@ class Nav {
                     MapLocation move = rc.getLocation().add(toDest, 0.75f);
 
                     //prevents clumping up near base
-                    if(Lumberjack.traveling && rc.canSenseAllOfCircle(dest, 1) && rc.isCircleOccupiedExceptByThisRobot(dest, 1)){
+                    if(Lumberjack.exploring && rc.canSenseAllOfCircle(dest, 1) && rc.isCircleOccupiedExceptByThisRobot(dest, 1)){
                         Lumberjack.pickDest(false);
                         lastMinUpdate=rc.getRoundNum();
                     }
@@ -293,7 +293,7 @@ class Nav {
                             MapLocation move = rc.getLocation().add(ndir, 0.75f);
 
                             //prevents clumping up near base
-                            if(Lumberjack.traveling && rc.canSenseAllOfCircle(dest, 1) && rc.isCircleOccupiedExceptByThisRobot(dest, 1)){
+                            if(Lumberjack.exploring && rc.canSenseAllOfCircle(dest, 1) && rc.isCircleOccupiedExceptByThisRobot(dest, 1)){
                                 Lumberjack.pickDest(false);
                                 lastMinUpdate=rc.getRoundNum();
                             }

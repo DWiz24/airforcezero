@@ -64,6 +64,7 @@ public class Gardener {
     		
     		lumbers = rc.readBroadcast(2);
     		soldiers = rc.readBroadcast(3);
+    		System.out.println(lumbers + ", " + soldiers);
     		
     		MapLocation myLocation = rc.getLocation();
     		int directionsICantPlant = 0, directionsICanPlant = 0;
@@ -254,7 +255,6 @@ public class Gardener {
 					if((((rc.senseNearbyTrees(10f, Team.NEUTRAL).length > 0) && lumbers < 1) || rc.readBroadcast(200) > 1)) {
 						if (rc.canBuildRobot(RobotType.LUMBERJACK, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.LUMBERJACK, place);
-							rc.broadcast(2, rc.readBroadcast(2) + 1);
 						}
 					} else if(safe && soldiers > 1 && rc.readBroadcast(5) < 2 && rc.getRoundNum() < 1500) {
 						if(rc.canBuildRobot(RobotType.SCOUT, place)) {
@@ -263,7 +263,6 @@ public class Gardener {
 					} else {
 						if (rc.canBuildRobot(RobotType.SOLDIER, place) && rc.isBuildReady()) {
 							rc.buildRobot(RobotType.SOLDIER, place);
-							rc.broadcast(3, rc.readBroadcast(3) + 1);
 						}
 					}
 					

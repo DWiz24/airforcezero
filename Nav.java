@@ -151,7 +151,6 @@ class Nav {
         return rc.getLocation();
     }
     static MapLocation lumberjackNav(RobotController rc, TreeInfo[] trees, RobotInfo[] robots, float[] treeDists, float[] robotDists, boolean hasStruck) throws GameActionException {
-        Lumberjack.printedThisTurn = true;
         if (dest == null || dest.equals(rc.getLocation())) {  //base case
             Lumberjack.pickDest(true);  //update upon reaching
             lastMinUpdate=rc.getRoundNum();
@@ -202,6 +201,12 @@ class Nav {
                 }
                 else {
                     MapLocation move = rc.getLocation().add(toDest, 0.75f);
+
+                    //prevents clumping up near base
+                    if(Lumberjack.traveling && rc.canSenseAllOfCircle(dest, 1) && rc.isCircleOccupiedExceptByThisRobot(dest, 1)){
+                        Lumberjack.pickDest(false);
+                        lastMinUpdate=rc.getRoundNum();
+                    }
 
                     TreeInfo[] blocking = rc.senseNearbyTrees(move, 1, null);
                     TreeInfo target = null;
@@ -286,6 +291,12 @@ class Nav {
                             return theMove;
                         } else {
                             MapLocation move = rc.getLocation().add(ndir, 0.75f);
+
+                            //prevents clumping up near base
+                            if(Lumberjack.traveling && rc.canSenseAllOfCircle(dest, 1) && rc.isCircleOccupiedExceptByThisRobot(dest, 1)){
+                                Lumberjack.pickDest(false);
+                                lastMinUpdate=rc.getRoundNum();
+                            }
 
                             TreeInfo[] blocking = rc.senseNearbyTrees(move, 1, null);
                             TreeInfo target = null;

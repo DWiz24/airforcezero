@@ -16,10 +16,7 @@ public class Lumberjack {
     //variables related to my robot's behavior
     private static MapLocation[] excludeLocations,  excludeTrees;
     private static int excludeLocationsSize, excludeTreesSize;
-    static boolean traveling;
-    static boolean locationsNear;
-    private static boolean exploring;
-    static boolean printedThisTurn;
+    static boolean traveling, exploring, locationsNear, printedThisTurn;
     private static int travelingChannel;
     static MapLocation prevGardenerPos;
     private static float prevHealth, health;
@@ -55,8 +52,8 @@ public class Lumberjack {
         rng = new Random(rc.getID());
 
         //variables related to my robot's behavior
-        excludeLocations = new MapLocation[10];
-        excludeTrees = new MapLocation[10];
+        excludeLocations = new MapLocation[25];
+        excludeTrees = new MapLocation[25];
         excludeLocationsSize = 0;
         excludeTreesSize = 0;
         printedThisTurn = false;
@@ -658,15 +655,15 @@ public class Lumberjack {
 
         if(reached){
             //reset
-            excludeLocations = new MapLocation[10];
-            excludeTrees = new MapLocation[10];
+            excludeLocations = new MapLocation[25];
+            excludeTrees = new MapLocation[25];
             excludeLocationsSize = 0;
             excludeTreesSize = 0;
         }
         else if (!exploring){
             //add to exclusions
             if(traveling){
-                if(excludeLocationsSize != 10) {
+                if(excludeLocationsSize != 25) {
                     excludeLocations[excludeLocationsSize] = Nav.dest;
                     excludeLocationsSize++;
                 }
@@ -675,7 +672,7 @@ public class Lumberjack {
                 }
             }
             else{
-                if(excludeTreesSize != 10) {
+                if(excludeTreesSize != 25) {
                     excludeTrees[excludeTreesSize] = Nav.dest;
                     excludeTreesSize++;
                 }

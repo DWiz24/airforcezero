@@ -38,7 +38,12 @@ public class Soldier {
         while (true) {
             //health and census
             prevHealth = health;
-            if (Nav.dest.distanceTo(rc.getLocation())<4) pickDest();
+            if (Nav.dest.distanceTo(rc.getLocation())<4) {
+                if (Soldier.importantDest) {
+                    rc.broadcast(Soldier.whichDest, 0);
+                }
+                Soldier.pickDest();
+            }
             health = rc.getHealth();
             if (!dead && PublicMethods.isAboutToDie(rc, prevHealth)) {
                 dead = true;
